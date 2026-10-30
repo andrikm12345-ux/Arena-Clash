@@ -5,7 +5,7 @@ import {makeWorld} from '../tests/harness.mjs';
 const n = +process.argv[2] || 300, lvl = process.argv[3] || 'normal';
 const w = makeWorld(), stat = {};
 for (let i = 0; i < n; i++) {
-  const r = w.run(`(()=>{const mk=()=>{const d=shuffleV(CARD_IDS.filter(k=>!CARDS[k].ability)).slice(0,7);d.push(pickV(CARD_IDS.filter(k=>CARDS[k].tg==='b'&&!d.includes(k))));const lv={};for(const k of d)lv[k]=11;return{d,lv}};
+  const r = w.run(`(()=>{const mk=()=>{const d=shuffleV(CARD_IDS.filter(k=>!CARDS[k].ability)).slice(0,7);if(!d.some(k=>CARDS[k].tg==='b')){const w=CARD_IDS.filter(k=>CARDS[k].tg==='b'&&!CARDS[k].ability);d.push(pickV(w))}else d.push(pickV(CARD_IDS.filter(k=>!d.includes(k)&&!CARDS[k].ability)));const lv={};for(const k of d)lv[k]=11;return{d,lv}};
     const A=mk(),B=mk();newMatch({decks:[A.d,B.d],lv:[A.lv,B.lv],kl:[11,11],bots:['${lvl}','${lvl}'],seed:${i + 1}});
     let t=0;while(!G.over&&t<CFG.sim.hz*400){step(TICK);t++}return{a:A.d,b:B.d,res:G.res}})()`);
   for (const [deck, side] of [[r.a, 0], [r.b, 1]]) for (const k of deck) {
