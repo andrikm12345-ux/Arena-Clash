@@ -316,7 +316,7 @@ function tip(k){if(P.st.games>=3||P.hints.includes(k)||!$('#tip').hidden||!$('#h
 function tips(){if(P.st.games>=3||G.over)return;const S=G.side[0];
  if(S.el>=10)tip('full');if(G.U.some(u=>u.tm===1&&u.y>RY+RIV))tip('enemy');if(sel!=null&&S.hand[sel]&&CARDS[S.hand[sel]].type==='spell')tip('spell');
  if(G.T.some(t=>t.tm===1&&t.kind==='p'&&t.hp<=0))tip('tower');if(G.T.some(t=>t.tm===1&&t.kind==='k'&&t.act))tip('king');
- if(elRate()>1&&!G.ot)tip('double');if(G.ot)tip('ot');if(S.champ&&alive(S.champ))tip('champ')}
+ if(elRate()>=2&&!G.ot)tip('double');if(G.ot)tip('ot');if(S.champ&&alive(S.champ))tip('champ')}
 const OV=$('#ov');
 function showOv(html){OV.innerHTML=html;OV.classList.add('on')}
 function hideOv(){OV.classList.remove('on');OV.innerHTML=''}

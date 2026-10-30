@@ -1217,6 +1217,9 @@ const US3=1.65;
 const HEIGHT={bats:2.1,drake:2.5,airship:3.1,wisp:.7};
 
 /* спаять части персонажа в одну модель на общем скелете: один вызов отрисовки вместо десятка */
+let OUTM=null;
+function outlineMat(){if(OUTM)return OUTM;OUTM=new T.MeshBasicMaterial({color:'#20182a',side:T.BackSide});
+ OUTM.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>','vec3 transformed=vec3(position)+normal*.028;')};return OUTM}
 function bake(key,tm){const id=key+tm;if(A3.tpl[id])return A3.tpl[id];const V=VIS[key],gl=A3.gl[V.m],src=gl.scene;src.updateMatrixWorld(true);
  let skin=null;const parts=[],glow=[];
  src.traverse(o=>{if(!o.isMesh)return;if(o.isSkinnedMesh){(o.material.name==='Glow'?glow:parts).push(o);if(!skin)skin=o}else if(V.keep.includes(o.name))parts.push(o)});
@@ -1245,7 +1248,9 @@ function bake(key,tm){const id=key+tm;if(A3.tpl[id])return A3.tpl[id];const V=VI
  const bm={};tpl.traverse(o=>{if(o.isBone)bm[o.name]=o});const tb=bones.map(b=>bm[b.name]);
  const mk=(gs,mat)=>{const m=new T.SkinnedMesh(T3.BufferGeometryUtils.mergeGeometries(gs),mat);m.castShadow=true;m.frustumCulled=false;tpl.add(m);m.bind(new T.Skeleton(tb,bones.map(x=>x.matrixWorld.clone().invert())),new T.Matrix4());return m};
  tpl.updateMatrixWorld(true);
- mk(geos,palette(V.m,tm,V.tint));
+ const body=mk(geos,palette(V.m,tm,V.tint));
+ // мультяшная обводка: та же сетка, раздутая по нормалям и вывернутая наизнанку
+ if(SET.fx!=='low'){const om=new T.SkinnedMesh(body.geometry,outlineMat());om.frustumCulled=false;om.userData.outline=1;tpl.add(om);om.bind(body.skeleton,body.bindMatrix)}
  if(glow.length)mk(glow.map(geo),new T.MeshStandardMaterial({color:'#ffd27a',emissive:tm?'#ff5a3c':'#7fd4ff',emissiveIntensity:2.2}));
  if(V.crown){const c=crown();const head=tb.find(b=>b.name==='head');if(head)head.add(c)}
  tpl.scale.setScalar(V.s*US3);tpl.userData.V=V;
@@ -1572,7 +1577,7 @@ function syncZones(now){const seen=new Set();for(const z of G.Z){seen.add(z);let
 /* карты в пути: полупрозрачный призрак и кольцо отсчёта (в слое поверх) */
 function ghostModel(key,tm){const c=CARDS[key],vk=c.unit||key,id=vk+tm;if(A3.ghost[id])return T3.SkeletonUtils.clone(A3.ghost[id]);
  let m;if(PROC[vk]||c.type==='building')m=procModel(vk,tm);else{const tpl=bake(vk,tm);m=T3.SkeletonUtils.clone(tpl);m.scale.copy(tpl.scale)}
- m.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.transparent=true;o.material.opacity=.45;o.material.depthWrite=false;o.castShadow=false}});
+ m.traverse(o=>{if(o.userData.outline){o.visible=false;return}if(o.isMesh){o.material=o.material.clone();o.material.transparent=true;o.material.opacity=.45;o.material.depthWrite=false;o.castShadow=false}});
  const w=new T.Group();if(HEIGHT[vk])m.position.y=HEIGHT[vk];w.add(m);A3.ghost[id]=w;return T3.SkeletonUtils.clone(w)}
 function syncPending(now){const seen=new Set();for(const d of G.D){seen.add(d);let v=S3.pend.get(d);
   if(!v){v=new T.Group();const c=CARDS[d.key];if(!c.tunnel){for(const[px,py]of formation(d.key,d.x,d.y)){const m=ghostModel(d.key,d.tm);m.position.x=W3(px);m.position.z=Z3(py);m.rotation.y=d.tm?0:Math.PI;v.add(m)}}
@@ -2326,7 +2331,7 @@ function tip(k){if(P.st.games>=3||P.hints.includes(k)||!$('#tip').hidden||!$('#h
 function tips(){if(P.st.games>=3||G.over)return;const S=G.side[0];
  if(S.el>=10)tip('full');if(G.U.some(u=>u.tm===1&&u.y>RY+RIV))tip('enemy');if(sel!=null&&S.hand[sel]&&CARDS[S.hand[sel]].type==='spell')tip('spell');
  if(G.T.some(t=>t.tm===1&&t.kind==='p'&&t.hp<=0))tip('tower');if(G.T.some(t=>t.tm===1&&t.kind==='k'&&t.act))tip('king');
- if(elRate()>1&&!G.ot)tip('double');if(G.ot)tip('ot');if(S.champ&&alive(S.champ))tip('champ')}
+ if(elRate()>=2&&!G.ot)tip('double');if(G.ot)tip('ot');if(S.champ&&alive(S.champ))tip('champ')}
 const OV=$('#ov');
 function showOv(html){OV.innerHTML=html;OV.classList.add('on')}
 function hideOv(){OV.classList.remove('on');OV.innerHTML=''}
