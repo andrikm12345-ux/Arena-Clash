@@ -11,7 +11,7 @@ function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.rand
    if(kind==='p'){const q=TT[tt[tm]]||TT.archer,t=T[T.length-1];t.hp=t.mx=Math.round(hp*q.hp);t.dmg=Math.round(t.dmg*q.dmg);t.hit*=q.hit;t.pk=q.pk;t.tt=tt[tm];if(q.mag){t.mag=t.ammo=q.mag;t.reload=q.reload}}}}
  G={seed,simR,log:[],replay:o.replay||null,rpi:0,setup:null,mc,tick:0,downs:[],tb:null,t:0,ot:0,otT:0,over:0,res:-1,endAt:0,crowns:[0,0],U:[],B:[],T,PR:[],FX:[],Z:[],D:[],S:[],PT:[],TX:[],DEC:[],EM:[],CF:[],shake:0,
   side:[0,1].map(tm=>mkSide(tm,o.decks[tm],o.lv[tm],o.kl[tm],o.ex&&o.ex[tm],mc.elStart)),mode:o.mode||'normal',bots:[0,1].map(tm=>o.bots[tm]?mkBot(tm,o.bots[tm]):null),
-  names:o.names||['Ты','Соперник'],train:!!o.train,stats:[0,1].map(()=>({dmg:0,spent:0,played:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
+  names:o.names||['Ты','Соперник'],train:!!o.train,stats:[0,1].map(()=>({dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
  G.side.forEach((S,tm)=>{S.elMul=o.elMul?o.elMul[tm]:G.bots[tm]?G.bots[tm].s.el:1});
  G.bots.forEach((b,tm)=>{if(b){b.r=mul(seed*31+tm+7);b.think=1.2+b.r()*1.3;b.lane=b.r()<.5?0:1}});
  G.setup={elMul:G.side.map(S=>S.elMul),decks:o.decks,lv:o.lv,kl:o.kl,mode:o.mode||'normal',ex:o.ex||null,tt:o.tt||null,thp:o.thp||null,seed,names:G.names,train:G.train};
@@ -51,7 +51,7 @@ function cardBlocked(tm,key){const S=G.side[tm];if(!key)return true;return!!(isA
 /* все розыгрыши и способности идут журналом команд: tk — тик, ph — 0 до тика (игрок), 1 — в фазе ботов */
 function playCard(tm,i,x,y){const R0=RNG;RNG=G.simR;let ok;try{ok=doPlay(tm,i,x,y)}finally{RNG=R0}if(ok)G.log.push({k:'p',tk:G.tick,ph:G.inBots?1:0,tm,i,x,y});return ok}
 function doPlay(tm,i,x,y){const S=G.side[tm],key=S.hand[i],c=CARDS[key];if(G.tb||G.over||!key||S.el<c.cost||cardBlocked(tm,key)||!canPlace(tm,key,x,y))return false;
- S.el-=c.cost;G.stats[tm].spent+=c.cost;G.stats[tm].played++;S.hand[i]=null;S.pend.push({i,key:S.queue.shift(),t:CFG.hand.delay[elRate()]||CFG.hand.delay[1]});if(isAb(S,key))S.champCard=key;else S.queue.push(key);S.last={x,y,key,t:G.t};
+ S.el-=c.cost;G.stats[tm].spent+=c.cost;G.stats[tm].played++;if(c.type==='spell')G.stats[tm].spells++;S.hand[i]=null;S.pend.push({i,key:S.queue.shift(),t:CFG.hand.delay[elRate()]||CFG.hand.delay[1]});if(isAb(S,key))S.champCard=key;else S.queue.push(key);S.last={x,y,key,t:G.t};
  let fl=null;if(key===S.evo){if(S.evoN>=EVO[key].cyc){fl={evo:1};S.evoN=0}else S.evoN++}else if(key===S.hero)fl={hero:1};
  deploy(tm,key,x,y,fl);return true}
 function deploy(tm,key,x,y,fl){const c=CARDS[key],lvl=G.side[tm].lv[key]||1;fl=fl||null;
@@ -114,27 +114,40 @@ function findTarget(u){const c=u.c,sight=sightOf(c)*TILE;let best=null,bd=1e9;
  for(const o of G.B)if(o.tm!==u.tm&&alive(o)){const d=pathDist(u,o);if(d<bd){bd=d;best=o}}
  for(const o of G.T)if(o.tm!==u.tm&&o.hp>0){const d=pathDist(u,o);if(d<bd){bd=d;best=o}}
  return best}
-/* ---------- поиск пути по тайлам ----------
-   Непроходимы: река (кроме мостов, для прыгунов — проходима), живые башни и здания, кроме самой цели.
-   8 направлений без срезания углов. Сетка препятствий собирается раз за тик. */
-const GW=CFG.arena.tilesW,GH=CFG.arena.tilesH;
-function obstacleGrid(){if(G.grid&&G.gridTick===G.tick)return G.grid;const g=new Int32Array(GW*GH);
- for(const o of G.T)if(o.hp>0)markObs(g,o);for(const o of G.B)if(alive(o))markObs(g,o);G.grid=g;G.gridTick=G.tick;return g}
+/* ---------- поиск пути по тайлам: поля расстояний ----------
+   Непроходимы: река (кроме мостов; прыгунам — проходима), живые башни и здания, кроме самой цели.
+   Для каждой цели (башня, здание или тайл, где стоит юнит) строится поле расстояний алгоритмом Дейкстры
+   по 8 направлениям без срезания углов. Поля общие для всех юнитов и живут, пока не изменился набор препятствий. */
+const GW=CFG.arena.tilesW,GH=CFG.arena.tilesH,GN=GW*GH;
+const RIVER=(()=>{const m=new Uint8Array(GN);for(let ty=0;ty<GH;ty++)for(let tx=0;tx<GW;tx++){const cy=(ty+.5)*TILE,cx=(tx+.5)*TILE;
+ m[ty*GW+tx]=Math.abs(cy-RY)<RIV&&!BR.some(b=>Math.abs(cx-b)<=CFG.arena.bridgeHalf*TILE*.5)?1:0}return m})();
+function obstacleGrid(){if(G.grid&&G.gridTick===G.tick)return G.grid;const g=new Int32Array(GN);let sig='';
+ for(const o of G.T)if(o.hp>0){markObs(g,o);sig+=o.id+','}for(const o of G.B)if(alive(o)){markObs(g,o);sig+=o.id+','}
+ if(sig!==G.gridSig){G.gridSig=sig;G.fields=new Map()}G.grid=g;G.gridTick=G.tick;return g}
 function markObs(g,o){const r=o.r+6;for(let ty=Math.max(0,Math.floor((o.y-r)/TILE));ty<=Math.min(GH-1,Math.floor((o.y+r)/TILE));ty++)
  for(let tx=Math.max(0,Math.floor((o.x-r)/TILE));tx<=Math.min(GW-1,Math.floor((o.x+r)/TILE));tx++){const cx=(tx+.5)*TILE,cy=(ty+.5)*TILE;if(Math.abs(cx-o.x)<r&&Math.abs(cy-o.y)<r)g[ty*GW+tx]=o.id}}
-const riverTile=(tx,ty)=>{const cy=(ty+.5)*TILE;if(Math.abs(cy-RY)>=RIV)return false;const cx=(tx+.5)*TILE;return!BR.some(b=>Math.abs(cx-b)<=CFG.arena.bridgeHalf*TILE*.5)};
-function passable(g,u,tx,ty,tid){if(tx<0||ty<0||tx>=GW||ty>=GH)return false;const o=g[ty*GW+tx];if(o&&o!==tid)return false;return u.c.jump||!riverTile(tx,ty)}
-function findPath(u,t){const g=obstacleGrid(),sx=clamp(Math.floor(u.x/TILE),0,GW-1),sy=clamp(Math.floor(u.y/TILE),0,GH-1),ex=clamp(Math.floor(t.x/TILE),0,GW-1),ey=clamp(Math.floor(t.y/TILE),0,GH-1),tid=t.id;
- const N=GW*GH,gs=new Float32Array(N).fill(1e9),from=new Int32Array(N).fill(-1),done=new Uint8Array(N),open=[sy*GW+sx];gs[sy*GW+sx]=0;
- const h=i=>{const dx=Math.abs(i%GW-ex),dy=Math.abs((i/GW|0)-ey);return Math.max(dx,dy)+.414*Math.min(dx,dy)};
- let found=-1,iter=0;
- while(open.length&&iter++<N*2){let bi=0,bf=1e9;for(let k=0;k<open.length;k++){const f=gs[open[k]]+h(open[k]);if(f<bf){bf=f;bi=k}}
-  const c=open[bi];open[bi]=open[open.length-1];open.pop();if(done[c])continue;done[c]=1;
-  const cx=c%GW,cy=c/GW|0;if(cx===ex&&cy===ey){found=c;break}
+const riverTile=(tx,ty)=>RIVER[ty*GW+tx]===1;
+function passable(g,u,tx,ty,tid){if(tx<0||ty<0||tx>=GW||ty>=GH)return false;const i=ty*GW+tx,o=g[i];if(o&&o!==tid)return false;return!!u.c.jump||!RIVER[i]}
+const tileOf=o=>clamp(Math.floor(o.y/TILE),0,GH-1)*GW+clamp(Math.floor(o.x/TILE),0,GW-1);
+/* поле расстояний до цели t (для прыгунов — отдельное, река им не мешает) */
+function fieldFor(u,t){const g=obstacleGrid(),stat=t.obj!=='u',key=(stat?'o'+t.id:'t'+tileOf(t))+(u.c.jump?'j':'');let F=G.fields.get(key);if(F)return F;
+ F=new Float32Array(GN).fill(1e9);const heap=[],push=(i,d)=>{heap.push([d,i]);let k=heap.length-1;while(k){const p=(k-1)>>1;if(heap[p][0]<=heap[k][0])break;[heap[p],heap[k]]=[heap[k],heap[p]];k=p}},
+  pop=()=>{const top=heap[0],last=heap.pop();if(heap.length){heap[0]=last;let k=0;for(;;){const l=2*k+1,r=l+1;let m=k;if(l<heap.length&&heap[l][0]<heap[m][0])m=l;if(r<heap.length&&heap[r][0]<heap[m][0])m=r;if(m===k)break;[heap[m],heap[k]]=[heap[k],heap[m]];k=m}}return top};
+ const tid=stat?t.id:-1,pu={c:{jump:u.c.jump}};
+ if(stat){for(let i=0;i<GN;i++)if(g[i]===t.id){F[i]=0;push(i,0)}}
+ if(!heap.length){const i=tileOf(t);F[i]=0;push(i,0)}
+ while(heap.length){const[d,c]=pop();if(d>F[c])continue;const cx=c%GW,cy=c/GW|0;
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const nx=cx+dx,ny=cy+dy;
-   if(!passable(g,u,nx,ny,tid))continue;if(dx&&dy&&(!passable(g,u,cx+dx,cy,tid)||!passable(g,u,cx,cy+dy,tid)))continue;
-   const ni=ny*GW+nx,ng=gs[c]+(dx&&dy?1.414:1);if(ng<gs[ni]){gs[ni]=ng;from[ni]=c;open.push(ni)}}}
- if(found<0)return null;const P=[];for(let i=found;i>=0&&i!==sy*GW+sx;i=from[i])P.push({x:(i%GW+.5)*TILE,y:((i/GW|0)+.5)*TILE});P.reverse();return P}
+   if(!passable(g,pu,nx,ny,tid))continue;if(dx&&dy&&(!passable(g,pu,cx+dx,cy,tid)||!passable(g,pu,cx,cy+dy,tid)))continue;
+   const ni=ny*GW+nx,nd=d+(dx&&dy?1.414:1);if(nd<F[ni]){F[ni]=nd;push(ni,nd)}}}
+ G.fields.set(key,F);return F}
+/* следующая точка пути: спуск по полю на несколько шагов (для отладки путь сохраняется в u.path) */
+function findPath(u,t){const F=fieldFor(u,t),g=obstacleGrid(),tid=t.obj!=='u'?t.id:-1,P=[];let c=tileOf(u);
+ for(let n=0;n<6;n++){const cx=c%GW,cy=c/GW|0;let best=-1,bd=F[c];
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=GW||ny>=GH)continue;const ni=ny*GW+nx;
+   if(F[ni]>=bd)continue;if(dx&&dy&&(!passable(g,u,cx+dx,cy,tid)||!passable(g,u,cx,cy+dy,tid)))continue;bd=F[ni];best=ni}
+  if(best<0||F[best]>=1e9)break;c=best;P.push({x:(c%GW+.5)*TILE,y:((c/GW|0)+.5)*TILE});if(F[c]===0)break}
+ return P.length?P:null}
 /* прямая видимость по сетке: можно ли идти по отрезку, не задевая препятствий */
 function clearLine(u,a,b,tid){const g=obstacleGrid(),n=Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/(TILE*.4));
  for(let i=1;i<=n;i++){const x=a.x+(b.x-a.x)*i/n,y=a.y+(b.y-a.y)*i/n;if(!passable(g,u,Math.floor(x/TILE),Math.floor(y/TILE),tid))return false}return true}
@@ -142,9 +155,8 @@ function bestBridge(u,t){let bx=BR[0],m=1e9;for(const b of BR){const d=Math.hypo
 /* куда идти сейчас: летуны — прямо; наземные — по пути из тайлов, срезая видимые участки */
 function goal(u,t){if(u.fly)return t;
  if(clearLine(u,u,t,t.id)){u.path=null;return t}
- if(!u.path||u.pathTg!==t||G.t-u.pathT>CFG.unit.replan){u.path=findPath(u,t);u.pathTg=t;u.pathT=G.t}
- const P=u.path;if(P&&P.length){while(P.length>1&&(dist(u,P[0])<6||clearLine(u,u,P[1],t.id)))P.shift();if(dist(u,P[0])<3&&P.length===1)P.shift();if(P.length)return P[0]}
- return goalLane(u,t)}
+ const P=findPath(u,t);u.path=P;if(!P)return goalLane(u,t);
+ let k=0;while(k<P.length-1&&clearLine(u,u,P[k+1],t.id))k++;return P[k]}
 function goalLane(u,t){if(u.c.jump){if(Math.abs(u.y-RY)<RIV+8&&!u.jmp){u.jmp=1;AU.sfx('charge')}if(Math.abs(u.y-RY)>=RIV+8)u.jmp=0;return t}const dy=u.y-RY,s=Math.sign(dy)||1,s2=Math.sign(t.y-RY)||s;
  if(Math.abs(dy)>RIV+6&&s===s2){u.bx=null;return t}
  if(u.bx==null)u.bx=bestBridge(u,t);const bx=u.bx;
@@ -197,7 +209,7 @@ function slowObj(o,s){if(o.obj!=='u')return;o.slowT=Math.max(o.slowT,s.t);o.slow
 function damage(o,d,fromTm){if(G.over||d<=0)return;if(!aliveT(o))return;
  if(o.shield>0){const a=Math.min(o.shield,d);o.shield-=a;d-=a;if(o.shield<=0)puff(o.x,o.y-12,'#ffe9a8',8,40,2);if(d<=0){o.fl=.08;return}}
  if(o.obj==='t')G.stats[fromTm].dmg+=Math.min(d,o.hp);
- o.hp-=d;o.fl=.1;
+ o.hp-=d;o.fl=.1;if(d>=CFG.juice.heavyHit&&o.obj!=='b')G.hitstop=CFG.juice.hitStop;
  if(o.obj==='t'){if(d>=25)floatText(o.x+rnd(-8,8),o.y-o.r-8,Math.round(d),o.tm?'#fff':'#ffd2cc');if(o.kind==='k')wakeKing(o);if(o.hp<=0){o.hp=0;towerDown(o)}}}
 function wakeKing(k){if(k.act)return;k.act=1;k.wake=CFG.tower.k.wakeAim;AU.sfx('wake');floatText(k.x,k.y+(k.tm?k.r+16:-k.r-16),'Король проснулся!','#ffd27a',12)}
 function crownsOf(tm){let c=0;for(const t of G.T)if(t.tm!==tm&&t.hp<=0)c+=t.kind==='k'?3:1;return Math.min(3,c)}
@@ -215,7 +227,7 @@ function finish(res){if(G.over)return;G.over=1;G.res=res;G.endAt=(typeof perform
 function resolveDowns(){if(!G.downs.length||G.over)return;const d=G.downs;G.downs=[];
  const kings=[0,1].filter(tm=>d.some(x=>x.tm===tm&&x.kind==='k'));
  if(kings.length===2)return finish(2);
- if(kings.length===1){const lose=kings[0],win=1-lose;for(const t of G.T)if(t.tm===lose&&t.hp>0){t.hp=0;t.dead=1;puff(t.x,t.y,'#8d8577',24,90,4)}G.crowns[win]=3;return finish(win)}
+ if(kings.length===1){const lose=kings[0],win=1-lose;for(const t of G.T)if(t.tm===lose&&t.hp>0){t.hp=0;t.dead=1;puff(t.x,t.y,'#8d8577',24,90,4)}G.crowns[win]=3;G.slowmo=CFG.juice.kingSlow;return finish(win)}
  if(G.ot||G.mc.sudden){const sides=[...new Set(d.map(x=>x.tm))];if(sides.length===1)finish(1-sides[0])}}
 /* тайбрейкер: войска исчезают, все башни синхронно теряют HP; проигрывает владелец самой слабой башни, равные — ничья */
 function startTiebreak(){for(const u of G.U)puff(u.x,u.y,'#e8e0cb',6,40,2.4);G.U=[];G.B=[];G.PR=[];G.Z=[];G.D=[];G.S=[];
@@ -268,7 +280,7 @@ function separate(){const L=G.U;
 function pushOut(a,o){const dx=a.x-o.x,dy=a.y-o.y,d=Math.hypot(dx,dy),m=o.r+a.r*.6;if(d<m&&d>.01){a.x+=dx/d*(m-d);a.y+=dy/d*(m-d)}}
 
 /* ---------- эффекты ---------- */
-function puff(x,y,col,n,sp,size){if(!G)return;if(REDUCE)n=Math.ceil(n/3);for(let i=0;i<n;i++){const a=rnd(0,6.28),s=rnd(.3,1)*sp;G.PT.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-sp*.15,l:0,m:rnd(.35,.8),c:col,s:size*rnd(.6,1.2)})}if(G.PT.length>500)G.PT.splice(0,G.PT.length-500)}
+function puff(x,y,col,n,sp,size){if(!G)return;if(REDUCE||SET.fx==='low')n=Math.ceil(n/3);for(let i=0;i<n;i++){const a=rnd(0,6.28),s=rnd(.3,1)*sp;G.PT.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-sp*.15,l:0,m:rnd(.35,.8),c:col,s:size*rnd(.6,1.2)})}if(G.PT.length>500)G.PT.splice(0,G.PT.length-500)}
 function ring(x,y,r,col){G.FX.push({k:'ring',x,y,r,l:0,m:.4,c:col})}
 function boomFx(x,y,r){ring(x,y,r*1.3,'#ffb347');ring(x,y,r*.7,'#fff3c0');G.DEC.push({x,y,r:r*.7,l:6});for(let i=0;i<24;i++)puff(x,y,['#ffb347','#ff6a1a','#fff3c0','#6a3b22'][i%4],1,rnd(40,120),rnd(2,4.5));G.shake=Math.max(G.shake,6);AU.sfx('boom')}
 function floatText(x,y,txt,col,size){G.TX.push({x,y,t:txt,c:col||'#fff',l:0,m:1,s:size||11})}
@@ -313,4 +325,4 @@ function fxStep(dt){for(const f of G.FX)f.l+=dt;G.FX=G.FX.filter(f=>f.l<f.m);
  for(const d of G.DEC)d.l-=dt;G.DEC=G.DEC.filter(d=>d.l>0);
  for(const e of G.EM)e.l+=dt;G.EM=G.EM.filter(e=>e.l<e.m);
  for(const f of G.CF){f.l+=dt;f.x+=f.vx*dt+Math.sin(f.l*4+f.r)*12*dt;f.y+=f.vy*dt;f.vy+=24*dt;f.r+=f.vr*dt}G.CF=G.CF.filter(f=>f.l<f.m);
- G.shake=Math.max(0,G.shake-dt*28)}
+ G.shake=Math.max(0,G.shake-dt*CFG.juice.shakeDecay)}

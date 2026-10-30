@@ -16,6 +16,8 @@ const CFG={
  tower:{baseLevel:11,lvMul:1.1,            // цифры ниже — для уровня 11, +10% за уровень
   p:{hp:3052,dmg:109,hit:.8,rng:7.5,r:24},
   k:{hp:4824,dmg:109,hit:1,rng:7,r:32,wakeAim:3.3,wakeShot:.7}},
+ juice:{heavyHit:500,hitStop:.05,kingSlow:.5,slowScale:.25,shakeDecay:60}, // хит-стоп на ударах от heavyHit урона; замедление при падении короля
+ music:{battle:{bpm:112,key:0},ot:{bpm:140,key:2},menu:{bpm:84,key:-3}},     // темп и сдвиг тональности (полутоны)
  /* бот: think — пауза между решениями; react — задержка реакции на угрозу; mist — доля ошибок;
     el — множитель эликсира; thp — HP его башен; lvOff — сдвиг уровня карт; countEl — считает эликсир соперника;
     acc — разброс позиции (точки); spell — готовность к заклинаниям; push — эликсир для атаки; abil — активность способностей */
@@ -34,5 +36,7 @@ const CFG={
   draft:{elStart:5,phases:[[0,1],[120,2]],ot:[[0,2],[60,3]]},
   double:{elStart:0,phases:[[0,2]],ot:[[0,2],[60,3]]},
   triple:{elStart:0,phases:[[0,3]],ot:[[0,3]]},
-  sudden:{elStart:0,phases:[[0,2],[120,3]],ot:[[0,3]],sudden:1}}
+  sudden:{elStart:0,phases:[[0,2],[120,3]],ot:[[0,3]],sudden:1},
+  tutor:{elStart:7,phases:[[0,1.5]],ot:[[0,2]]}},             // обучение: ускоренный эликсир
+ tutor:{battles:3,thp:[.2,.3,.4],bot:'novice',gold:50}
 };

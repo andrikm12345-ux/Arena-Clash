@@ -49,9 +49,9 @@ function renderHeader(){const nx=P.kl<KL_MAX?KL_XP[P.kl]:1,pv=P.kl>1?KL_XP[P.kl-
  $('#gear').onclick=()=>{AU.init();AU.sfx('ui');openSettings()};
  $('#kb').onclick=()=>{AU.init();toast(P.kl<KL_MAX?`Уровень короля ${P.kl}: опыт ${P.xp} из ${nx}. Опыт дают улучшения карт`:'Уровень короля максимальный')}}
 function renderNav(){const n=$('#nav');n.style.setProperty('--tabs',TABS.length);
- const rs=reqState(),dots={play:ROAD.some((_,i)=>roadReady(i))||P.luck.length>0||P.chests.some(c=>c),clan:!!rs&&rs.got>rs.q.taken||canRequest(),events:EVENTS.some(e=>!evDay().won.includes(e.id)&&e.id!=='train'),cards:CARD_IDS.some(k=>canUp(k)&&P.gold>=upCost(k))||P.fresh.length>0,shop:!!(P.shop&&P.shop.day===dayKey()?!P.shop.bought.includes(0):true)};
+ const rs=reqState(),dots={play:ROAD.some((_,i)=>roadReady(i))||P.luck.length>0||P.chests.some(c=>c),clan:!!rs&&rs.got>rs.q.taken||canRequest(),events:questReady()||EVENTS.some(e=>!evDay().won.includes(e.id)&&e.id!=='train'),cards:CARD_IDS.some(k=>canUp(k)&&P.gold>=upCost(k))||P.fresh.length>0,shop:!!(P.shop&&P.shop.day===dayKey()?!P.shop.bought.includes(0):true)};
  n.innerHTML=TABS.map(([id,t,ic])=>`<button data-t="${id}"${(tab==='road'?'play':tab)===id?' aria-current="page"':''}>${ic}<span>${t}</span>${dots[id]?'<i class="dot" aria-hidden="true"></i>':''}</button>`).join('');
- n.querySelectorAll('button').forEach(b=>b.onclick=()=>{AU.init();AU.sfx('ui');tab=b.dataset.t;repl=null;renderHome()})}
+ n.querySelectorAll('button').forEach(b=>b.onclick=()=>{AU.init();if(!G)MUS.play('menu');AU.sfx('ui');tab=b.dataset.t;repl=null;renderHome()})}
 let shownTab='';
 function renderHome(){renderHeader();renderNav();const m=$('#hm'),y=m.scrollTop,same=shownTab===tab;shownTab=tab;({play:renderPlay,cards:renderCards,shop:renderShop,road:renderRoad,clan:renderClan,events:renderEvents})[tab](m);if(tab!=='road')m.scrollTop=same?y:0}
 
@@ -59,13 +59,14 @@ function renderHome(){renderHeader();renderNav();const m=$('#hm'),y=m.scrollTop,
 function renderPlay(m){const a=curArena(),A=ARENAS[a],nx=ARENAS[a+1],d=curDeck(),st=P.st,pr=nx?(P.tr-A.tr)/(nx.tr-A.tr):1,sp=deckSpecial(d),road=ROAD.filter((_,i)=>roadReady(i)).length;
  m.innerHTML=`<button class="arena-card" id="ac" aria-label="Арена ${a+1}: ${A.n}. Открыть дорогу кубков"><canvas id="thumb" role="img" aria-hidden="true"></canvas><div class="cap"><div><small>АРЕНА ${a+1}</small><b>${A.n}</b></div><small class="tr">${ICO.trophy}${fmtN(P.tr)}</small></div>${road?`<span class="badge">Награды: ${road}</span>`:''}</button>
  <button class="aprog" id="rd"><i style="width:${(pr*100).toFixed(1)}%"></i><span>${nx?`До арены «${nx.n}» — ${nx.tr-P.tr} кубков · дорога ›`:'Последняя арена · дорога кубков ›'}</span></button>
- <div class="playrow"><button class="big" id="play">БОЙ</button><button class="modes" id="modes" aria-label="Режимы и события">${ICO.events}<span>Режимы</span></button></div>
+ <div class="playrow"><button class="big" id="play">${P.tutB<CFG.tutor.battles?`ОБУЧЕНИЕ ${P.tutB+1}/${CFG.tutor.battles}`:"БОЙ"}</button><button class="modes" id="modes" aria-label="Режимы и события">${ICO.events}<span>Режимы</span></button></div>
+ ${P.tutB<CFG.tutor.battles?'<button class="link center" id="skt">Пропустить обучение</button>':''}
  <div class="chests" id="chests"></div>
  <button class="deckrow" id="dr" aria-label="Колода ${P.slot+1}. Открыть карты">${d.map((k,i)=>`<canvas width="60" height="60" data-ic="${k}" class="${i===0&&sp.evo?'evo':i===1&&sp.hero?'hero':''}"></canvas>`).join('')}<span><small>КОЛОДА ${P.slot+1}</small><b>${avgCost(d)}</b></span></button>
  <div class="row2"><button class="ghost" id="rules">Как играть</button><button class="ghost" id="ttb">Башня: ${TT[P.tt].n}</button></div>
  <div class="stats"><div><small>Победы</small><b>${st.w}</b></div><div><small>3 короны</small><b>${st.three}</b></div><div><small>Коллекция</small><b>${collLevel()}</b></div></div>`;
  if(!(R3.want&&r3Thumb(Object.assign($('#thumb'),{width:720,height:632}),a)))drawThumb($('#thumb'),a);paintIcons(m);renderChests();
- $('#play').onclick=()=>startBattle(false);$('#dr').onclick=()=>{AU.init();AU.sfx('ui');tab='cards';renderHome()};
+ $('#play').onclick=()=>P.tutB<CFG.tutor.battles?startBattle(false,{mode:'tutor'}):startBattle(false);if($('#skt'))$('#skt').onclick=()=>{P.tutB=CFG.tutor.battles;saveP();renderHome()};$('#dr').onclick=()=>{AU.init();AU.sfx('ui');tab='cards';renderHome()};
  $('#ac').onclick=$('#rd').onclick=()=>{AU.init();AU.sfx('ui');tab='road';renderHome()};
  $('#modes').onclick=()=>{AU.init();AU.sfx('ui');tab='events';renderHome()};$('#ttb').onclick=openTT;$('#rules').onclick=openRules}
 /* сундуки удачи, ждущие открытия, и старые сундуки из слотов — открываются сразу */
@@ -238,10 +239,12 @@ function renderClan(m){const rs=reqState(),mates=mateRequests(),a=curArena();
  m.querySelectorAll('[data-dn]').forEach(b=>b.onclick=()=>{AU.init();const g=donate(mates[+b.dataset.dn]);if(!g){AU.sfx('deny');return}AU.sfx('win');toast(`Спасибо! +${g} золота`);renderHome()})}
 
 /* ---------- вкладка «События» ---------- */
-function renderEvents(m){const e=evDay();
- m.innerHTML=`<p class="note">Особые режимы без кубков. Первая победа в каждом режиме за день — золото и осколок эволюции ${ICO.shard.replace('<svg','<svg style="width:14px;height:14px;vertical-align:-2px"')}.</p>
- <div class="evs">${EVENTS.map(x=>`<div class="ev" style="--c:${x.c}"><div><b>${x.n}</b><small>${x.d}</small>${x.id==='train'?'':`<span class="evr">${e.won.includes(x.id)?'Награда дня получена':'Награда дня ждёт'}</span>`}</div><button class="big" data-ev="${x.id}">Играть</button></div>`).join('')}</div>`;
- m.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>{AU.init();const id=b.dataset.ev;if(id==='train')openTraining();else if(id==='draft')openDraft();else startBattle(false,{mode:id})})}
+function renderEvents(m){const e=evDay(),Q=questsToday(),ch=P.chal;
+ m.innerHTML=`<h2 class="sec">ЗАДАНИЯ ДНЯ</h2><div class="quests">${Q.map((x,i)=>{const q=questOf(x),done=x.p>=q.goal,r=q.r;return`<div class="quest${x.got?' got':''}"><div><b>${q.n}</b><div class="lbar${done?' up':''}"><i style="width:${(x.p/q.goal*100).toFixed(0)}%"></i><em>${fmtN(x.p)} / ${fmtN(q.goal)}</em></div></div>${x.got?'<span class="ok2">Получено</span>':`<button class="small" data-q="${i}"${done?'':' disabled'}>${r.g?`${ICO.gold}${r.g}`:r.gm?`${ICO.gem}${r.gm}`:`${ICO.shard}${r.sh}`}</button>`}</div>`}).join('')}</div>
+ <p class="note">Особые режимы без кубков. Первая победа в каждом режиме за день — золото и осколок эволюции ${ICO.shard.replace('<svg','<svg style="width:14px;height:14px;vertical-align:-2px"')}.</p>
+ <div class="evs">${EVENTS.map(x=>`<div class="ev" style="--c:${x.c}"><div><b>${x.n}</b><small>${x.d}</small>${x.id==='train'?'':`<span class="evr">${x.id==='challenge'?(ch?`Побед ${ch.wins} из ${CHAL.maxWins} · поражений ${ch.loss} из ${CHAL.maxLoss}`:`Награда за 12 побед: ${fmtN(CHAL.reward(12).gold)} золота, кристаллы и осколки`):e.won.includes(x.id)?'Награда дня получена':'Награда дня ждёт'}</span>`}</div><button class="big" data-ev="${x.id}">${x.id==='challenge'&&ch?'Дальше':'Играть'}</button></div>`).join('')}</div>`;
+ m.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{AU.init();const r=claimQuest(+b.dataset.q);if(!r){AU.sfx('deny');return}AU.sfx('win');toast(r.g?`+${r.g} золота`:r.gm?`+${r.gm} кристаллов`:`+${r.sh} осколок`);renderHome()});
+ m.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>{AU.init();const id=b.dataset.ev;if(id==='challenge')chalStart();if(id==='train')openTraining();else if(id==='draft')openDraft();else startBattle(false,{mode:id})})}
 /* драфт: восемь раз выбираешь одну карту из пары */
 function openDraft(){AU.init();AU.sfx('ui');const pairs=draftPairs(),mine=[],theirs=[],sh=$('#sheet');let i=0;
  const show=()=>{if(i>=pairs.length){closeSheet();startBattle(false,{mode:'draft',deck:mine,bot:theirs});return}
@@ -278,6 +281,11 @@ function openSettings(){const sh=$('#sheet');let armed=false;
   <div class="seg" role="radiogroup" aria-label="Качество графики">${Object.entries(QUAL).map(([k,q])=>`<button role="radio" aria-checked="${qualKey()===k}" data-q="${k}">${q.n}</button>`).join('')}</div>
   <p class="note small">Высокое — самая чёткая картинка. Если телефон греется или бой подтормаживает, выбери «Среднее».</p>
   <button class="ghost" id="snd">${AU.mute?'Звук выключен':'Звук включён'}</button>
+  <label class="fld rng"><span>Звуки боя</span><input type="range" id="vsfx" min="0" max="1" step=".05" value="${SET.sfx}"></label>
+  <label class="fld rng"><span>Музыка</span><input type="range" id="vmus" min="0" max="1" step=".05" value="${SET.music}"></label>
+  <h4>ТРЯСКА ЭКРАНА</h4><div class="seg" role="radiogroup" aria-label="Тряска экрана">${[['full','Обычная'],['low','Слабая'],['off','Нет']].map(([k,n])=>`<button role="radio" aria-checked="${SET.shake===k}" data-sh="${k}">${n}</button>`).join('')}</div>
+  <h4>ЭФФЕКТЫ</h4><div class="seg" role="radiogroup" aria-label="Эффекты">${[['full','Все'],['low','Меньше']].map(([k,n])=>`<button role="radio" aria-checked="${SET.fx===k}" data-fx="${k}">${n}</button>`).join('')}</div>
+  <button class="ghost" id="dbg">${SET.debug?'Отладка в бою: включена':'Отладка в бою: выключена'}</button>
   <h4>СОХРАНЕНИЕ</h4><p class="note">Прогресс хранится в этом браузере и может стереться вместе с его данными. Скопируй код и держи его в заметках: по нему прогресс восстановится на любом устройстве.</p>
   <textarea id="exp" readonly rows="3" aria-label="Код сохранения"></textarea><button class="ghost" id="cpy">Скопировать код</button>
   <textarea id="imp" rows="3" placeholder="Вставь сюда код сохранения" aria-label="Код для загрузки"></textarea><button class="ghost" id="ld">Загрузить прогресс из кода</button><p class="note" id="imsg" role="status"></p>
@@ -287,7 +295,12 @@ function openSettings(){const sh=$('#sheet');let armed=false;
  $('#nmi').onchange=()=>{const v=$('#nmi').value.trim().slice(0,16);P.name=v||'Игрок';saveP();renderHeader()};
  $('#gfx').onclick=()=>{R3.want=!R3.want;store.set('ac.gfx',R3.want?'hi':'lo');$('#gfx').textContent=R3.want?'Графика: реалистичная 3D':'Графика: простая 2D';if(R3.want&&T&&!R3.ready)r3Load()};
  sh.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{AU.sfx('ui');store.set('ac.qual',b.dataset.q);sh.querySelectorAll('[data-q]').forEach(x=>x.setAttribute('aria-checked',x===b));if(R3.ready)applyQual()});
- $('#snd').onclick=()=>{AU.init();AU.mute=!AU.mute;store.set('ac.mute',AU.mute);micon();$('#snd').textContent=AU.mute?'Звук выключен':'Звук включён';AU.sfx('ui')};
+ $('#vsfx').oninput=e=>{SET.sfx=+e.target.value;saveSet()};$('#vsfx').onchange=()=>AU.sfx('hit');
+ $('#vmus').oninput=e=>{SET.music=+e.target.value;saveSet();MUS.vol()};
+ sh.querySelectorAll('[data-sh]').forEach(b=>b.onclick=()=>{SET.shake=b.dataset.sh;saveSet();sh.querySelectorAll('[data-sh]').forEach(x=>x.setAttribute('aria-checked',x===b))});
+ sh.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{SET.fx=b.dataset.fx;saveSet();sh.querySelectorAll('[data-fx]').forEach(x=>x.setAttribute('aria-checked',x===b))});
+ $('#dbg').onclick=()=>{SET.debug=!SET.debug;saveSet();$('#dbg').textContent=SET.debug?'Отладка в бою: включена':'Отладка в бою: выключена'};
+ $('#snd').onclick=()=>{AU.init();AU.mute=!AU.mute;store.set('ac.mute',AU.mute);micon();MUS.vol();$('#snd').textContent=AU.mute?'Звук выключен':'Звук включён';AU.sfx('ui')};
  $('#cpy').onclick=()=>{const t=$('#exp');t.value=exportCode();const sel2=()=>{t.focus();t.select();$('#imsg').textContent='Код выделен — скопируй его вручную'};
   try{navigator.clipboard.writeText(t.value).then(()=>{$('#imsg').textContent='Код скопирован'},sel2)}catch(e){sel2()}};
  $('#ld').onclick=()=>{const err=importCode($('#imp').value);if(err){$('#imsg').textContent=err;AU.sfx('deny');return}AU.sfx('win');closeSheet();tab='play';renderHome();toast('Прогресс загружен')};
@@ -317,22 +330,31 @@ function startBattle(train,opt){AU.init();opt=opt||null;
    if(!T&&!R3.failed&&performance.now()-t0>40000){R3.failed=true;R3.why='3D-движок не загрузился за 40 секунд (сеть или запрет загрузки модулей)'}
    if(R3.ready&&r3HasTheme(A0)||R3.failed||!T&&!R3.want){closeSheet();if(R3.failed)toast('3D не запустилось: '+R3.why.slice(0,120));startBattle1(train,opt)}else setTimeout(w,150)};w();return}
  startBattle1(train,opt)}
-let lastOpt=null;
-const MODE_N={triple:'Тройной эликсир',sudden:'Внезапная смерть',draft:'Драфт'};
-function startBattle1(train,opt){AU.sfx('ui');closeSheet();lastOpt=opt;const a=curArena(),B=botSetup(a,train),nm=pickV(BOT_NAMES),md=opt?opt.mode:'normal';
+let lastOpt=null,lastReplay=store.get('ac.replay',null),rspeed=1;
+const MODE_N={triple:'Тройной эликсир',sudden:'Внезапная смерть',draft:'Драфт',double:'Двойной эликсир',random:'Случайные колоды',challenge:'Испытание',tutor:'Обучение'};
+function startBattle1(train,opt){AU.sfx('ui');closeSheet();lastOpt=opt;const a=curArena(),md=opt?opt.mode:'normal',B=botSetup(a,train),nm=pickV(BOT_NAMES);
+ let em=md==='challenge'||md==='random'?'normal':md,thp=B.thp;
+ if(md==='challenge'){B.skill=chalBot();thp=1}
+ if(md==='tutor'){B.skill=CFG.tutor.bot;thp=CFG.tutor.thp[Math.min(P.tutB,CFG.tutor.thp.length-1)];B.deck=['guard','shooters','bones','giant','imps','slingers','cannon','volley'];for(const k of B.deck)B.lv[k]=START_LV[CARDS[k].rar];B.ex={};B.tt='archer'}
  if(TH!==THEMES[a]){TH=THEMES[a];BG=null}
  let decks=[curDeck(),B.deck],lv=[levelsMap(),B.lv],ex=[deckSpecial(),B.ex];
- if(md==='draft'){const eq={};for(const k of CARD_IDS)eq[k]=START_LV[CARDS[k].rar]+ARENA_LV[a];decks=[opt.deck,opt.bot];lv=[eq,eq];ex=[{},{}]}
- newMatch({decks,lv,kl:[P.kl,B.kl],bots:[null,B.skill],names:['Ты',nm],train:train||!!opt,mode:md,ex,tt:[P.tt,B.tt],thp:[1,B.thp]});G.event=opt?md:null;
+ if(md==='draft'||md==='random'){const eq={};for(const k of CARD_IDS)eq[k]=START_LV[CARDS[k].rar]+ARENA_LV[a];decks=md==='draft'?[opt.deck,opt.bot]:[randomDeck(),randomDeck()];lv=[eq,eq];ex=[{},{}]}
+ newMatch({decks,lv,kl:[P.kl,B.kl],bots:[null,B.skill],names:['Ты',nm],train:train||!!opt,mode:em,ex,tt:[P.tt,B.tt],thp:[1,thp]});G.event=opt?md:null;
+ if(md==='tutor')G.tutor={step:P.tutB,pt:{x:BR[0]+10,y:RY+RIV+70}};
  mode='play';sel=null;gx=-1;paused=false;hideOv();$('#emo').hidden=true;$('#tip').hidden=true;
- $('#enname').textContent=train?`Тренировка · ${SKILL[P.train].n}`:opt?`${MODE_N[md]} · ${nm}`:`${nm} · ур. ${B.kl}`;
- showView('battle');R3.on=false;if(R3.want&&R3.ready&&r3Begin(a))r3Show();else r3Stop();hs={};renderHand();$('#help').hidden=P.tut>0;banner(train?'Тренировка':opt?MODE_N[md]:'В бой!','#ffc83d')}
+ $('#enname').textContent=train?`Тренировка · ${SKILL[P.train].n}`:md==='tutor'?`Обучение ${P.tutB+1} из ${CFG.tutor.battles}`:opt?`${MODE_N[md]} · ${nm}`:`${nm} · ур. ${B.kl} · ${SKILL[B.skill]?SKILL[B.skill].n:''}`;
+ showView('battle');R3.on=false;if(R3.want&&R3.ready&&r3Begin(a))r3Show();else r3Stop();hs={};renderHand();$('#help').hidden=P.tut>0&&md!=='tutor';if(md==='tutor')$('#help span').textContent=['Нажми на карту внизу, затем — на светящийся круг','Ставь защитников на пути врага, пока он у твоих башен','Набери эликсир и атакуй вместе с поддержкой'][Math.min(P.tutB,2)];banner(train?'Тренировка':opt?MODE_N[md]:'В бой!','#ffc83d');MUS.play('battle')}
+let lpT=0;
+function showCardStats(k){const S=G.side[0],lv=S.lv[k]||START_LV[CARDS[k].rar],c=CARDS[k],e=$('#cstat');
+ e.innerHTML=`<b>${c.n}</b><small>${RAR[c.rar].n} · ур. ${lv} · ${c.cost} эликсира${k===S.evo?' · эволюция':k===S.hero?' · герой':''}</small><div>${statRows(k,lv).map(([a,b,suf])=>`<span>${a}<em>${typeof b==='number'?fmtN(b):b}${suf||''}</em></span>`).join('')}</div>`;e.hidden=false}
+function hideCardStats(){clearTimeout(lpT);const e=$('#cstat');if(e)e.hidden=true}
 function renderHand(){const S=G.side[0],box=$('#hand');box.innerHTML='';handEls=[];
  S.hand.forEach((k,i)=>{if(!k){const e=document.createElement('div');e.className='card empty';e.setAttribute('aria-hidden','true');box.appendChild(e);handEls.push(e);return}
   const c=CARDS[k],b=document.createElement('button');b.className='card';b.dataset.r=c.rar;b.setAttribute('aria-label',`${c.n}, ${c.cost} эликсира`);
   if(k===S.evo)b.classList.add(evoReady(S,k)?'evo':'evo-wait');if(k===S.hero)b.classList.add('hero');
   b.innerHTML=`<canvas width="120" height="120" data-ic="${k}"></canvas><i class="gem">${c.cost}</i>${k===S.evo?`<span class="eb">${evoReady(S,k)?'ЭВО':'эво '+S.evoN+'/'+EVO[k].cyc}</span>`:k===S.hero?'<span class="eb">ГЕРОЙ</span>':''}<span class="nm">${c.n}</span>`;
-  b.addEventListener('pointerdown',e=>{if(!G||G.over||paused||mode!=='play')return;AU.init();sel=sel===i?null:i;AU.sfx('ui');e.preventDefault()});
+  b.addEventListener('pointerdown',e=>{if(!G||G.over||paused||mode!=='play')return;AU.init();sel=sel===i?null:i;AU.sfx('ui');e.preventDefault();clearTimeout(lpT);lpT=setTimeout(()=>showCardStats(k),450)});
+  b.addEventListener('pointerup',hideCardStats);b.addEventListener('pointerleave',hideCardStats);b.addEventListener('contextmenu',e=>e.preventDefault());
   if(i===hs.newIdx)b.classList.add('in');box.appendChild(b);handEls.push(b)});hs.newIdx=-1;
  const nx=document.createElement('div');nx.id='nx';nx.innerHTML=`<canvas width="72" height="72" data-ic="${S.queue[0]}"></canvas><span>ДАЛЕЕ</span>`;box.appendChild(nx);
  paintIcons(box);hs.sig=S.hand.join()+'|'+S.queue[0]+'|'+S.evoN}
@@ -341,7 +363,7 @@ const setPips=(tm,n)=>[...$('#cp'+tm+' .pips').children].forEach((e,i)=>e.classL
 function hud(){const S=G.side[0],e=S.el,ei=Math.floor(e);
  $('#ef').style.width=(e*10)+'%';if(ei!==hs.el){hs.el=ei;$('#en').textContent=ei;$('#eb').classList.toggle('full',ei>=10)}
  const M=CFG.match,left=G.tb?0:G.ot?M.ot-G.otT:M.len-G.t,tm=fmt(left);if(tm!==hs.tm){if(hs.tm&&left<=10&&left>0&&!G.over)AU.sfx('tick');hs.tm=tm;$('#tm').textContent=tm;$('#tm').classList.toggle('low',left<=10||!!G.ot)}
- tips();
+ tips();if(G.ot&&MUS.theme==='battle')MUS.play('ot');
  const er=elRate(),ph=G.tb?'ТАЙБРЕЙКЕР':G.ot?'ОВЕРТАЙМ · ×'+er:er>1?'ЭЛИКСИР ×'+er:'ОСТАЛОСЬ';if(ph!==hs.ph){hs.ph=ph;$('#ph').textContent=ph}
  const cr=G.crowns.join();if(cr!==hs.cr){hs.cr=cr;setPips(0,G.crowns[0]);setPips(1,G.crowns[1])}
  if(S.hand.join()+'|'+S.queue[0]+'|'+S.evoN!==hs.sig)renderHand();
@@ -357,14 +379,20 @@ function deny(t){AU.sfx('deny');floatText(clamp(gx,48,W-48),gy-20,t,'#ff9b8f',12
 function togglePause(){if(mode!=='play'||!G||G.over)return;paused=!paused;
  if(paused){showOv(`<div class="scr"><h2>Пауза</h2><button class="big" id="resume">Продолжить</button><button class="ghost" id="quit">Сдаться</button></div>`);$('#resume').onclick=togglePause;$('#quit').onclick=()=>{paused=false;hideOv();G.crowns[1]=3;finish(1)};$('#resume').focus()}
  else hideOv()}
-function endScreen(){mode='end';sel=null;const r=G.res,cr=G.crowns,S=G.stats[0],train=G.train,ev=G.event;let dtr=0,lucky=-1,gold=0,newA=-1,evr=null;
- if(ev&&r===0)evr=eventReward(ev);if(!G.train||ev)clanFight();
+function endScreen(){mode='end';sel=null;const r=G.res,cr=G.crowns,S=G.stats[0],train=G.train,ev=G.event;let dtr=0,lucky=-1,gold=0,newA=-1,evr=null,chr=null,tut=null;
+ if(ev&&ev!=='challenge'&&ev!=='tutor'&&r===0)evr=eventReward(ev);if(!G.train||ev)clanFight();
+ if(ev==='challenge')chr=chalResult(r===0);
+ if(ev==='tutor'&&r===0){P.tutB=Math.min(CFG.tutor.battles,P.tutB+1);P.gold+=CFG.tutor.gold;saveP();tut=P.tutB}
+ if(!train||ev)questProgress({wins:r===0?1:0,played:S.played,spells:S.spells,towers:cr[0],dmg:Math.round(S.dmg),battles:1,three:r===0&&cr[0]===3?1:0});
+ lastReplay={setup:G.setup,log:G.log.slice(),ticks:G.tick};store.set('ac.replay',lastReplay);
  if(!train){const a0=curArena(),before=P.tr;P.tr=Math.max(ARENAS[a0].tr,P.tr+trophyDelta(r));dtr=P.tr-before;P.best=Math.max(P.best,P.tr);
   if(r===0){lucky=a0;gold=8+3*a0;P.gold+=gold}
   const a1=curArena();if(a1>P.arSeen){newA=a1;P.arSeen=a1}
   P.st.games++;if(r===0)P.st.w++;else if(r===1)P.st.l++;else P.st.d++;P.st.cr+=cr[0];if(cr[0]===3)P.st.three++;saveP()}
- AU.sfx(r===0?'win':r===1?'lose':'ui');
- const rw=ev?`<span class="rw">${MODE_N[ev]}: без кубков</span>${evr?`<span class="rw">${ICO.gold}<b>+${evr.gold}</b>${evr.shards?` · ${ICO.shard}<b>+1</b> осколок`:''}</span>`:''}`:train?'<span class="rw">Тренировка: без кубков и наград</span>':`<span class="rw">${ICO.trophy}<b>${dtr>0?'+':''}${dtr}</b> кубков${gold?` · ${ICO.gold}<b>+${gold}</b>`:''}</span>
+ MUS.play('menu');AU.sfx(r===0?'win':r===1?'lose':'ui');
+ const rw=ev==='tutor'?`<span class="rw">${tut!=null?`Обучение ${tut} из ${CFG.tutor.battles} пройдено · ${ICO.gold}<b>+${CFG.tutor.gold}</b>`:'Попробуй ещё раз — у тебя получится'}</span>`
+  :ev==='challenge'?`<span class="rw">Испытание: побед ${chr.c.wins}, поражений ${chr.c.loss} из ${CHAL.maxLoss}</span>${chr.end?`<span class="rw" style="color:var(--gold)">Испытание завершено: ${ICO.gold}<b>+${fmtN(chr.R.gold)}</b>${chr.R.gems?` · ${ICO.gem}<b>+${chr.R.gems}</b>`:''}${chr.R.shards?` · ${ICO.shard}<b>+${chr.R.shards}</b>`:''}</span>`:''}`
+  :ev?`<span class="rw">${MODE_N[ev]}: без кубков</span>${evr?`<span class="rw">${ICO.gold}<b>+${evr.gold}</b>${evr.shards?` · ${ICO.shard}<b>+1</b> осколок`:''}</span>`:''}`:train?'<span class="rw">Тренировка: без кубков и наград</span>':`<span class="rw">${ICO.trophy}<b>${dtr>0?'+':''}${dtr}</b> кубков${gold?` · ${ICO.gold}<b>+${gold}</b>`:''}</span>
   ${lucky>=0?`<button class="big lucky" id="luck"><canvas width="84" height="70" data-chest="silver"></canvas>Сундук удачи</button>`:''}
   ${newA>=0?`<span class="rw" style="color:var(--gold)">Новая арена: «${ARENAS[newA].n}»! Открылись новые карты</span>`:''}`;
  showOv(`<div class="scr"><h2 style="color:${r===0?'var(--gold)':r===1?'var(--red)':'var(--ink)'}">${r===0?'Победа!':r===1?'Поражение':'Ничья'}</h2>
@@ -373,14 +401,23 @@ function endScreen(){mode='end';sel=null;const r=G.res,cr=G.crowns,S=G.stats[0],
   <div class="endrw">${rw}</div>
   <div class="st2"><span>Урон башням <b>${fmtN(S.dmg)}</b></span><span>Эликсир <b>${Math.round(S.spent)}</b></span><span>Пропало <b>${Math.round(S.leak)}</b></span></div>
   <div class="odeck" aria-label="Колода соперника"><small>КОЛОДА СОПЕРНИКА</small>${G.side[1].deck.map(k=>`<canvas width="60" height="60" data-ic="${k}" title="${CARDS[k].n}"></canvas>`).join('')}<button class="link" id="cpd">Скопировать колоду</button></div>
-  <button class="big" id="again">${train?'ЕЩЁ РАЗ':'ЕЩЁ БОЙ'}</button><button class="ghost" id="home2">Домой</button></div>`);
+  ${lastReplay?'<button class="ghost" id="rep">Смотреть повтор</button>':''}<button class="big" id="again">${train?'ЕЩЁ РАЗ':'ЕЩЁ БОЙ'}</button><button class="ghost" id="home2">Домой</button></div>`);
  paintIcons(OV);
  const od=G.side[1].deck.slice();let luckOpen=false;
  const goHome=()=>{AU.sfx('ui');hideOv();G=null;mode='home';r3Stop();showView('home');tab='play';renderHome();if(newA>=0)toast(`Арена ${newA+1}: «${ARENAS[newA].n}» открыта`)};
  if(lucky>=0){P.luck.push(lucky);if(P.luck.length>6)P.luck.shift();saveP();$('#luck').onclick=()=>{if(luckOpen)return;luckOpen=true;const i=P.luck.lastIndexOf(lucky);if(i>=0)P.luck.splice(i,1);saveP();goHome();luckySpin(lucky)}}
  $('#cpd').onclick=()=>{AU.init();const miss=od.filter(k=>!P.cards[k]);if(miss.length){AU.sfx('deny');toast('Не хватает карт: '+miss.map(k=>CARDS[k].n).join(', '));return}
   if(!okDeck(od)){AU.sfx('deny');toast('Такую колоду собрать нельзя');return}P.decks[P.slot]=od;saveP();AU.sfx('dep');$('#cpd').textContent=`Колода ${P.slot+1} заменена`;$('#cpd').disabled=true};
- $('#again').onclick=()=>{if(ev==='draft'){hideOv();G=null;mode='home';r3Stop();showView('home');openDraft();return}startBattle(train&&!ev,ev?lastOpt:null)};$('#home2').onclick=goHome;$('#again').focus()}
+ $('#again').onclick=()=>{if(ev==='draft'){hideOv();G=null;mode='home';r3Stop();showView('home');openDraft();return}startBattle(train&&!ev,ev?lastOpt:null)};$('#home2').onclick=goHome;if($('#rep'))$('#rep').onclick=()=>{hideOv();playReplay(lastReplay)};$('#again').focus()}
+
+/* ---------- повтор боя: тот же seed и журнал команд, без ботов и без управления ---------- */
+function playReplay(R){if(!R)return;AU.init();const a=curArena();if(TH!==THEMES[a]){TH=THEMES[a];BG=null}
+ newMatch(Object.assign({},R.setup,{bots:[null,null],replay:R.log}));G.event=null;mode='replay';sel=null;gx=-1;paused=false;rspeed=1;hideOv();
+ $('#enname').textContent='Повтор боя';showView('battle');R3.on=false;if(R3.want&&R3.ready&&r3Begin(a))r3Show();else r3Stop();hs={};renderHand();$('#help').hidden=true;
+ if($('#rsp'))$('#rsp').remove();const b=document.createElement('button');b.id='rsp';b.className='ib rsp';b.textContent='×1';b.onclick=()=>{rspeed=rspeed===1?2:rspeed===2?4:1;b.textContent='×'+rspeed};$('#wrap').appendChild(b);
+ banner('Повтор','#5ec8ff');MUS.play('battle')}
+function replayDone(){const r=G.res;showOv(`<div class="scr"><h2>Повтор окончен</h2><p class="sub">${r===0?'Победа':r===1?'Поражение':'Ничья'} · ${G.crowns[0]} : ${G.crowns[1]}</p><button class="big" id="rag">Смотреть снова</button><button class="ghost" id="rhm">Домой</button></div>`);
+ $('#rag').onclick=()=>playReplay(lastReplay);$('#rhm').onclick=()=>{$('#rsp')&&$('#rsp').remove();hideOv();G=null;mode='home';r3Stop();showView('home');tab='play';renderHome();MUS.play('menu')}}
 
 /* ---------- ввод ---------- */
 /* ткнул чуть дальше своей половины — карта встаёт на ближайший разрешённый край (или в открытый карман) */
@@ -406,7 +443,7 @@ addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheet').hidden){closeSh
  if(e.key==='q'||e.key==='Q')useAbility(0)});
 $('#bp').onclick=()=>{AU.init();togglePause()};
 function micon(){$('#mi').setAttribute('d',AU.mute?'M3 9v6h4l5 4V5L7 9zM16 9l5 6M21 9l-5 6':'M3 9v6h4l5 4V5L7 9zM16 8a5 5 0 0 1 0 8M19 5a9 9 0 0 1 0 14');$('#bm').setAttribute('aria-pressed',AU.mute)}
-$('#bm').onclick=()=>{AU.init();AU.mute=!AU.mute;store.set('ac.mute',AU.mute);micon();AU.sfx('ui')};
+$('#bm').onclick=()=>{AU.init();AU.mute=!AU.mute;store.set('ac.mute',AU.mute);micon();MUS.vol();AU.sfx('ui')};
 $('#ab').onclick=()=>{AU.init();if(G&&!useAbility(0))AU.sfx('deny')};
 $('#emo').innerHTML=EMOTES.map((t,i)=>`<button data-e="${i}">${t}</button>`).join('');
 $('#be').onclick=()=>{AU.init();$('#emo').hidden=!$('#emo').hidden};
@@ -424,8 +461,8 @@ function fit(){if($('#battle').hidden)return;const st=$('#stage'),w=st.clientWid
 new ResizeObserver(()=>requestAnimationFrame(fit)).observe($('#stage'));
 let lastT=0,acc=0;
 function loop(ts){const dt=Math.min(.05,(ts-lastT)/1000||0);lastT=ts;
- if(G&&(mode==='play'||mode==='end')&&!paused){acc+=dt;let n=0;while(acc>=TICK&&n<4){step(TICK);acc-=TICK;n++}if(n===4)acc=0;
-  if(mode==='play'&&G.over&&performance.now()>G.endAt)endScreen()}
+ if(G&&(mode==='play'||mode==='end'||mode==='replay')&&!paused){let sd=dt*(mode==='replay'?rspeed:1);if(G.slowmo>0){G.slowmo-=dt;sd*=CFG.juice.slowScale}if(G.hitstop>0){G.hitstop-=dt;sd=0}acc+=sd;let n=0;while(acc>=TICK&&n<4){step(TICK);acc-=TICK;n++}if(n===4)acc=0;
+  if(mode==='play'&&G.over&&performance.now()>G.endAt)endScreen();if(mode==='replay'&&G.over&&performance.now()>G.endAt&&!OV.classList.contains('on'))replayDone()}
  if(G&&!$('#battle').hidden&&$('#loot').hidden){if(R3.on)r3Frame(ts);else draw(ts);hud()}
  requestAnimationFrame(loop)}
 ['#cp0','#cp1'].forEach(s=>{$(s+' .pips').innerHTML=crownSVG.repeat(3)});

@@ -148,6 +148,7 @@ canvas#c{position:relative;display:block;width:100%;height:100%}
 #ov{overflow-y:auto}
 @media (max-height:740px){#ov .scr{gap:7px;width:92%}#ov .scr h2{font-size:28px}#ov .big{font-size:19px;padding:9px 16px}#ov .ghost{padding:6px 14px}.pips.big3 svg{width:28px;height:28px}#ov .sub{font-size:12.5px}.endrw{font-size:12px}.endrw canvas{width:56px;height:47px}#ov .st2{font-size:11.5px;gap:8px}#ov .st2 b{font-size:14px}}
 .odeck{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;width:100%;max-width:300px}.odeck small{grid-column:1/-1;font-size:10px;letter-spacing:.1em;color:var(--mute)}.odeck canvas{width:100%;border-radius:5px}
+.odeck .link{grid-column:1/-1;justify-self:center;background:none;border:0;color:var(--gold);text-decoration:underline;font-size:12.5px;padding:2px}
 .scr{width:86%;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;margin:auto;padding-block:10px}
 .scr h2{margin:0;font-family:var(--display);font-weight:400;font-size:40px;letter-spacing:.02em}
 .sub{margin:0;color:var(--mute);font-size:14px;line-height:1.35;max-width:26em}
@@ -326,6 +327,16 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
 .back{align-self:flex-start;width:auto;padding:6px 12px}
 .cc .slab,.cc .mini{top:auto;bottom:36px;left:50%;right:auto;transform:translateX(-50%);white-space:nowrap}
 .card.empty{border-style:dashed;background:transparent;opacity:.4;aspect-ratio:3/4}
+.fld.rng{display:flex;align-items:center;gap:10px}.fld.rng span{min-width:96px}.fld.rng input{flex:1;accent-color:var(--gold)}
+.quests{display:flex;flex-direction:column;gap:6px}
+.quest{display:flex;gap:10px;align-items:center;background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:8px 10px}
+.quest>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.quest b{font-size:13.5px}.quest.got{opacity:.55}
+.quest .small{display:flex;align-items:center;gap:4px}.quest .small svg{width:16px;height:16px}
+.link.center{align-self:center;background:none;border:0;color:var(--mute);text-decoration:underline;font-size:12.5px}
+.ib.rsp{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:auto;padding:0 14px;font-weight:900;font-size:15px}
+#cstat{position:absolute;left:8px;right:8px;bottom:8px;background:#0b1224f0;border:2px solid var(--gold);border-radius:12px;padding:8px 10px;z-index:6;pointer-events:none;display:flex;flex-direction:column;gap:3px}
+#cstat b{font-size:15px}#cstat small{color:var(--mute);font-size:11.5px}#cstat div{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:12px}
+#cstat span{display:flex;justify-content:space-between;gap:6px;color:#c9d2ea}#cstat em{font-style:normal;font-weight:800;color:#fff}
 </style>
 
 <div id="app">
@@ -352,6 +363,7 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
         <div id="help" hidden><span>Выбери карту и отпусти на своей половине</span></div>
         <div id="tip" hidden role="status"><span></span></div>
         <div id="ov"></div>
+        <div id="cstat" hidden role="status"></div>
       </div>
     </div>
     <div id="deck">

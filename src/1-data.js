@@ -10,6 +10,10 @@ const rnd=(a,b)=>a+RNG()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,
 const pickR=a=>a[RNG()*a.length|0],shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=RNG()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const REDUCE=matchMedia('(prefers-reduced-motion:reduce)').matches;
+/* настройки игрока: громкость звуков и музыки (0–1), тряска, эффекты, режим отладки */
+const SET=Object.assign({sfx:.8,music:.5,shake:'full',fx:'full',debug:false},store.get('ac.set',{}));
+const saveSet=()=>store.set('ac.set',SET);
+const SHAKE_K={full:1,low:.4,off:0};
 const TEAM=[{m:'#3da5ff',d:'#1b5ca3',l:'#a6d6ff'},{m:'#ff5c4d',d:'#9e2a20',l:'#ffb8ae'}];
 /* скорость в точках арены в секунду (клетка = 20 точек) */
 const SPD=Object.fromEntries(['slow','med','fast','vfast'].map(k=>[k,CFG.speed[k]/CFG.speed.tile*TILE]));
@@ -102,8 +106,8 @@ const EMOTES=['Привет!','Хорошо сыграно','Ой-ой!','Ха-�
 /* ================= ЗВУК БЕЗ ФАЙЛОВ ================= */
 const AU={c:null,mute:!!store.get('ac.mute',false),nb:null,last:{},
  init(){if(!this.c){try{this.c=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(this.c&&this.c.state==='suspended')this.c.resume()},
- t(f,d,type,v,sl,dl){if(!this.c||this.mute)return;const c=this.c,t0=c.currentTime+(dl||0),o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t0);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+sl),t0+d);g.gain.setValueAtTime(v||.1,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(c.destination);o.start(t0);o.stop(t0+d+.02)},
- n(d,v,fc,dl){if(!this.c||this.mute)return;const c=this.c;if(!this.nb){this.nb=c.createBuffer(1,c.sampleRate,c.sampleRate);const a=this.nb.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1}
+ t(f,d,type,v,sl,dl){if(!this.c||this.mute||!SET.sfx)return;v=(v||.1)*SET.sfx;const c=this.c,t0=c.currentTime+(dl||0),o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t0);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+sl),t0+d);g.gain.setValueAtTime(v||.1,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(c.destination);o.start(t0);o.stop(t0+d+.02)},
+ n(d,v,fc,dl){if(!this.c||this.mute||!SET.sfx)return;v=(v||.1)*SET.sfx;const c=this.c;if(!this.nb){this.nb=c.createBuffer(1,c.sampleRate,c.sampleRate);const a=this.nb.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1}
   const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain(),t0=c.currentTime+(dl||0);s.buffer=this.nb;s.loop=true;f.type='lowpass';f.frequency.value=fc||800;g.gain.setValueAtTime(v||.1,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+d);s.connect(f);f.connect(g);g.connect(c.destination);s.start(t0);s.stop(t0+d+.02)},
  sfx(k){const now=performance.now(),gap={hit:60,shot:80,zap:80}[k]||30;if(this.last[k]&&now-this.last[k]<gap)return;this.last[k]=now;
   switch(k){
@@ -130,3 +134,23 @@ const AU={c:null,mute:!!store.get('ac.mute',false),nb:null,last:{},
    case 'crownLose':this.t(180,.5,'sawtooth',.06,-80);this.t(120,.6,'triangle',.08,-40,.1);break;
    case 'pop':this.t(520+Math.random()*200,.07,'sine',.04,-300);break;
    case 'chest':this.n(.25,.12,1200);this.t(150,.25,'triangle',.1,60);break}}};
+/* музыка без файлов: бас, аккорды-арпеджио и ударные по сетке; планировщик на 0,3 с вперёд.
+   Темы: menu — спокойная, battle — бой, ot — быстрее и выше для овертайма */
+const MUS={theme:null,step:0,next:0,timer:null,g:null,
+ PROG:[[0,4,7],[-3,0,4],[-7,-3,0],[-5,-1,2]],
+ play(th){if(this.theme===th)return;this.theme=th;AU.init();const c=AU.c;if(!c)return;
+  if(!this.g){this.g=c.createGain();this.g.connect(c.destination)}this.vol();
+  this.step=0;this.next=c.currentTime+.1;if(!this.timer)this.timer=setInterval(()=>this.tick(),100)},
+ stop(){this.theme=null;if(this.timer){clearInterval(this.timer);this.timer=null}},
+ vol(){if(this.g)this.g.gain.value=AU.mute?0:SET.music*.3},
+ note(f,t,d,type,v){const c=AU.c,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(this.g);o.start(t);o.stop(t+d+.02)},
+ drum(t,kind){const c=AU.c;if(!AU.nb)AU.n(.001,.0001);const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=AU.nb;f.type=kind==='k'?'lowpass':'highpass';f.frequency.value=kind==='k'?180:kind==='s'?1500:7000;
+  const v=kind==='k'?.5:kind==='s'?.22:.07,d=kind==='h'?.04:.12;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(f);f.connect(g);g.connect(this.g);s.start(t);s.stop(t+d+.02);
+  if(kind==='k')this.note(55,t,.18,'sine',.5)},
+ tick(){const c=AU.c,T=CFG.music[this.theme];if(!c||!T)return;const e=60/T.bpm/2,hz=n=>261.63*Math.pow(2,(n+T.key)/12);
+  while(this.next<c.currentTime+.3){const st=this.step++,t=this.next,bar=(st>>3)%4,b=st%8,ch=this.PROG[bar];
+   if(b%4===0)this.note(hz(ch[0]-24),t,e*3.6,'triangle',.32);
+   if(this.theme!=='menu'||b%2===0)this.note(hz(ch[[0,1,2,1][(st>>(this.theme==='menu'?1:0))%4]]+12),t,e*.9,'square',this.theme==='menu'?.04:.05);
+   if(this.theme!=='menu'){if(b%4===0)this.drum(t,'k');if(b%4===2)this.drum(t,'s');if(this.theme==='ot'||b%2===1)this.drum(t,'h')}
+   else if(b===0)this.note(hz(ch[2]),t,e*7,'sine',.06);
+   this.next+=e}}};

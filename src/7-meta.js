@@ -1,7 +1,7 @@
 /* ================= ПРОГРЕСС: ПРОФИЛЬ, КАРТЫ, СУНДУКИ, ДОРОГА, МАГАЗИН ================= */
 const ARENAS=[
- {n:'Тренировочный лагерь',tr:0},{n:'Костяной овраг',tr:200},{n:'Кузнечная слобода',tr:450},{n:'Морозный перевал',tr:750},
- {n:'Драконьи скалы',tr:1100},{n:'Ядовитая топь',tr:1500},{n:'Грозовая цитадель',tr:1950},{n:'Каменный трон',tr:2450}];
+ {n:'Тренировочный лагерь',tr:0},{n:'Костяной овраг',tr:300},{n:'Кузнечная слобода',tr:650},{n:'Морозный перевал',tr:1000},
+ {n:'Драконьи скалы',tr:1400},{n:'Ядовитая топь',tr:1800},{n:'Грозовая цитадель',tr:2250},{n:'Каменный трон',tr:2750}];
 const ARENA_OF={guard:0,shooters:0,bones:0,imps:0,slingers:0,bomber:0,cannon:0,volley:0,giant:0,crossbow:0,axe:0,fireball:0,
  lair:1,legion:1,wisp:1,spark:1,hammer:2,militia:2,ram:2,bats:3,freeze:3,frostsage:3,drake:4,airship:4,sorcerer:4,
  poison:5,mole:5,scorch:4,cry:5,thunder:6,knightrider:6,colossus:7,warlord:7};
@@ -22,10 +22,10 @@ const CHESTS={
  giant:{n:'Гигантский',time:480,gold:[260,340],cards:72,rare:6,col:['#ffb27a','#d9622a','#7a2e0a']},
  legend:{n:'Легендарный',time:900,gold:[150,200],cards:1,leg:1,col:['#a8fff0','#2bbfa6','#0d5c50']}};
 const CHEST_CYCLE=['silver','silver','gold','silver','silver','gold','silver','magic','silver','gold','silver','silver','gold','giant','silver','gold','silver','magic','silver','gold','silver','silver','gold','legend'];
-const ROAD=[{tr:40,g:60},{tr:90,ch:'silver'},{tr:140,gm:10,sh:2},{tr:200,ar:1,ch:'gold'},{tr:260,g:120},{tr:330,cd:['rare',6]},{tr:390,gm:15,sh:3},{tr:450,ar:2,ch:'magic'},
- {tr:530,g:200},{tr:610,ch:'gold'},{tr:680,gm:20,sh:3},{tr:750,ar:3,ch:'giant'},{tr:850,g:300},{tr:950,cd:['epic',2]},{tr:1030,gm:25,sh:4},{tr:1100,ar:4,ch:'magic'},
- {tr:1200,g:400},{tr:1300,ch:'giant'},{tr:1400,gm:30,sh:4},{tr:1500,ar:5,ch:'legend'},{tr:1620,g:500},{tr:1740,cd:['epic',3]},{tr:1850,gm:40,sh:5},{tr:1950,ar:6,ch:'magic'},
- {tr:2080,g:700},{tr:2200,ch:'giant'},{tr:2330,gm:50,sh:6},{tr:2450,ar:7,ch:'legend'},{tr:2600,g:1000},{tr:2800,ch:'magic'},{tr:3000,gm:100}];
+const ROAD=[{tr:60,g:60},{tr:140,ch:'silver'},{tr:210,gm:10,sh:2},{tr:300,ar:1,ch:'gold'},{tr:380,g:120},{tr:480,cd:['rare',6]},{tr:570,gm:15,sh:3},{tr:650,ar:2,ch:'magic'},
+ {tr:740,g:200},{tr:840,ch:'gold'},{tr:920,gm:20,sh:3},{tr:1000,ar:3,ch:'giant'},{tr:1110,g:300},{tr:1230,cd:['epic',2]},{tr:1320,gm:25,sh:4},{tr:1400,ar:4,ch:'magic'},
+ {tr:1500,g:400},{tr:1600,ch:'giant'},{tr:1700,gm:30,sh:4},{tr:1800,ar:5,ch:'legend'},{tr:1920,g:500},{tr:2040,cd:['epic',3]},{tr:2150,gm:40,sh:5},{tr:2250,ar:6,ch:'magic'},
+ {tr:2380,g:700},{tr:2500,ch:'giant'},{tr:2630,gm:50,sh:6},{tr:2750,ar:7,ch:'legend'},{tr:2900,g:1000},{tr:3100,ch:'magic'},{tr:3300,gm:100}];
 const ARENA_LV=[1,1,2,2,3,4,5,6];
 const EVO_COST=6,HERO_COST=10;
 /* сундук удачи после победы: прокрутка редкости, без таймеров */
@@ -35,7 +35,18 @@ const NDECKS=5;
 const EVENTS=[{id:'triple',n:'Тройной эликсир',d:'Эликсир копится втрое быстрее весь бой. Успевай тратить!',c:'#c77dff'},
  {id:'sudden',n:'Внезапная смерть',d:'Кто первым сломает любую башню, тот победил. Эликсир ×2, в последнюю минуту ×3.',c:'#ff5c4d'},
  {id:'draft',n:'Драфт',d:'Колоды собираются прямо перед боем: из каждой пары карт одну берёшь ты, другая уходит сопернику. Уровни карт равные.',c:'#3da5ff'},
+ {id:'challenge',n:'Испытание',d:'Играй, пока не проиграешь трижды. Каждая победа поднимает награду (до 12 побед), соперники всё сильнее.',c:'#ffc83d'},
+ {id:'double',n:'Двойной эликсир',d:'Эликсир ×2 с первой секунды, старт с нуля.',c:'#e08bff'},
+ {id:'random',n:'Случайные колоды',d:'Обе колоды собираются случайно из открытых карт. Уровни карт равные.',c:'#5ec8ff'},
  {id:'train',n:'Тренировка',d:'Обычный бой без кубков с ботом выбранной силы.',c:'#5fe08f'}];
+/* ежедневные задания: три на день из пула; stat — что считать после боя */
+const QUESTS=[{id:'win',n:'Победи в 2 боях',goal:2,stat:'wins',r:{g:60}},{id:'cards',n:'Сыграй 25 карт',goal:25,stat:'played',r:{g:40}},
+ {id:'spells',n:'Сыграй 6 заклинаний',goal:6,stat:'spells',r:{gm:5}},{id:'towers',n:'Сломай 3 башни',goal:3,stat:'towers',r:{g:80}},
+ {id:'dmg',n:'Нанеси башням 8000 урона',goal:8000,stat:'dmg',r:{sh:1}},{id:'battles',n:'Сыграй 3 боя',goal:3,stat:'battles',r:{g:40}},
+ {id:'three',n:'Победи с тремя коронами',goal:1,stat:'three',r:{gm:10}}];
+/* испытание: награда по числу побед */
+const CHAL={maxWins:12,maxLoss:3,bots:['normal','normal','normal','hard','hard','hard','hard','expert','expert','expert','expert','expert'],
+ reward:w=>({gold:25*w+3*w*w,gems:w>=6?10+2*(w-6):0,shards:w>=9?2:w>=4?1:0})};
 /* клан: соклановцы-боты */
 const CLAN_NAME='Дубовый щит';
 const CLAN_MATES=[['Варвара Клин',1],['Сыч',2],['Мирон Пушка',0],['Лада Ветер',0],['Кощей-Внук',0],['Гусляр',0],['Полкан',0],['Ёжик в броне',0],['Тихоня',0]];
@@ -44,7 +55,7 @@ const CLAN_MATES=[['Варвара Клин',1],['Сыч',2],['Мирон Пуш
 const SAVE_KEY='ac3.save';
 const okDeck=d=>Array.isArray(d)&&d.length===8&&new Set(d).size===8&&d.every(k=>CARD_IDS.includes(k))&&d.filter(k=>CARDS[k].rar==='champion').length<=1;
 function freshProfile(){const cards={};for(const k of CARD_IDS)if(ARENA_OF[k]===0)cards[k]={lv:START_LV[CARDS[k].rar],n:0};
- return{v:2,name:'Игрок',kl:1,xp:0,gold:150,gems:30,tr:0,best:0,cards,decks:Array.from({length:NDECKS},()=>DEF_DECK.slice()),slot:0,shards:EVO_COST,evo:[],heroes:[],tt:'archer',luck:[],clan:{req:null,next:0,don:{}},ev:{day:'',won:[]},
+ return{q:null,chal:null,tutB:0,v:2,name:'Игрок',kl:1,xp:0,gold:150,gems:30,tr:0,best:0,cards,decks:Array.from({length:NDECKS},()=>DEF_DECK.slice()),slot:0,shards:EVO_COST,evo:[],heroes:[],tt:'archer',luck:[],clan:{req:null,next:0,don:{}},ev:{day:'',won:[]},
   chests:[null,null,null,null],cyc:0,rc:[],shop:null,st:{w:0,l:0,d:0,cr:0,three:0,games:0},tut:0,train:'normal',arSeen:0,fresh:[],hints:[]}}
 function sanitize(o){const f=freshProfile();if(!o||typeof o!=='object')return f;
  const num=(v,d,a,b)=>Number.isFinite(v)?clamp(Math.floor(v),a,b):d;
@@ -63,6 +74,9 @@ function sanitize(o){const f=freshProfile();if(!o||typeof o!=='object')return f;
  const cl=o.clan&&typeof o.clan==='object'?o.clan:{};const rq=cl.req;
  P2.clan={req:rq&&P2.cards[rq.k]&&['common','rare'].includes(CARDS[rq.k].rar)?{k:rq.k,t0:num(rq.t0,0,0,1e15),got:num(rq.got,0,0,40),taken:num(rq.taken,0,0,40),fights:num(rq.fights,0,0,1e4)}:null,next:num(cl.next,0,0,1e15),don:{}};
  if(cl.don&&typeof cl.don==='object')for(const k in cl.don)if(/^\d+:\d$/.test(k))P2.clan.don[k]=num(cl.don[k],0,0,40);
+ P2.tutB=num(o.tutB,o.v>=2?0:CFG.tutor.battles,0,CFG.tutor.battles);if(o.st&&o.st.games>0&&!(o.tutB>=0))P2.tutB=CFG.tutor.battles;
+ P2.q=o.q&&typeof o.q.day==='string'&&Array.isArray(o.q.list)?{day:o.q.day,list:o.q.list.filter(x=>x&&QUESTS.some(q=>q.id===x.id)).slice(0,3).map(x=>({id:x.id,p:num(x.p,0,0,1e7),got:!!x.got}))}:null;
+ P2.chal=o.chal&&typeof o.chal==='object'?{wins:num(o.chal.wins,0,0,CHAL.maxWins),loss:num(o.chal.loss,0,0,CHAL.maxLoss)}:null;
  P2.ev=o.ev&&typeof o.ev.day==='string'?{day:o.ev.day,won:Array.isArray(o.ev.won)?o.ev.won.filter(x=>EVENTS.some(e=>e.id===x)):[]}:{day:'',won:[]};
  P2.rc=Array.isArray(o.rc)?[...new Set(o.rc.filter(i=>Number.isInteger(i)&&i>=0&&i<ROAD.length))]:[];
  if(o.st&&typeof o.st==='object')for(const k in P2.st)P2.st[k]=num(o.st[k],0,0,1e7);
@@ -70,8 +84,11 @@ function sanitize(o){const f=freshProfile();if(!o||typeof o!=='object')return f;
  P2.fresh=Array.isArray(o.fresh)?o.fresh.filter(k=>CARD_IDS.includes(k)&&P2.cards[k]):[];
  P2.hints=Array.isArray(o.hints)?o.hints.filter(k=>typeof k==='string'&&k.length<20).slice(0,40):[];
  return P2}
-let P=sanitize(store.get(SAVE_KEY,null));
-const saveP=()=>store.set(SAVE_KEY,P);
+/* сохранение с защитой от порчи: сначала копия во временный ключ, потом основной; при загрузке битый основной заменяется копией */
+function loadP(){let o=null;try{const raw=localStorage.getItem(SAVE_KEY);o=raw?JSON.parse(raw):null}catch(e){o=null}
+ if(!o){try{const t=localStorage.getItem(SAVE_KEY+'.tmp');o=t?JSON.parse(t):null}catch(e){o=null}}return sanitize(o)}
+let P=loadP();
+function saveP(){const j=JSON.stringify(P);try{localStorage.setItem(SAVE_KEY+'.tmp',j);localStorage.setItem(SAVE_KEY,j);localStorage.removeItem(SAVE_KEY+'.tmp')}catch(e){}}
 const curDeck=()=>P.decks[P.slot];
 const curArena=()=>arenaOf(P.tr);
 /* особые слоты колоды: первый — эволюция, второй — герой (если в колоде нет чемпиона) */
@@ -184,6 +201,20 @@ function mateRequests(){const h=Math.floor(Date.now()/36e5),r=mul(h*7+3),a=curAr
 function donate(o){if(o.done>=o.cap||!P.cards[o.k]||P.cards[o.k].n<1)return false;P.cards[o.k].n--;const g=CARDS[o.k].rar==='rare'?50:5;P.gold+=g;addXP(CARDS[o.k].rar==='rare'?5:1);
  P.clan.don[o.id]=(P.clan.don[o.id]||0)+1;const keep={};for(const k in P.clan.don)if(+k.split(':')[0]>=Math.floor(Date.now()/36e5)-1)keep[k]=P.clan.don[k];P.clan.don=keep;saveP();return g}
 function clanFight(){if(P.clan.req){P.clan.req.fights++;saveP()}}
+
+/* ---------- задания дня ---------- */
+function questsToday(){const d=dayKey();if(!P.q||P.q.day!==d){const r=mul(fnv(d+'|quests')),pool=QUESTS.slice(),list=[];for(let i=0;i<3;i++)list.push({id:pool.splice(Math.floor(r()*pool.length),1)[0].id,p:0,got:false});P.q={day:d,list};saveP()}return P.q.list}
+const questOf=x=>QUESTS.find(q=>q.id===x.id);
+function questProgress(st){for(const x of questsToday()){const q=questOf(x);if(!x.got)x.p=Math.min(q.goal,x.p+(st[q.stat]||0))}saveP()}
+function claimQuest(i){const x=questsToday()[i],q=x&&questOf(x);if(!q||x.got||x.p<q.goal)return null;x.got=true;P.gold+=q.r.g||0;P.gems+=q.r.gm||0;P.shards+=q.r.sh||0;saveP();return q.r}
+const questReady=()=>questsToday().some(x=>!x.got&&x.p>=questOf(x).goal);
+/* ---------- испытание ---------- */
+function chalStart(){if(!P.chal){P.chal={wins:0,loss:0};saveP()}return P.chal}
+function chalResult(won){const c=chalStart();if(won)c.wins++;else c.loss++;const end=c.wins>=CHAL.maxWins||c.loss>=CHAL.maxLoss;let R=null;
+ if(end){R=CHAL.reward(c.wins);R.wins=c.wins;P.gold+=R.gold;P.gems+=R.gems;P.shards+=R.shards;P.chal=null}saveP();return{c,end,R}}
+const chalBot=()=>CHAL.bots[Math.min(CHAL.bots.length-1,(P.chal?P.chal.wins:0))];
+/* случайные колоды: 8 карт из открытых на арене, не больше одного чемпиона */
+function randomDeck(){const a=curArena(),pool=shuffleV(CARD_IDS.filter(k=>ARENA_OF[k]<=Math.max(a,1))),d=[];for(const k of pool){if(d.length<8&&!(CARDS[k].ability&&d.some(x=>CARDS[x].ability)))d.push(k)}return d}
 
 /* ---------- события ---------- */
 function evDay(){const d=dayKey();if(P.ev.day!==d)P.ev={day:d,won:[]};return P.ev}

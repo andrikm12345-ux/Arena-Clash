@@ -197,7 +197,7 @@ function drawEmotes(g){for(const e of G.EM){const a=Math.min(1,e.l/.15,(e.m-e.l)
 /* ---------- кадр ---------- */
 function draw(now){const g=X;g.setTransform(1,0,0,1,0,0);if(!BG||!G)return;
  g.drawImage(BG.b,0,0);
- let sx=0,sy=0;if(G.shake>0&&!REDUCE){sx=rndV(-1,1)*G.shake*.5;sy=rndV(-1,1)*G.shake*.5}
+ let sx=0,sy=0;const shk=G.shake*SHAKE_K[SET.shake];if(shk>0&&!REDUCE){sx=rndV(-1,1)*shk*.5;sy=rndV(-1,1)*shk*.5}
  g.setTransform(K,0,0,K,sx*K,sy*K);
  for(const d of G.DEC){g.fillStyle=`rgba(20,12,6,${Math.min(.42,d.l*.15)})`;g.beginPath();g.ellipse(d.x,d.y,d.r,d.r*.7,0,0,7);g.fill()}
  drawRiver(g,now);
@@ -215,7 +215,7 @@ function draw(now){const g=X;g.setTransform(1,0,0,1,0,0);if(!BG||!G)return;
  for(const u of G.U){if(u.spawnT>0)continue;const y=u.y-topOf(u)-8,w=Math.max(16,u.r*2.2);if(u.hp<u.mx||u.c.ability)hpBar(g,u.x,y,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,u.x-w/2,y-6,w*u.shield/u.smx,3,1.5,'#ffd84d')}
  for(const t of G.T)if(t.hp>0)towerBar(g,t);
  for(const f of G.CF){g.save();g.translate(f.x,f.y);g.rotate(f.r);g.globalAlpha=Math.min(1,(f.m-f.l)/.5);g.fillStyle=f.c;g.fillRect(-f.w/2,-f.w/4,f.w,f.w/2);g.restore()}g.globalAlpha=1;
- drawTexts(g);drawEmotes(g);drawGhost(g,now);
+ drawTexts(g);drawEmotes(g);drawAids(g,(x,y)=>[x,y],1,now);drawGhost(g,now);
  g.setTransform(1,0,0,1,0,0);g.drawImage(BG.v,0,0)}
 
 /* ---------- картинка арены для главного экрана ---------- */
@@ -226,3 +226,17 @@ function drawThumb(cv,ar){const k=2,y0=22,h=316;cv.width=W*k;cv.height=h*k;const
  drawChar(g,'guard',1,96,206,{ph:3,dir:-1});drawChar(g,'sorcerer',1,252,186,{ph:1,dir:-1,at:.6});
  drawChar(g,'giant',0,72,252,{ph:1});drawChar(g,'shooters',0,46,276,{ph:2});drawChar(g,'knightrider',0,288,262,{ph:2,dir:-1});drawChar(g,'drake',0,186,232,{ph:1});
  g.setTransform(1,0,0,1,0,0);g.drawImage(L.v,0,-y0*k);TH=keep}
+
+/* подсказка обучения и режим отладки поверх боя. P(x,y) → точка на холсте, k — масштаб линий */
+function drawAids(g,P,k,now){
+ if(G.tutor&&!G.over&&G.t<60&&!G.U.some(u=>u.tm===0)){const[x,y]=P(G.tutor.pt.x,G.tutor.pt.y),r=(16+Math.sin(now/180)*4)*k;
+  g.strokeStyle='#ffe066';g.lineWidth=3*k;g.beginPath();g.arc(x,y,r,0,7);g.stroke();g.fillStyle='rgba(255,224,102,.22)';g.beginPath();g.arc(x,y,r,0,7);g.fill()}
+ if(!SET.debug)return;
+ const circ=(cx,cy,r,col)=>{g.strokeStyle=col;g.beginPath();for(let i=0;i<=28;i++){const a=i/28*6.283,[x,y]=P(cx+Math.cos(a)*r,cy+Math.sin(a)*r);i?g.lineTo(x,y):g.moveTo(x,y)}g.stroke()};
+ g.lineWidth=1*k;g.font=`700 ${8*k}px sans-serif`;g.textAlign='center';
+ for(const t of G.T)if(t.hp>0)circ(t.x,t.y,t.rng,'rgba(255,255,255,.25)');
+ for(const u of G.U){const c=u.c;circ(u.x,u.y,sightOf(c)*TILE,'rgba(120,200,255,.35)');circ(u.x,u.y,c.rng*TILE+u.r*.6,'rgba(255,120,90,.6)');
+  const[ux,uy]=P(u.x,u.y);
+  if(u.tg&&aliveT(u.tg)){const[tx,ty]=P(u.tg.x,u.tg.y);g.strokeStyle=u.tm?'rgba(255,90,80,.8)':'rgba(80,170,255,.8)';g.beginPath();g.moveTo(ux,uy);g.lineTo(tx,ty);g.stroke()}
+  if(u.path&&u.path.length){g.strokeStyle='rgba(255,230,90,.85)';g.setLineDash([3*k,3*k]);g.beginPath();g.moveTo(ux,uy);for(const q of u.path){const[x,y]=P(q.x,q.y);g.lineTo(x,y)}g.stroke();g.setLineDash([])}
+  g.fillStyle='#fff';g.fillText('m'+Math.round(u.mass)+(u.wu>0?' замах':''),ux,uy+12*k)}}

@@ -355,7 +355,7 @@ function r3Begin(arena){if(!R3.ready)return false;applyQual();
 /* ---------- кадр ---------- */
 function r3Frame(now){const dt=Math.min(.05,(now-S3.last)/1000||0);S3.last=now;const sc=S3.scene,cam=S3.cam;
  // тряска камеры
- const sh=G.shake>0&&!REDUCE?G.shake*.02:0;cam.position.set(S3.cam0.x+rndV(-1,1)*sh,S3.cam0.y+rndV(-1,1)*sh,S3.cam0.z);cam.lookAt(S3.look);
+ const sh=G.shake>0&&!REDUCE?G.shake*SHAKE_K[SET.shake]*.02:0;cam.position.set(S3.cam0.x+rndV(-1,1)*sh,S3.cam0.y+rndV(-1,1)*sh,S3.cam0.z);cam.lookAt(S3.look);
  if(S3.water){const m=S3.water.material;for(const n of[m.normalMap,m.map])if(n){n.offset.x=(now/1000*.03)%1;n.offset.y=(now/1000*.05)%1}}
  syncTowers(dt,now);syncUnits(dt,now);syncBuildings(dt,now);syncProj(dt);syncFx(dt,now);syncZones(now);syncPending(now);syncGhost(now);syncParticles(dt);
  stepDebris(dt);stepLights(dt);if(S3.hype>0)S3.hype-=dt;crowdStep(now);if(Math.random()<.5)towerSmoke();weather(dt);autoQ(dt);
@@ -368,6 +368,8 @@ function syncTowers(dt,now){for(const v of S3.towers){const t=v.t;
   if(t.tg&&alive(t.tg)||t.tg&&t.tg.obj==='t'){const yaw=Math.atan2(Math.cos(t.ang),Math.sin(t.ang));u.root.rotation.y=lerpAng(u.root.rotation.y,yaw,dt*8);if(v.cannon){const y2=v.cannon.userData.yaw;y2.rotation.y=lerpAng(y2.rotation.y,yaw,dt*6)}}
   if(t.cd>v.cd+.3){u.play(u.V.atk[0],{once:true,restart:true,ts:1.6,fade:.05});v.shotT=.6;if(v.cannon)v.cannon.userData.barrel.position.z=.25}
   if(v.cannon){const b=v.cannon.userData.barrel;b.position.z+=(.42-b.position.z)*Math.min(1,dt*6)}
+  // королевская пушка спрятана, пока король спит, и выдвигается за время наведения
+  if(v.k&&v.cannon){const p=t.act?clamp(1-t.wake/CFG.tower.k.wakeAim,0,1):0;v.cannon.position.y=1.82-.75*(1-p*p*(3-2*p));v.cannon.scale.setScalar(.9*(.55+.45*p))}
   v.cd=t.cd;if(v.shotT>0){v.shotT-=dt;if(v.shotT<=0)u.play(u.V.idle||'Idle',{fade:.25})}
   if(v.k&&v.act!==t.act){v.act=t.act;if(t.act)u.play('Cheer',{once:true,ts:1.3});}
   if(v.k&&t.act&&u.cur===u.act('Cheer')&&!u.cur.isRunning())u.play('Idle',{fade:.3})}}
@@ -513,7 +515,7 @@ function particles(){const mk=(blend)=>{const N=1400,geo=new T.BufferGeometry(),
    fragmentShader:'varying vec4 vC;void main(){vec2 d=gl_PointCoord-.5;float a=smoothstep(.5,.1,length(d));gl_FragColor=vec4(vC.rgb,vC.a*a);}'});
   const pts=new T.Points(geo,mat);pts.frustumCulled=false;const P=[],free=[];for(let i=0;i<N;i++)free.push(i);
   const C=new T.Color();
-  return{pts,P,emit(x,y,z,vx,vy,vz,c,size,life){if(!free.length||REDUCE&&Math.random()<.6)return;const i=free.pop();C.set(c);P.push({i,x,y,z,vx,vy,vz,r:C.r,g:C.g,b:C.b,s:size,l:0,m:life})},
+  return{pts,P,emit(x,y,z,vx,vy,vz,c,size,life){if(!free.length||(REDUCE||SET.fx==='low')&&Math.random()<.6)return;const i=free.pop();C.set(c);P.push({i,x,y,z,vx,vy,vz,r:C.r,g:C.g,b:C.b,s:size,l:0,m:life})},
    step(dt){let w=0;for(const p of P){p.l+=dt;if(p.l>=p.m){free.push(p.i);siz[p.i]=0;continue}p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vy-=(blend===T.AdditiveBlending?.2:.9)*dt;p.vx*=.97;p.vz*=.97;
      const k=p.l/p.m;pos[p.i*3]=p.x;pos[p.i*3+1]=Math.max(.02,p.y);pos[p.i*3+2]=p.z;col[p.i*4]=p.r;col[p.i*4+1]=p.g;col[p.i*4+2]=p.b;col[p.i*4+3]=(1-k)*(blend===T.AdditiveBlending?1:.8);siz[p.i]=p.s*(1+k*1.4);P[w++]=p}
     P.length=w;geo.attributes.position.needsUpdate=geo.attributes.color.needsUpdate=geo.attributes.size.needsUpdate=true}}};
@@ -535,6 +537,7 @@ function overlay(now){const g=X,k=C.width/360;g.setTransform(1,0,0,1,0,0);g.clea
  for(const d of G.D){const tun=d.tun||0,dep=d.tot-tun;if(d.tot-d.t<tun)continue;const left=Math.max(0,d.t),pr=1-left/dep,[sx,sy]=proj(d.x,d.y,.05);
   g.lineWidth=4*k;g.strokeStyle='rgba(0,0,0,.45)';g.beginPath();g.arc(sx,sy,11*k,0,7);g.stroke();g.strokeStyle=TEAM[d.tm].l;g.lineWidth=3*k;g.beginPath();g.arc(sx,sy,11*k,-Math.PI/2,-Math.PI/2+pr*Math.PI*2);g.stroke();
   if(dep>=2){g.fillStyle='#fff';g.font=`800 ${10*k}px ${FONT}`;g.textAlign='center';g.textBaseline='middle';g.fillText(Math.ceil(left),sx,sy)}}
+ drawAids(g,(x,y)=>proj(x,y,.05),k,now);
  // надписи, баннеры, эмоции: те же функции, что в 2D, но в координатах экрана
  g.save();g.scale(k,k);
  for(const x of G.TX){if(x.big)continue;const[sx,sy]=proj(x.x,x.y,2.2);x._sx=sx/k;x._sy=sy/k}
@@ -639,7 +642,7 @@ function applyLook(L){const sc=S3.scene;S3.pal=L;sc.background=new T.Color(L.sky
  S3.hemi.color.set(L.hemi[0]);S3.hemi.groundColor.set(L.hemi[1]);S3.hemi.intensity=L.hemi[2]*.6;S3.hemi.userData.base=L.hemi[2]*.6;S3.R.toneMappingExposure=L.exp*.86}
 const r3HasTheme=a=>true;
 function r3LoadTheme(a){return Promise.resolve()}
-function weather(dt){const w=S3.weather;if(!w||REDUCE)return;const A=S3.parts.add,N=S3.parts.norm,rx=()=>rndV(-11,11),rz=()=>rndV(-17,17);
+function weather(dt){const w=S3.weather;if(!w||REDUCE||SET.fx==='low')return;const A=S3.parts.add,N=S3.parts.norm,rx=()=>rndV(-11,11),rz=()=>rndV(-17,17);
  if(w==='snow')for(let i=0;i<3;i++)N.emit(rx(),9,rz(),rndV(-.3,.3),-1.4,rndV(-.3,.3),'#ffffff',.14,7);
  else if(w==='embers'){if(Math.random()<.7)A.emit(rx(),.1,(Math.random()<.5?-1:1)*rndV(0,1),rndV(-.2,.2),1.2+Math.random(),rndV(-.2,.2),['#ffb347','#ff6a1a'][Math.random()*2|0],.14,2.5);if(Math.random()<.4)A.emit(rx(),.2,rz(),0,.8,0,'#ff8a2a',.1,2)}
  else if(w==='flies'){if(Math.random()<.35)A.emit(rx(),.5+Math.random()*2,rz(),rndV(-.4,.4),rndV(-.1,.3),rndV(-.4,.4),'#d8ff7a',.12,3.5)}
