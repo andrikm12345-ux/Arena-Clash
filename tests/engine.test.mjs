@@ -454,3 +454,18 @@ test('Тень невидима ночью даже в свете, но видн
   w.run('c.y=200+2*TILE'); run(w, 1/30); assert.equal(w.run('seen(0,s)'), true, 'вплотную видна');
   w.run('G.t=10;c.y=200+5*TILE'); run(w, 1/30); assert.equal(w.run('seen(0,s)'), true, 'днём видна');
 });
+
+test('юнит идёт по своей дорожке: левая башня врага сломана — левый юнит бьёт короля, а не правую башню', () => {
+  const w = world();
+  const kill = (side) => `(()=>{const t=G.T.find(t=>t.tm===1&&t.kind==='p'&&(t.x<W/2)===${side});t.hp=0;t.dead=1})()`;
+  w.run(kill(true) + `;spawn(0,'giant',110,520,11);globalThis.u=G.U[0]`);
+  assert.equal(w.run('findTarget(u).kind'), 'k');
+  w.run(kill(false) + ';u.ln=null');
+  assert.equal(w.run('findTarget(u).kind'), 'k', 'обе башни сломаны — король');
+  const r = world();
+  r.run(`(()=>{const t=G.T.find(t=>t.tm===1&&t.kind==='p'&&t.x>W/2);t.hp=0;t.dead=1})();spawn(0,'giant',250,520,11);globalThis.u=G.U[0]`);
+  assert.equal(r.run('findTarget(u).kind'), 'k', 'справа то же самое');
+  const s = world();
+  s.run(`spawn(0,'giant',110,520,11);globalThis.u=G.U[0]`);
+  assert.ok(s.run('findTarget(u).x<W/2'), 'пока своя башня жива — идёт на неё');
+});

@@ -177,7 +177,10 @@ function findTarget(u){const c=u.c,sight=sightOf(c)*TILE;let best=null,bd=1e9;
  // здания притягивают только в пределах обзора (у «только здания» — 7,5 тайла); иначе — ближайшая башня по пути через мост
  for(const o of G.B)if(o.tm!==u.tm&&alive(o)&&seen(u.tm,o)){const d=dist(u,o)-o.r;if(d<sight&&d<bd){bd=d;best=o}}
  if(best)return best;
- for(const o of G.T)if(o.tm!==u.tm&&o.hp>0){const d=pathDist(u,o);if(d<bd){bd=d;best=o}}
+ // дорожка юнита (с гистерезисом у середины поля): башня своей дорожки, если нет — король, и только потом чужая дорожка
+ if(u.ln==null||Math.abs(u.x-W/2)>TILE)u.ln=u.x<W/2?0:1;
+ const foe=G.T.filter(o=>o.tm!==u.tm&&o.hp>0),mine=foe.filter(o=>o.kind==='p'&&(o.x<W/2?0:1)===u.ln),pool=mine.length?mine:foe.filter(o=>o.kind==='k').length?foe.filter(o=>o.kind==='k'):foe;
+ for(const o of pool){const d=pathDist(u,o);if(d<bd){bd=d;best=o}}
  return best}
 /* ---------- поиск пути по тайлам: поля расстояний ----------
    Непроходимы: река (кроме мостов; прыгунам — проходима), живые башни и здания, кроме самой цели.

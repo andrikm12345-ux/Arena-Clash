@@ -610,7 +610,10 @@ function findTarget(u){const c=u.c,sight=sightOf(c)*TILE;let best=null,bd=1e9;
  // здания притягивают только в пределах обзора (у «только здания» — 7,5 тайла); иначе — ближайшая башня по пути через мост
  for(const o of G.B)if(o.tm!==u.tm&&alive(o)&&seen(u.tm,o)){const d=dist(u,o)-o.r;if(d<sight&&d<bd){bd=d;best=o}}
  if(best)return best;
- for(const o of G.T)if(o.tm!==u.tm&&o.hp>0){const d=pathDist(u,o);if(d<bd){bd=d;best=o}}
+ // дорожка юнита (с гистерезисом у середины поля): башня своей дорожки, если нет — король, и только потом чужая дорожка
+ if(u.ln==null||Math.abs(u.x-W/2)>TILE)u.ln=u.x<W/2?0:1;
+ const foe=G.T.filter(o=>o.tm!==u.tm&&o.hp>0),mine=foe.filter(o=>o.kind==='p'&&(o.x<W/2?0:1)===u.ln),pool=mine.length?mine:foe.filter(o=>o.kind==='k').length?foe.filter(o=>o.kind==='k'):foe;
+ for(const o of pool){const d=pathDist(u,o);if(d<bd){bd=d;best=o}}
  return best}
 /* ---------- поиск пути по тайлам: поля расстояний ----------
    Непроходимы: река (кроме мостов; прыгунам — проходима), живые башни и здания, кроме самой цели.
@@ -2017,7 +2020,7 @@ let NIGHT=null;
 function nightSetup(){if(S3.pools)return;NIGHT={sun:new T.Color('#8ea6ff'),hemi:new T.Color('#4a5c9a'),gnd:new T.Color('#141a2a'),sky:new T.Color('#0b1230'),pool:new T.Color('#ffb35a'),flash:new T.Color('#fff2b0')};const N=48,m=new T.InstancedMesh(new T.CircleGeometry(1,32),new T.MeshBasicMaterial({map:S3.soft,transparent:true,depthWrite:false,blending:T.AdditiveBlending,color:'#ffffff'}),N);
  m.rotation.x=-Math.PI/2;m.count=0;m.frustumCulled=false;m.renderOrder=2;S3.scene.add(m);S3.pools=m;
  S3.pl=[];for(let i=0;i<6;i++){const l=new T.PointLight('#ffb060',0,8,1.3);l.position.y=2;S3.scene.add(l);S3.pl.push(l)}
- S3.silMat=new T.MeshBasicMaterial({color:'#070a18',transparent:true,opacity:.72,depthWrite:false});
+ S3.silMat=new T.MeshBasicMaterial({color:'#121a38'});
  const moon=new T.DirectionalLight('#a8bcff',0);moon.position.set(9,22,-8);S3.scene.add(moon,moon.target);S3.moon=moon}
 function stepNight(now){nightSetup();const k=nightK(),L=S3.pal,sc=S3.scene;if(!L)return;
  if(Math.abs(k-S3.nk)>.002){S3.nk=k;const c=new T.Color();
