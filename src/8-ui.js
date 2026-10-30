@@ -178,12 +178,12 @@ function openDeckMenu(){AU.init();AU.sfx('ui');const sh=$('#sheet');
  sh.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{P.decks[P.slot]=P.decks[+b.dataset.cp].slice();saveP();AU.sfx('dep');closeSheet();renderHome()})}
 function statRows(k,lv){const c=CARDS[k],n=c.count||1,R=[];
  if(c.type==='spell'){if(c.dmg)R.push(['Урон',LV(c.dmg,lv)]);if(c.tdmg)R.push(['Урон по башням',LV(c.tdmg,lv)]);R.push(['Радиус',c.rad+' кл.']);
-  if(c.freeze)R.push(['Заморозка',c.freeze+' с']);if(c.rage)R.push(['Ярость',c.rage+' с, +35%']);if(c.poison)R.push(['Длится',c.poison+' с']);if(c.stun)R.push(['Оглушение',c.stun+' с']);if(c.waves)R.push(['Волн',c.waves]);return R}
+  if(c.freeze)R.push(['Заморозка',c.freeze+' с']);if(c.rage)R.push(['Ярость',c.rage+' с, +35%']);if(c.pull)R.push(['Затягивает',c.pull+' с']);if(c.heal)R.push(['Лечит',LV(c.heal,lv),` за ${c.healT} с`]);if(c.poison)R.push(['Длится',c.poison+' с']);if(c.stun)R.push(['Оглушение',c.stun+' с']);if(c.waves)R.push(['Волн',c.waves]);return R}
  const u=CARDS[c.unit||k];
  R.push(['Здоровье',LV(u.hp,lv),n>1?' ×'+n:'']);
  if(u.dmg){R.push(['Урон',LV(u.dmg,lv),c.splash||c.spin?', по площади':'']);R.push(['Удар раз в',u.hit+' с']);R.push(['Урон в секунду',Math.round(LV(u.dmg,lv)/u.hit*n)])}
  if(c.death)R.push(['Урон при гибели',LV(c.death.dmg,lv)]);
- if(c.type==='building')R.push(['Стоит',c.life+' с']);else R.push(['Скорость',SPDN[u.spd]]);
+ if(c.elx)R.push(['Эликсир',`+${c.elx.n} каждые ${c.elx.every} с`]);if(c.type==='building')R.push(['Стоит',c.life+' с']);else R.push(['Скорость',SPDN[u.spd]]);
  if(u.dmg)R.push(['Дальность',u.rng>=2?u.rng+' кл.':'Ближний бой']);
  R.push(['Цели',TGN[u.tg]]);R.push(['Выход',(c.dep??1)+' с']);
  if(c.ability)R.push(['Способность',`${c.ability.n}: щит ${LV(c.ability.shield,lv)}`,`, ${c.ability.cost} эликсира`]);
@@ -191,7 +191,7 @@ function statRows(k,lv){const c=CARDS[k],n=c.count||1,R=[];
 function tagsOf(k){const c=CARDS[k],T=[];
  if(c.fly)T.push('Летает');if(c.splash||c.spin)T.push('Урон по площади');if(c.charge)T.push('Рывок: удар ×2');if(c.stun)T.push('Оглушает');if(c.slow)T.push('Замедляет');
  if(c.chain)T.push('Бьёт сразу двоих');if(c.kami)T.push('Взрывается');if(c.death)T.push('Урон при гибели');if(c.dspawn)T.push(c.type==='building'?'При разрушении — ещё костяшки':'Распадается на камешки');
- if(c.spawn)T.push('Выпускает костяшек');if(c.tunnel)T.push('Роет ход куда угодно');if(c.zap)T.push('Разряд при выходе');if(c.td)T.push('По башням бьёт слабо');if(c.knock)T.push('Отбрасывает');if(c.ability)T.push('Один чемпион в колоде');
+ if(c.spawn)T.push('Выпускает костяшек');if(c.tunnel)T.push('Роет ход куда угодно');if(c.zap)T.push('Разряд при выходе');if(c.td)T.push('По башням бьёт слабо');if(c.knock)T.push('Отбрасывает');if(c.ability)T.push('Один чемпион в колоде');if(c.dash)T.push('Рывок, во время рывка неуязвима');if(c.pull)T.push('Затягивает к центру');if(c.heal)T.push('Лечит своих');if(c.elx)T.push('Добывает эликсир');if(c.noStart)T.push('Не бывает в стартовой руке');
  return T}
 function openSheet(k){const c=CARDS[k],o=P.cards[k],lv=o?o.lv:1,inDeck=curDeck().includes(k),sh=$('#sheet'),type=c.type==='spell'?'заклинание':c.type==='building'?'строение':'боец',tags=tagsOf(k);
  if(P.fresh.includes(k)){P.fresh=P.fresh.filter(x=>x!==k);saveP()}

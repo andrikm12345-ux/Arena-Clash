@@ -211,3 +211,56 @@ test('повтор: журнал команд и seed без ботов восп
   run(r, 75);
   assert.equal(r.run(snap), a);
 });
+
+// ---------- физика и новые карты ----------
+test('отбрасывание плавное: юнит отъезжает за несколько тиков, не телепортом', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>t.dmg=0);spawn(1,'guard',180,300,11);globalThis.u=G.U[0];u.frozenT=999;u.hp=u.mx=1e6;globalThis.y0=u.y;castSpell(0,'fireball',180,310,11)`);
+  let d1 = 0; for (let i = 0; i < 60 && !d1; i++) { run(w, 1 / 30); d1 = w.run('Math.abs(u.y-y0)'); }
+  run(w, .5); const d2 = w.run('Math.abs(u.y-y0)');
+  assert.ok(d1 < d2 * .5, `первый тик ${d1}, итог ${d2}`);
+  assert.ok(d2 > 8, `отброшен на ${d2}`);
+});
+
+test('высадка тяжёлого расталкивает лёгких', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>t.dmg=0);spawn(0,'guard',180,450,11);globalThis.u=G.U[0];u.frozenT=999;globalThis.p0={x:u.x,y:u.y};spawn(0,'giant',180,452,11)`);
+  run(w, .4);
+  assert.ok(w.run('Math.hypot(u.x-p0.x,u.y-p0.y)') > 10);
+});
+
+test('вихрь тянет лёгких сильнее тяжёлых и будит короля', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>{t.dmg=0;t.hp=t.mx=1e7});spawn(1,'guard',120,140,11);spawn(1,'giant',240,140,11);G.U.forEach(u=>{u.frozenT=999;u.hp=u.mx=1e7});globalThis.a=G.U.find(u=>u.key==='guard');globalThis.g=G.U.find(u=>u.key==='giant');globalThis.k=${tower(1, 'k')};castSpell(0,'vortex',180,120,11)`);
+  const da0 = w.run('Math.abs(a.x-180)'), dg0 = w.run('Math.abs(g.x-180)');
+  run(w, .5);
+  const pa = da0 - w.run('Math.abs(a.x-180)'), pg = dg0 - w.run('Math.abs(g.x-180)');
+  assert.ok(pa > 15 && pa > pg * 1.5, `лёгкий ${pa}, тяжёлый ${pg}`);
+  assert.ok(w.run('k.act||k.wake>0'), 'король проснулся');
+});
+
+test('родник: +1 эликсир каждые 9,8 с, не бывает в стартовой руке', () => {
+  const w = world();
+  w.run(`G.side[0].el=0;CFG.elixir.periodBak=CFG.elixir.period;CFG.elixir.period=1e9;spawn(0,'spring',180,560,11)`);
+  run(w, 10);
+  assert.equal(Math.round(w.run('G.side[0].el')), 1);
+  w.run(`CFG.elixir.period=CFG.elixir.periodBak`);
+  assert.equal(w.run('CARDS.spring.noStart'), 1);
+});
+
+test('налётчица: рывок к цели в 3,5–6 тайлах, неуязвима в рывке, удар ×2', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>t.dmg=0);spawn(0,'raider',180,560,11);spawn(1,'giant',180,400,11);globalThis.r=G.U.find(u=>u.key==='raider');globalThis.g=G.U.find(u=>u.key==='giant');g.frozenT=999;g.hp=g.mx=1e7;globalThis.seen=0`);
+  for (let i = 0; i < 60; i++) { run(w, 1 / 30); if (w.run('r.dashing')) { w.run('globalThis.seen=1;globalThis.h0=r.hp;damage(r,500,1)'); assert.equal(w.run('r.hp'), w.run('h0')); break; } }
+  assert.equal(w.run('seen'), 1, 'рывок начался');
+  run(w, 1);
+  assert.ok(w.run('1e7-g.hp') >= w.run('LV(CARDS.raider.dmg,11)*2') - 1);
+});
+
+test('целебный звон лечит своих и не лечит чужих', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>t.dmg=0);spawn(0,'guard',180,450,11);spawn(1,'guard',190,450,11);G.U.forEach(u=>{u.frozenT=999;u.hp=10});castSpell(0,'mend',185,450,11)`);
+  run(w, 2.5);
+  assert.ok(w.run('G.U.find(u=>u.tm===0).hp') > 300);
+  assert.equal(w.run('G.U.find(u=>u.tm===1).hp'), 10);
+});

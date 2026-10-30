@@ -53,7 +53,11 @@ const CARDS={
  drake:{n:'Дракончик',rar:'epic',type:'troop',cost:4,hp:1160,dmg:160,hit:1.5,rng:3.5,spd:'fast',fly:1,tg:'ga',r:10,proj:'flame',splash:1.5,tip:'Летит над рекой и дышит огнём по площади.'},
  freeze:{n:'Заморозка',rar:'epic',type:'spell',cost:4,rad:3,dmg:114,tdmg:38,freeze:4,tip:'Всё вражеское в круге замирает на 4 секунды, даже башни.'},
  cry:{n:'Боевой клич',rar:'epic',type:'spell',cost:2,rad:3.5,rage:6,tip:'Свои в круге на 6 секунд двигаются и бьют на 35% быстрее.'},
- scorch:{n:'Жаровщица',rar:'epic',type:'troop',cost:4,hp:1100,dmg:40,hit:.4,rng:5.5,spd:'med',tg:'ga',r:8,beam:{dmg:[40,130,450],t:[2,2]},tip:'Луч жара: чем дольше держит цель, тем сильнее жжёт. Оглушение и смена цели сбрасывают разогрев.'},
+ vortex:{n:'Вихрь',rar:'epic',type:'spell',cost:3,rad:5.5,dmg:160,tdmg:50,pull:1.1,pullSpd:150,tip:'Затягивает всех врагов к центру и слегка ранит. Сбивает в кучу под удар и задевает королевскую башню — она проснётся.'},
+ spring:{n:'Родник',rar:'rare',type:'building',cost:6,hp:1070,tg:'g',r:13,life:70,elx:{every:9.8,n:1},noStart:1,tip:'Добывает эликсир: +1 каждые 9,8 секунды, пока стоит. Окупается, если его не сломают. Не бывает в стартовой руке.'},
+ raider:{n:'Налётчица',rar:'legendary',type:'troop',cost:3,hp:906,dmg:193,hit:1,rng:.75,spd:'fast',tg:'g',r:8,dash:{min:3.5,max:6,spd:500,mul:2},tip:'Рывком сокращает дистанцию до цели в 3,5–6 клеток. Во время рывка неуязвима, первый удар — двойной.'},
+ mend:{n:'Целебный звон',rar:'rare',type:'spell',cost:2,rad:3,heal:420,healT:2,tip:'Две секунды лечит своих бойцов в круге. Спасает пуш, который вот-вот развалится.'},
+ scorch:{n:'Жаровщица',rar:'epic',type:'troop',cost:4,hp:1000,dmg:40,hit:.4,rng:4,spd:'med',tg:'ga',r:8,beam:{dmg:[40,120,400],t:[2,2]},tip:'Луч жара: чем дольше держит цель, тем сильнее жжёт. Оглушение и смена цели сбрасывают разогрев.'},
  poison:{n:'Ядовитое облако',rar:'epic',type:'spell',cost:4,rad:3.5,dmg:580,tdmg:168,poison:8,tip:'Облако на 8 секунд: медленно жжёт и замедляет всё внутри.'},
  legion:{n:'Легион костей',rar:'epic',type:'troop',cost:3,count:14,unit:'bones',hp:84,dmg:84,hit:1,rng:.5,spd:'fast',tg:'g',r:5,tip:'Четырнадцать костяшек. Сносят любого одиночку, если нет урона по площади.'},
  knightrider:{n:'Витязь',rar:'epic',type:'troop',cost:5,hp:1908,dmg:389,hit:1.4,rng:1,spd:'med',tg:'g',r:12,mass:9,charge:1,tip:'Разгоняется на прямой: вдвое быстрее и первый удар вдвое сильнее.'},
@@ -90,7 +94,7 @@ function heroCard(k){return Object.assign({},CARDS[k],{hp:Math.round(CARDS[k].hp
 const ROLE={};
 for(const k of Object.keys(CARDS)){const c=CARDS[k];ROLE[k]={
  spell:c.type==='spell',bld:c.type==='building',win:c.tg==='b'||c.tunnel===1,tank:(c.hp||0)*(c.count||1)>=1100&&c.type==='troop',
- swarm:(c.count||1)>=3,splash:!!(c.splash||c.spin),aa:c.tg==='ga'||(c.type==='building'&&c.tg==='ga'),air:!!c.fly,ranged:(c.rng||0)>=3,
+ swarm:(c.count||1)>=3,splash:!!(c.splash||c.spin),aa:c.tg==='ga'||(c.type==='building'&&c.tg==='ga'),air:!!c.fly,ranged:(c.rng||0)>=3,eco:!!c.elx,heal:!!c.heal,
  dps:c.type==='troop'&&c.dmg?c.dmg*(c.count||1)/c.hit:0}}
 
 const DEF_DECK=['giant','crossbow','axe','bones','imps','fireball','volley','cannon'];

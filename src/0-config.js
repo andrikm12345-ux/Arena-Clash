@@ -6,7 +6,7 @@ const CFG={
  match:{len:180,dblAt:120,ot:120,otTripleAt:60,tiebreak:2.5,endDelay:1.5},
  elixir:{start:5,max:10,period:2.8},       // 1 эликсир за period секунд при x1
  hand:{size:4,delay:{1:1,2:.5,3:.35}},     // задержка входа новой карты по множителю эликсира
- arena:{tile:20,tilesW:18,tilesH:32,river:2,pocket:4,bridgeHalf:1,  // pocket — глубина кармана в тайлах
+ arena:{tile:20,tilesW:18,tilesH:32,river:2,pocket:4,bridgeHalf:1.1,  // pocket — глубина кармана; bridgeHalf — полуширина моста (тайлы)
   princess:[3.5,25.75],king:[9,29]},       // центры своих башен (x, y в тайлах; у соперника зеркально)
  speed:{slow:45,med:60,fast:90,vfast:120,tile:60}, // классы скорости карт; tile — сколько единиц = 1 тайл/с
  sight:{def:5.5,ranged:.5,building:7.5},   // обзор: по умолчанию; у дальнобойных = дальность + ranged; у «только здания»
@@ -16,6 +16,7 @@ const CFG={
  tower:{baseLevel:11,lvMul:1.1,            // цифры ниже — для уровня 11, +10% за уровень
   p:{hp:3052,dmg:109,hit:.8,rng:7.5,r:24},
   k:{hp:4824,dmg:109,hit:1,rng:7,r:32,wakeAim:3.3,wakeShot:.7}},
+ phys:{knockDamp:12,knockMinMass:10,deployPushMass:8,deployPush:90,pullMass:8}, // отбрасывание — скоростью с затуханием; толчок при высадке тяжёлых; вихрь тянет в полную силу юнитов до pullMass
  juice:{heavyHit:500,hitStop:.05,kingSlow:.5,slowScale:.25,shakeDecay:60}, // хит-стоп на ударах от heavyHit урона; замедление при падении короля
  music:{battle:{bpm:134,key:0},ot:{bpm:156,key:2},menu:{bpm:104,key:-5}},    // темп и сдвиг тональности (полутоны от ля минора)
  /* бот: think — пауза между решениями; react — задержка реакции на угрозу; mist — доля ошибок;

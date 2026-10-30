@@ -26,7 +26,7 @@ function laneDef(b,lane){let d=0;
  return d}
 function enemyDef(b,lane){let d=0;for(const u of G.U)if(u.tm!==b.tm&&alive(u)&&laneOf(u.x)===lane&&fyOf(b,u.y)>300)d+=uval(u);for(const o of G.B)if(o.tm!==b.tm&&alive(o))d+=1.5;return d}
 function dpsOf(c){return c.dmg?c.dmg/c.hit*(c.count||1):0}
-function counterScore(key,T){const c=CARDS[key],R=ROLE[key];if(c.type==='spell')return-99;if(R.win&&!c.tunnel)return-99;
+function counterScore(key,T){const c=CARDS[key],R=ROLE[key];if(c.type==='spell')return-99;if(R.eco)return T.bt?2:-99;if(R.win&&!c.tunnel)return-99;
  let s=4;const airShare=T.air/(T.v||1);
  if(T.air>0)s+=c.tg==='ga'?2*airShare+1:(airShare>.5?-12:-3);
  if(T.small>=3)s+=R.splash||c.kami?4:R.swarm?-1:-2;
@@ -69,7 +69,7 @@ function randomThink(b){const S=G.side[b.tm],ok=S.hand.map((k,i)=>[k,i]).filter(
  const[k,i]=pickR(ok);for(let n=0;n<12;n++){const x=rnd(20,W-20),y=CARDS[k].type==='spell'?rnd(40,H-40):fyOf(b,rnd(30,290));if(playCard(b.tm,i,x,y))return}}
 /* на полном эликсире обязательно сыграть: самая дешёвая карта в своём тылу (координаты бота: y от своего края) */
 function dumpElixir(b){const S=G.side[b.tm],ks=S.hand.map((k,i)=>[k,i]).filter(([k])=>k&&S.el>=CARDS[k].cost&&!cardBlocked(b.tm,k)).sort((x,y)=>CARDS[x[0]].cost-CARDS[y[0]].cost);
- for(const[k,i]of ks){const c=CARDS[k];if(c.type==='spell'){const t=G.T.filter(t=>t.tm!==b.tm&&t.hp>0).sort((x,y)=>x.hp-y.hp)[0];if(t&&playCard(b.tm,i,t.x,t.y))return true;continue}
+ for(const[k,i]of ks){const c=CARDS[k];if(c.heal)continue;if(c.type==='spell'){const t=G.T.filter(t=>t.tm!==b.tm&&t.hp>0).sort((x,y)=>x.hp-y.hp)[0];if(t&&playCard(b.tm,i,t.x,t.y))return true;continue}
   for(const[dx,dy]of[[0,100],[-60,110],[60,110],[0,140],[0,200]]){if(playCard(b.tm,i,W/2+dx,fyOf(b,dy)))return true}}
  return false}
 function botThink(b,dt){const S=G.side[b.tm],s=b.s;
@@ -101,10 +101,17 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
   const rg=hand.find(k=>CARDS[k].rage);
   if(rg&&T.v>=4){const own=G.U.filter(u=>u.tm===b.tm&&alive(u)&&laneOf(u.x)===need.lane&&fyOf(b,u.y)<360);const ov=own.reduce((a,u)=>a+uval(u),0);
    if(ov>=4){const cx=own.reduce((a,u)=>a+u.x,0)/own.length,cy=own.reduce((a,u)=>a+u.y,0)/own.length;if(botPlay(b,rg,cx,fyOf(b,cy),true))return}}
+  // звон лечит своих, если они в обороне уже потрёпаны
+  const md=hand.find(k=>CARDS[k].heal);
+  if(md){const own=G.U.filter(u=>u.tm===b.tm&&alive(u)&&laneOf(u.x)===need.lane&&fyOf(b,u.y)<360&&!u.c.token),miss=own.reduce((a,u)=>a+u.mx-u.hp,0);
+   if(own.length>=2&&miss>=LV(CARDS[md].heal,S.lv[md]||1)*1.2){const cx=own.reduce((a,u)=>a+u.x,0)/own.length,cy=own.reduce((a,u)=>a+u.y,0)/own.length;if(botPlay(b,md,cx,fyOf(b,cy),true))return}}
   let pick=null,ps=-1e9;
   for(const k of hand){let sc=counterScore(k,T);if(RNG()<s.mist)sc+=rnd(-4,4);if(sc>ps){ps=sc;pick=k}}
   if(pick&&ps>0){const[px,py]=placeDefense(b,pick,T,need.lane);if(botPlay(b,pick,px,py))return}
   if(T.fy<130&&T.v>=3){for(const k of hand){const c=CARDS[k];if(c.type!=='spell')continue;const p=spellTarget(b,k,T.units);if(p&&p.val>=c.cost*.6&&botPlay(b,k,p.x,fyOf(b,p.y),true))return}}}
+ // родник: ставить в тылу, когда угроз нет и эликсир не нужен прямо сейчас
+ const eco=hand.find(k=>ROLE[k].eco);
+ if(eco&&!need&&S.el>=(b.s.countEl&&b.oppEl<4?6:8)&&!G.B.some(o=>o.tm===b.tm&&o.key===eco)&&RNG()>s.mist){if(botPlay(b,eco,W/2,112))return}
  // поддержка своей контратаки
  botOffenseSpells(b,hand);
  // атака
@@ -141,5 +148,5 @@ function botOffenseSpells(b,hand){const s=b.s;if(RNG()>s.spell)return;
   const def=G.U.filter(u=>u.tm!==b.tm&&alive(u)&&dist(u,t)<130);
   for(const k of hand){const c=CARDS[k];if(c.type!=='spell')continue;
    if(c.freeze&&own>=6){if(botPlay(b,k,t.x,fyOf(b,t.y)+(fyOf(b,t.y)>320?-20:20),true))return}
-   else if(c.rage&&own>=4){const near=G.U.filter(u=>u.tm===b.tm&&alive(u)&&dist(u,t)<t.r+70);const cx=near.reduce((a,u)=>a+u.x,0)/near.length,cy=near.reduce((a,u)=>a+u.y,0)/near.length;if(botPlay(b,k,cx,fyOf(b,cy),true))return}
+   else if((c.rage||c.heal)&&own>=4){const near=G.U.filter(u=>u.tm===b.tm&&alive(u)&&dist(u,t)<t.r+70);const cx=near.reduce((a,u)=>a+u.x,0)/near.length,cy=near.reduce((a,u)=>a+u.y,0)/near.length;if(botPlay(b,k,cx,fyOf(b,cy),true))return}
    else if(c.dmg&&def.length){const p=spellTarget(b,k,def);if(p&&p.val+(dist(p,t)<c.rad*TILE+t.r?c.tdmg/300:0)>=c.cost&&botPlay(b,k,p.x,fyOf(b,p.y),true))return}}}}

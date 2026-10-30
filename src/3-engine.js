@@ -71,7 +71,7 @@ function spawn(tm,key,x,y,lvl,fl){const c=fl&&fl.evo&&EVO[key]?evoCard(key):fl&&
  for(const[fx,fy]of formation(key,x,y,c)){
   let ux=clamp(fx+rnd(-1.5,1.5),10,W-10),uy=clamp(fy+rnd(-1.5,1.5),10,H-10);
   if(!uc.fly&&Math.abs(uy-RY)<RIV+4)uy=RY+(uy<RY?-(RIV+5):RIV+5);
-  const u=mkUnit(tm,uk,ux,uy,lvl,uc);if(c.evo){u.evo=1;if(EVO[key].shield){u.shield=u.smx=LV(EVO[key].shield,lvl)}}if(c.hero)u.hero=1;G.U.push(u);if(uc.ability)G.side[tm].champ=u}
+  const u=mkUnit(tm,uk,ux,uy,lvl,uc);if(u.mass>=CFG.phys.deployPushMass&&!u.fly)for(const v of G.U)if(alive(v)&&!v.fly&&v.mass<u.mass){const d=dist(u,v);if(d<u.r+v.r+12&&d>.1)impulse(v,(v.x-u.x)/d,(v.y-u.y)/d,CFG.phys.deployPush*Math.min(1,u.mass/(v.mass*3)))}if(c.evo){u.evo=1;if(EVO[key].shield){u.shield=u.smx=LV(EVO[key].shield,lvl)}}if(c.hero)u.hero=1;G.U.push(u);if(uc.ability)G.side[tm].champ=u}
  if(c.zap){const z=LV(c.zap,lvl);areaHit(tm,x,y,2*TILE,z,z,'ga',{stun:.5});G.FX.push({k:'zapring',x,y,r:2*TILE,l:0,m:.35});AU.sfx('zap')}
  puff(x,y,'#d9cfb4',6,40,2.4);ring(x,y,22,TEAM[tm].m)}
 
@@ -84,11 +84,17 @@ function castSpell(tm,key,x,y,lvl){const c=CARDS[key],r=c.rad*TILE,dmg=LV(c.dmg|
  if(c.freeze){areaHit(tm,x,y,r,dmg,tdmg,'ga',{freeze:c.freeze});G.Z.push({k:'freeze',tm,x,y,r,t:c.freeze,tot:c.freeze});AU.sfx('freeze');return}
  if(c.stun){areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.stun});G.FX.push({k:'zapring',x,y,r,l:0,m:.35});AU.sfx('zap');return}
  if(c.rage){G.Z.push({k:'rage',tm,x,y,r,t:c.rage,tot:c.rage});AU.sfx('rage');return}
+ if(c.pull){G.Z.push({k:'pull',tm,x,y,r,t:c.pull,tot:c.pull,tick:0,dmg:dmg/4,tdmg:tdmg/4,spd:c.pullSpd});AU.sfx('poison');return}
+ if(c.heal){G.Z.push({k:'heal',tm,x,y,r,t:c.healT,tot:c.healT,hps:LV(c.heal,lvl)/c.healT});AU.sfx('ability');return}
  if(c.poison){G.Z.push({k:'poison',tm,x,y,r,t:c.poison,tot:c.poison,tick:.5,dps:dmg/c.poison,tdps:tdmg/c.poison});AU.sfx('poison')}}
 function updZones(dt){for(const z of G.Z){z.t-=dt;
   if(z.k==='rage'){for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r+u.r)u.rageT=Math.max(u.rageT,.6)}
   else if(z.k==='poison'){for(const u of G.U)if(u.tm!==z.tm&&alive(u)&&dist(u,z)<z.r+u.r*.5){u.slowT=Math.max(u.slowT,.3);u.slowF=Math.max(u.slowF,.15)}
    z.tick-=dt;if(z.tick<=0){z.tick+=1;areaHit(z.tm,z.x,z.y,z.r,z.dps,z.tdps,'ga')}}
+ else if(z.k==='pull'){ // вихрь тянет к центру; чем тяжелее юнит, тем медленнее
+   for(const u of G.U)if(u.tm!==z.tm&&alive(u)&&!u.dashing){const d=dist(u,z);if(d<z.r+u.r&&d>1){const s=Math.min(d,z.spd*Math.min(1,(CFG.phys.pullMass/u.mass)**1.2)*dt);u.x+=(z.x-u.x)/d*s;u.y+=(z.y-u.y)/d*s;u.lock=0;u.wu=0}}
+   z.tick-=dt;if(z.tick<=0){z.tick+=z.tot/4;areaHit(z.tm,z.x,z.y,z.r,z.dmg,z.tdmg,'ga')}}
+  else if(z.k==='heal'){for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r+u.r*.5)u.hp=Math.min(u.mx,u.hp+z.hps*dt)}
   else if(z.k==='aura'){if(alive(z.u)){z.x=z.u.x;z.y=z.u.y}for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r)u.rageT=Math.max(u.rageT,.5)}}
  G.Z=G.Z.filter(z=>z.t>0)}
 function useAbility(tm){const R0=RNG;RNG=G.simR;let ok;try{ok=doAbility(tm)}finally{RNG=R0}if(ok)G.log.push({k:'a',tk:G.tick,ph:G.inBots?1:0,tm});return ok}
@@ -122,13 +128,14 @@ function findTarget(u){const c=u.c,sight=sightOf(c)*TILE;let best=null,bd=1e9;
    по 8 направлениям без срезания углов. Поля общие для всех юнитов и живут, пока не изменился набор препятствий. */
 const GW=CFG.arena.tilesW,GH=CFG.arena.tilesH,GN=GW*GH;
 const RIVER=(()=>{const m=new Uint8Array(GN);for(let ty=0;ty<GH;ty++)for(let tx=0;tx<GW;tx++){const cy=(ty+.5)*TILE,cx=(tx+.5)*TILE;
- m[ty*GW+tx]=Math.abs(cy-RY)<RIV&&!BR.some(b=>Math.abs(cx-b)<=CFG.arena.bridgeHalf*TILE*.5)?1:0}return m})();
+ m[ty*GW+tx]=Math.abs(cy-RY)<RIV&&!BR.some(b=>Math.abs(cx-b)<=CFG.arena.bridgeHalf*TILE)?1:0}return m})();
 function obstacleGrid(){if(G.grid&&G.gridTick===G.tick)return G.grid;const g=new Int32Array(GN);let sig='';
  for(const o of G.T)if(o.hp>0){markObs(g,o);sig+=o.id+','}for(const o of G.B)if(alive(o)){markObs(g,o);sig+=o.id+','}
  if(sig!==G.gridSig){G.gridSig=sig;G.fields=new Map()}G.grid=g;G.gridTick=G.tick;return g}
 function markObs(g,o){const r=o.r+6;for(let ty=Math.max(0,Math.floor((o.y-r)/TILE));ty<=Math.min(GH-1,Math.floor((o.y+r)/TILE));ty++)
  for(let tx=Math.max(0,Math.floor((o.x-r)/TILE));tx<=Math.min(GW-1,Math.floor((o.x+r)/TILE));tx++){const cx=(tx+.5)*TILE,cy=(ty+.5)*TILE;if(Math.abs(cx-o.x)<r&&Math.abs(cy-o.y)<r)g[ty*GW+tx]=o.id}}
 const riverTile=(tx,ty)=>RIVER[ty*GW+tx]===1;
+const onBridge=x=>BR.some(b=>Math.abs(x-b)<=CFG.arena.bridgeHalf*TILE);
 function passable(g,u,tx,ty,tid){if(tx<0||ty<0||tx>=GW||ty>=GH)return false;const i=ty*GW+tx,o=g[i];if(o&&o!==tid)return false;return!!u.c.jump||!RIVER[i]}
 const tileOf=o=>clamp(Math.floor(o.y/TILE),0,GH-1)*GW+clamp(Math.floor(o.x/TILE),0,GW-1);
 /* поле расстояний до цели t (для прыгунов — отдельное, река им не мешает) */
@@ -166,7 +173,7 @@ function goalLane(u,t){if(u.c.jump){if(Math.abs(u.y-RY)<RIV+8&&!u.jmp){u.jmp=1;A
  return{x:bx,y:RY+s*(RIV+4)}}
 function spdOf(u){let s=SPD[u.c.spd]||30;if(u.rageT>0)s*=1.35;if(u.slowT>0)s*=1-u.slowF;if(u.charging)s*=2;return s}
 function hitOf(u){let h=u.c.hit;if(u.rageT>0)h/=1.35;if(u.slowT>0)h/=1-u.slowF;return h}
-function updUnit(u,dt){if(!alive(u))return;const c=u.c;
+function updUnit(u,dt){if(!alive(u))return;const c=u.c;stepImpulse(u,dt);if(u.dashCd>0)u.dashCd-=dt;if(u.dashing&&(u.frozenT>0||u.stunT>0||!u.tg||!aliveT(u.tg))){u.dashing=0;u.dashCd=.4}
  u.fl=Math.max(0,u.fl-dt);u.sw=Math.max(0,u.sw-dt);u.spawnT=Math.max(0,u.spawnT-dt);
  if(u.slowT>0){u.slowT-=dt;if(u.slowT<=0)u.slowF=0}if(u.rageT>0)u.rageT-=dt;
  if(u.frozenT>0||u.stunT>0){u.frozenT=Math.max(0,u.frozenT-dt);u.stunT=Math.max(0,u.stunT-dt);u.run=0;u.charging=0;return}
@@ -177,6 +184,8 @@ function updUnit(u,dt){if(!alive(u))return;const c=u.c;
  const t=u.tg;if(!t)return;
  const d=dist(u,t),reach=c.rng*TILE+t.r+u.r*.6;
  if(Math.abs(t.x-u.x)>1)u.face=t.x<u.x?-1:1;
+ if(u.dashing){const dd=dist(u,t);if(!aliveT(t)){u.dashing=0;u.dashCd=.4;return}const s=c.dash.spd*dt;if(dd-t.r-u.r*.6<=s+2){u.dashing=0;u.dashCd=.8;u.x=t.x+(u.x-t.x)/dd*(t.r+u.r*.6);u.y=t.y+(u.y-t.y)/dd*(t.r+u.r*.6);attack(u,t,c.dash.mul);u.cd=hitOf(u);u.sw=.28;return}u.x+=(t.x-u.x)/dd*s;u.y+=(t.y-u.y)/dd*s;if(RNG()<.6)puff(u.x,u.y,'#d9cfb4',1,20,1.6);return}
+ if(c.dash&&!(u.dashCd>0)&&!u.lock&&t.obj!=='t'){const dd=dist(u,t)-t.r;if(dd>=c.dash.min*TILE&&dd<=c.dash.max*TILE&&clearLine(u,u,t,t.id)){u.dashing=1;u.lock=1;u.wu=0;AU.sfx('charge');return}}
  if(u.wu>0){u.wu-=dt;if(u.wu<=0){u.wu=0;if(aliveT(t)&&d<=reach+6){attack(u,t);u.cd=Math.max(0,hitOf(u)-windOf(u))}}return}
  if(d<=reach){u.lock=1;
   if(c.kami){explode(u,t);return}
@@ -187,7 +196,7 @@ function updUnit(u,dt){if(!alive(u))return;const c=u.c;
   if(c.charge){u.run+=m;if(!u.charging&&u.run>60){u.charging=1;AU.sfx('charge')}}}}
 /* замах: удар наносится в конце; если цель умерла или ушла — удар пропадает */
 function windOf(u){const c=u.c;if(c.wind!=null)return c.wind;if(c.beam||c.kami||u.obj!=='u')return 0;return Math.min(hitOf(u)*CFG.unit.wind,CFG.unit.windMax)}
-function attack(u,t){const c=u.c;let dmg=u.dmg;
+function attack(u,t,mul){const c=u.c;let dmg=u.dmg*(mul||1);
  if(c.beam){if(u.beamTg!==t){u.beamTg=t;u.beamT=0}const b=c.beam;let st=0,acc=0;for(const x of b.t){acc+=x;if(u.beamT>=acc)st++}u.beamT+=hitOf(u);
   hitTarget(u,t,LV(b.dmg[Math.min(st,b.dmg.length-1)],u.lvl));u.beamSt=st;G.FX.push({k:'bolt',x:u.x,y:u.y-12,x2:t.x,y2:t.y-8-(t.fly?FLYOFF:0),l:0,m:hitOf(u)*.9,beam:st});return}
  if(u.charging){dmg*=2;u.charging=0;ring(t.x,t.y,18,'#ffe9a8');G.shake=Math.max(G.shake,2)}u.run=0;
@@ -203,12 +212,15 @@ function explode(u,t){areaHit(u.tm,t.x,t.y,u.c.splash*TILE,u.dmg,u.dmg,'ga');rin
 function areaHit(tm,x,y,r,dmg,tdmg,tg,opt){opt=opt||{};const p={x,y};
  if(tg!=='b')for(const v of G.U)if(v.tm!==tm&&v!==opt.skip&&alive(v)&&!(v.fly&&tg==='g')&&dist(v,p)<r+v.r*.5){damage(v,dmg,tm);
   if(opt.stun)stunObj(v,opt.stun);if(opt.slow)slowObj(v,opt.slow);if(opt.freeze){v.frozenT=Math.max(v.frozenT,opt.freeze);v.wu=0;v.beamT=0}
-  if(opt.knock&&v.mass<10&&!v.fly){const d=dist(v,p)||1;v.x+=(v.x-x)/d*opt.knock;v.y+=(v.y-y)/d*opt.knock;v.wu=0;v.lock=0;v.rt=0;v.beamT=0}}
+  if(opt.knock&&v.mass<CFG.phys.knockMinMass&&!v.fly&&!v.dashing){const d=dist(v,p)||1;impulse(v,(v.x-x)/d,(v.y-y)/d,opt.knock*CFG.phys.knockDamp);v.wu=0;v.lock=0;v.rt=0;v.beamT=0}}
  for(const o of G.B)if(o.tm!==tm&&o!==opt.skip&&alive(o)&&dist(o,p)<r+o.r*.6){damage(o,tdmg,tm);if(opt.stun)stunObj(o,opt.stun);if(opt.freeze)o.frozenT=Math.max(o.frozenT,opt.freeze)}
  for(const o of G.T)if(o.tm!==tm&&o!==opt.skip&&o.hp>0&&dist(o,p)<r+o.r*.6){damage(o,tdmg,tm);if(opt.stun)stunObj(o,opt.stun);if(opt.freeze)o.frozenT=Math.max(o.frozenT,opt.freeze)}}
+/* физика толчков: скорость, которая плавно гаснет (CFG.phys.knockDamp), путь ≈ скорость / затухание */
+function impulse(u,nx,ny,v){u.kx=(u.kx||0)+nx*v;u.ky=(u.ky||0)+ny*v}
+function stepImpulse(u,dt){if(!u.kx&&!u.ky)return;u.x+=u.kx*dt;u.y+=u.ky*dt;const f=Math.exp(-CFG.phys.knockDamp*dt);u.kx*=f;u.ky*=f;if(Math.hypot(u.kx,u.ky)<3){u.kx=u.ky=0}}
 function stunObj(o,t){o.stunT=Math.max(o.stunT||0,t);if(o.obj==='u'){o.charging=0;o.run=0;o.wu=0;o.beamT=0;o.beamTg=null;o.cd=Math.max(o.cd,hitOf(o)*.5)}else o.cd=Math.max(o.cd||0,(o.hit||1)*.5)}
 function slowObj(o,s){if(o.obj!=='u')return;o.slowT=Math.max(o.slowT,s.t);o.slowF=Math.max(o.slowF||0,s.f)}
-function damage(o,d,fromTm){if(G.over||d<=0)return;if(!aliveT(o))return;
+function damage(o,d,fromTm){if(G.over||d<=0)return;if(!aliveT(o))return;if(o.dashing)return;
  if(o.shield>0){const a=Math.min(o.shield,d);o.shield-=a;d-=a;if(o.shield<=0)puff(o.x,o.y-12,'#ffe9a8',8,40,2);if(d<=0){o.fl=.08;return}}
  if(o.obj==='t')G.stats[fromTm].dmg+=Math.min(d,o.hp);
  o.hp-=d;o.fl=.1;if(d>=CFG.juice.heavyHit&&o.obj!=='b')G.hitstop=CFG.juice.hitStop;
@@ -257,6 +269,7 @@ function updTower(t,dt){t.fl=Math.max(0,t.fl-dt);if(t.hp<=0)return;
 function updBuilding(b,dt){b.fl=Math.max(0,b.fl-dt);b.spawnT=Math.max(0,b.spawnT-dt);if(!alive(b))return;b.hp-=b.mx/b.c.life*dt;if(b.hp<=0){b.hp=0;return}
  if(b.frozenT>0){b.frozenT-=dt;return}if(b.stunT>0){b.stunT-=dt;return}
  b.at=Math.max(0,b.at-dt*3);
+ if(b.c.elx){b.ex=(b.ex??b.c.elx.every)-dt;if(b.ex<=0){b.ex+=b.c.elx.every;const S=G.side[b.tm];S.el=Math.min(CFG.elixir.max,S.el+b.c.elx.n);b.at=1;floatText(b.x,b.y-24,'+'+b.c.elx.n,'#e08bff',13)}}
  if(b.c.spawn){b.spT-=dt;if(b.spT<=0){b.spT=b.c.spawn.every;b.at=1;for(let i=0;i<b.c.spawn.n;i++)G.U.push(mkUnit(b.tm,b.c.spawn.id,b.x+rnd(-8,8),b.y+(b.tm?16:-16)+rnd(-3,3),b.lvl));puff(b.x,b.y-6,'#cfe8c0',5,30,2)}}
  if(b.c.dmg){b.cd-=dt;let best=null,bd=b.c.rng*TILE;for(const u of G.U)if(u.tm!==b.tm&&alive(u)&&canHit(b.c,u)){const d=dist(b,u)-u.r;if(d<bd){bd=d;best=u}}
   if(best){b.ang=Math.atan2(best.y-(b.y-10),best.x-b.x);if(b.cd<=0){b.cd=b.c.hit;b.at=1;G.PR.push({pk:'ball',x:b.x,y:b.y-12,tg:best,lx:best.x,ly:best.y,dmg:b.dmg,tm:b.tm,spl:0,sp:PSPD.ball,fly:best.fly,l:0});AU.sfx('shot')}}}}
@@ -277,7 +290,7 @@ function separate(){const L=G.U;
   for(let j=i+1;j<L.length;j++){const b=L[j];if(!alive(b)||a.fly!==b.fly)continue;const dx=a.x-b.x,dy=a.y-b.y,m=a.r+b.r-1,d2=dx*dx+dy*dy;
    if(d2<m*m&&d2>1e-4){const d=Math.sqrt(d2),f=m-d,wa=b.mass/(a.mass+b.mass),wb=1-wa;a.x+=dx/d*f*wa;a.y+=dy/d*f*wa;b.x-=dx/d*f*wb;b.y-=dy/d*f*wb}}
   if(!a.fly){for(const t of G.T)if(t.hp>0)pushOut(a,t);for(const o of G.B)if(alive(o))pushOut(a,o);
-   if(Math.abs(a.y-RY)<RIV&&!a.c.jump){let nb=1e9;for(const bx of BR)nb=Math.min(nb,Math.abs(a.x-bx));if(nb>19)a.y=RY+(a.y<RY?-RIV:RIV)}}
+   if(Math.abs(a.y-RY)<RIV&&!a.c.jump&&!onBridge(a.x)){let bx=BR[0];for(const b of BR)if(Math.abs(a.x-b)<Math.abs(a.x-bx))bx=b;const h=CFG.arena.bridgeHalf*TILE,ex=bx+Math.sign(a.x-bx)*h;if(Math.abs(a.x-ex)<6)a.x=ex;else a.y=RY+(a.y<RY?-RIV:RIV)}}
   a.x=clamp(a.x,8,W-8);a.y=clamp(a.y,8,H-8)}}
 function pushOut(a,o){const dx=a.x-o.x,dy=a.y-o.y,d=Math.hypot(dx,dy),m=o.r+a.r*.6;if(d<m&&d>.01){a.x+=dx/d*(m-d);a.y+=dy/d*(m-d)}}
 

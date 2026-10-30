@@ -156,6 +156,8 @@ function drawZone(g,z,now){const a=Math.min(1,z.t/.4,(z.tot-z.t)/.2+.2);g.global
  else if(z.k==='rage'){const p=.5+.5*Math.sin(now/150);g.fillStyle=`rgba(255,60,120,${.13+p*.07})`;g.strokeStyle=`rgba(255,120,160,${.6+p*.3})`;g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke()}
  else if(z.k==='poison'){g.fillStyle='rgba(110,210,80,.22)';g.strokeStyle='rgba(150,240,110,.7)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke();
   for(let i=0;i<10;i++){const an=i*2.4+now/1600,d=z.r*(.2+((i*37)%70)/100),ph=(now/900+i*.37)%1;oc(g,z.x+Math.cos(an)*d,z.y+Math.sin(an)*d*.78-ph*8,2+ph*2.5,`rgba(170,255,130,${.6*(1-ph)})`)}}
+ else if(z.k==='pull'){g.strokeStyle='rgba(180,220,255,.8)';g.lineWidth=2;for(let i=0;i<3;i++){g.beginPath();g.ellipse(z.x,z.y,z.r*(.35+i*.3),z.r*(.35+i*.3)*.78,now/300+i,0,4.5);g.stroke()}}
+ else if(z.k==='heal'){g.fillStyle='rgba(120,255,160,.2)';g.strokeStyle='rgba(150,255,180,.8)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke()}
  else if(z.k==='aura'){const p=.5+.5*Math.sin(now/120);g.strokeStyle=`rgba(255,216,77,${.5+p*.4})`;g.lineWidth=2.5;g.setLineDash([6,5]);g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.stroke();g.setLineDash([])}
  g.globalAlpha=1}
 function drawPending(g,d){const c=CARDS[d.key],tun=d.tun||0,el=d.tot-d.t;

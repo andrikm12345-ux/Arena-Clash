@@ -117,6 +117,7 @@ const VIS={
  sorcerer:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.56,atk:['Spellcast_Shoot']},
  knightrider:{m:'Knight',keep:['Knight_Helmet','Knight_Cape','2H_Sword','Round_Shield'],s:.7,idle:'2H_Melee_Idle',move:'Running_A',atk:['2H_Melee_Attack_Stab','2H_Melee_Attack_Chop']},
  frostsage:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.56,tint:'ice',atk:['Spellcast_Shoot']},
+ raider:{m:'Rogue_Hooded',keep:['Rogue_Cape','Knife','Knife_Offhand'],s:.5,tint:'storm',move:'Running_A',atk:['1H_Melee_Attack_Stab','1H_Melee_Attack_Slice_Diagonal']},
  scorch:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.56,tint:'storm',atk:['Spellcast_Shoot']},
  thunder:{m:'Mage',keep:['Mage_Hat','Mage_Cape','1H_Wand','Spellbook_open'],s:.56,tint:'storm',atk:['Spellcast_Raise','Spellcast_Shoot']},
  mole:{m:'Barbarian',keep:['1H_Axe','Barbarian_Hat'],s:.46,tint:'tan',move:'Running_A',atk:['1H_Melee_Attack_Chop']},
@@ -124,7 +125,7 @@ const VIS={
  archer:{m:'Rogue_Hooded',keep:['Rogue_Cape','2H_Crossbow'],s:.36,atk:['2H_Ranged_Shoot']},
  dagger:{m:'Rogue',keep:['Rogue_Cape','Knife','Knife_Offhand'],s:.38,tint:'storm',atk:['Throw']},
  king:{m:'Knight',keep:['Knight_Cape'],s:.44,crown:1,idle:'Idle',atk:['Spellcast_Raise']}};
-const PROC={cannon:1,lair:1,ram:1,airship:1};
+const PROC={cannon:1,lair:1,ram:1,airship:1,spring:1};
 const US3=1.65;
 const HEIGHT={bats:1.9,drake:2.2,airship:3.1,wisp:.5};
 
@@ -346,6 +347,12 @@ function procModel(key,tm){const g=new T.Group(),T0=TEAM[tm],team=new T.MeshStan
   const log=new T.Mesh(new T.CylinderGeometry(.17,.19,2.1,10),wood);log.rotation.x=Math.PI/2;log.position.set(0,.62,.35);g.add(log);parts.log=log;
   const cap=new T.Mesh(new T.CylinderGeometry(.22,.24,.3,10),iron);cap.rotation.x=Math.PI/2;cap.position.set(0,.62,1.42);g.add(cap);parts.cap=cap;
   parts.wheels=[];for(const sx of[-.55,.55])for(const sz of[-.5,.5]){const w=new T.Mesh(new T.CylinderGeometry(.26,.26,.12,14),wood);w.rotation.z=Math.PI/2;w.position.set(sx,.26,sz);g.add(w);parts.wheels.push(w)}}
+ else if(key==='spring'){const st=pbr('wall',1.6,.5,{color:'#b8b0a2'});const ring=new T.Mesh(new T.CylinderGeometry(.85,.95,.6,16,1,true),st);ring.position.y=.3;g.add(ring);
+  const rim=new T.Mesh(new T.TorusGeometry(.86,.1,8,24),st);rim.rotation.x=Math.PI/2;rim.position.y=.6;g.add(rim);
+  const liq=new T.Mesh(new T.CircleGeometry(.8,24),new T.MeshStandardMaterial({color:'#d07bff',emissive:'#a020f0',emissiveIntensity:1.6,roughness:.15}));liq.rotation.x=-Math.PI/2;liq.position.y=.5;g.add(liq);parts.liq=liq;
+  for(const sx of[-.75,.75]){const p=new T.Mesh(new T.BoxGeometry(.1,1.2,.1),wood);p.position.set(sx,1,0);g.add(p)}
+  const roof=new T.Mesh(new T.ConeGeometry(1.05,.55,4),pbr('roof',1,1,{color:T0.m}));roof.rotation.y=Math.PI/4;roof.position.y=1.85;g.add(roof);
+  const drop=new T.Mesh(new T.SphereGeometry(.2,14,10),new T.MeshStandardMaterial({color:'#f0b0ff',emissive:'#c040ff',emissiveIntensity:2}));drop.scale.y=1.3;drop.position.y=1.15;g.add(drop);parts.drop=drop}
  else if(key==='airship'){const cv=document.createElement('canvas');cv.width=64;cv.height=32;const c2=cv.getContext('2d');for(let i=0;i<8;i++){c2.fillStyle=i%2?T0.m:'#f2ead8';c2.fillRect(i*8,0,8,32)}
   const tx=new T.CanvasTexture(cv);tx.colorSpace=T.SRGBColorSpace;const bal=new T.Mesh(new T.SphereGeometry(.95,20,14),new T.MeshStandardMaterial({map:tx,roughness:.55}));bal.scale.set(1,1.12,1);bal.position.y=1.15;g.add(bal);
   const bas=new T.Mesh(new T.BoxGeometry(.75,.42,.75),wood);bas.position.y=-.1;g.add(bas);
@@ -440,6 +447,7 @@ function syncUnits(dt,now){const seen=new Set();
    I.mixer.update(dt)}
   else procAnim(v,u,dt,now,moved,still);
   // заморозка и ярость видны по цвету кольца
+  if(u.dashing)for(let i=0;i<2;i++)S3.parts.add.emit(X+rndV(-.2,.2),.5+rndV(0,.6),Z+rndV(-.2,.2),0,.3,0,'#c8f0ff',.35,.3);
   if(u.charging&&moved>.05&&Math.random()<.6)S3.parts.norm.emit(X+rndV(-.3,.3),.15,Z+rndV(-.3,.3),0,.5,0,'#b8a07a',.45,.7);
   v.ring.material.color.set(still&&u.frozenT>0?'#bfe9ff':u.rageT>0?'#ff5a8a':u.evo?'#c77dff':u.hero?'#ffd84d':TEAM[u.tm].m);
   if((u.evo||u.hero)&&Math.random()<dt*6)S3.parts.add.emit(X+rndV(-.4,.4),.2+rndV(0,1),Z+rndV(-.4,.4),0,.6,0,u.evo?'#c77dff':'#ffd84d',.22,.7)}
@@ -460,7 +468,8 @@ function syncBuildings(dt,now){const seen=new Set();
  for(const b of G.B){let v=S3.blds.get(b);if(!v){v={b,root:procModel(b.key,b.tm)};v.root.position.set(W3(b.x),0,Z3(b.y));if(b.key==='lair')v.root.rotation.y=b.tm?Math.PI:0;S3.dyn.add(v.root);S3.blds.set(b,v);burst(b.x,b.y,.4,'#c9b99a',16,1.4,1,0)}
   seen.add(b);const sp=b.spawnT>0?b.spawnT/.3:0;v.root.scale.setScalar((b.key==='cannon'?1.15:1)*(1-sp*.5));
   if(b.key==='cannon'){const y=v.root.userData.yaw;y.rotation.y=lerpAng(y.rotation.y,Math.atan2(Math.cos(b.ang),Math.sin(b.ang)),dt*8);v.root.userData.barrel.position.z=.42-b.at*.18}
-  if(b.key==='lair'){const d=v.root.userData.parts.door;d.material.emissiveIntensity=b.at*2}}
+  if(b.key==='lair'){const d=v.root.userData.parts.door;d.material.emissiveIntensity=b.at*2}
+  if(b.key==='spring'){const P=v.root.userData.parts;if(P&&P.drop){P.drop.position.y=1.15+Math.sin(performance.now()/300)*.08+b.at*.5;P.liq.material.emissiveIntensity=1.2+b.at*2}}}
  for(const[b,v]of S3.blds)if(!seen.has(b)){S3.blds.delete(b);S3.dyn.remove(v.root);burst(b.x,b.y,.6,'#9a8f7a',26,1.8,1.4,0)}}
 /* снаряды: стрелы, болты, камни, шары огня и льда, ядра, бомбы */
 function projModel(pk,tm){let m;
@@ -508,15 +517,21 @@ function boltMesh(x1,y1,z1,x2,y2,z2){const pts=[],n=7;for(let i=0;i<=n;i++){cons
  const g=new T.TubeGeometry(new T.CatmullRomCurve3(pts),24,.035,5,false);return new T.Mesh(g,new T.MeshBasicMaterial({color:'#dff4ff',transparent:true,blending:T.AdditiveBlending,depthWrite:false}))}
 /* зоны заклинаний на земле */
 function syncZones(now){const seen=new Set();for(const z of G.Z){seen.add(z);let v=S3.zones.get(z);
-  if(!v){const col={freeze:'#bfe9ff',rage:'#ff4f86',poison:'#7ee05a',aura:'#ffd84d'}[z.k];
-   v=new T.Mesh(new T.CircleGeometry(1,40),new T.MeshBasicMaterial({map:S3.soft,color:col,transparent:true,depthWrite:false,blending:z.k==='poison'?T.NormalBlending:T.AdditiveBlending}));v.rotation.x=-Math.PI/2;S3.dyn.add(v);S3.zones.set(z,v);
-   if(z.k==='freeze'){v.userData.ice=iceCrystals(z);S3.dyn.add(v.userData.ice)}}
+  if(!v){const col={freeze:'#bfe9ff',rage:'#ff4f86',poison:'#7ee05a',aura:'#ffd84d',pull:'#9fd0ff',heal:'#4fdc7c'}[z.k];
+   v=new T.Mesh(new T.CircleGeometry(1,40),new T.MeshBasicMaterial({map:S3.soft,color:col,transparent:true,depthWrite:false,blending:z.k==='poison'||z.k==='heal'?T.NormalBlending:T.AdditiveBlending}));v.rotation.x=-Math.PI/2;S3.dyn.add(v);S3.zones.set(z,v);
+   if(z.k==='freeze'){v.userData.ice=iceCrystals(z);S3.dyn.add(v.userData.ice)}
+   if(z.k==='pull'||z.k==='heal'){const sw=new T.Group(),m=new T.MeshBasicMaterial({color:z.k==='pull'?'#e4f3ff':'#2fbf62',transparent:true,opacity:.8,blending:z.k==='pull'?T.AdditiveBlending:T.NormalBlending,depthWrite:false,side:T.DoubleSide});
+    for(let i=0;i<(z.k==='pull'?3:1);i++){const ar=new T.Mesh(z.k==='pull'?new T.RingGeometry(.55+i*.17,.62+i*.17,40,1,i*2.1,3.4):new T.RingGeometry(.93,1,48),m);ar.rotation.x=-Math.PI/2;ar.position.y=.09+i*.01;sw.add(ar)}
+    sw.userData.m=m;v.userData.sw=sw;S3.dyn.add(sw)}}
+  if(v.userData.sw){const sw=v.userData.sw,s=z.r/TILE*(z.k==='pull'?1-.25*(1-z.t/z.tot):1+.04*Math.sin(now/120));sw.scale.set(s,1,s);sw.position.set(W3(z.x),0,Z3(z.y));sw.rotation.y=z.k==='pull'?now/140:0;sw.userData.m.opacity=.8*Math.min(1,z.t/.3)}
   if(v.userData.ice){const k=Math.min(1,(z.tot-z.t)/.25,z.t/.4);v.userData.ice.scale.setScalar(Math.max(.01,k))}
+  if(z.k==='pull')for(let i=0;i<3;i++){const an=now/120+i*2.09+Math.random()*.5,d=(.3+Math.random()*.7)*z.r/TILE;S3.parts.add.emit(W3(z.x)+Math.cos(an)*d,.2+Math.random()*1.4,Z3(z.y)+Math.sin(an)*d,-Math.sin(an)*4-Math.cos(an)*2,.8,Math.cos(an)*4-Math.sin(an)*2,'#cfe8ff',.3,.4)}
+  if(z.k==='heal'&&Math.random()<.7){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*z.r/TILE;S3.parts.add.emit(W3(z.x)+Math.cos(an)*d,.2,Z3(z.y)+Math.sin(an)*d,0,1.6,0,'#9dffb8',.3,.7)}
   if(z.k==='poison'&&Math.random()<.6){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*z.r/TILE;S3.parts.norm.emit(W3(z.x)+Math.cos(an)*d,.4,Z3(z.y)+Math.sin(an)*d,rndV(-.2,.2),.25,rndV(-.2,.2),['#6fcf4a','#3f8a2a','#9be86a'][Math.random()*3|0],.9,1.8)}
   const r=z.r/TILE,a=Math.min(1,z.t/.4,(z.tot-z.t)/.2+.2);v.scale.set(r,r,r);v.position.set(W3(z.x),.07,Z3(z.y));v.material.opacity=(z.k==='poison'?.55:.6)*a*(z.k==='rage'?.75+.25*Math.sin(now/150):1);
-  if(Math.random()<.5){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*r,c={freeze:'#e8f8ff',rage:'#ff7aa2',poison:'#a8ff7a',aura:'#ffe27a'}[z.k];
-   S3.parts[z.k==='poison'?'norm':'add'].emit(W3(z.x)+Math.cos(an)*d,.2,Z3(z.y)+Math.sin(an)*d,0,z.k==='freeze'?-.3:.9,0,c,z.k==='poison'?.5:.22,1)}}
- for(const[z,v]of S3.zones)if(!seen.has(z)){S3.zones.delete(z);S3.dyn.remove(v);if(v.userData.ice){S3.dyn.remove(v.userData.ice);burst(z.x,z.y,.5,'#e8f8ff',20,1.6,.6,0)}}}
+  if(Math.random()<.5){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*r,c={freeze:'#e8f8ff',rage:'#ff7aa2',poison:'#a8ff7a',aura:'#ffe27a',pull:'#e4f3ff',heal:'#3fd46f'}[z.k];
+   S3.parts[z.k==='poison'||z.k==='heal'?'norm':'add'].emit(W3(z.x)+Math.cos(an)*d,.2,Z3(z.y)+Math.sin(an)*d,0,z.k==='freeze'?-.3:.9,0,c,z.k==='poison'?.5:.22,1)}}
+ for(const[z,v]of S3.zones)if(!seen.has(z)){S3.zones.delete(z);S3.dyn.remove(v);if(v.userData.sw)S3.dyn.remove(v.userData.sw);if(v.userData.ice){S3.dyn.remove(v.userData.ice);burst(z.x,z.y,.5,'#e8f8ff',20,1.6,.6,0)}}}
 /* карты в пути: полупрозрачный призрак и кольцо отсчёта (в слое поверх) */
 function ghostModel(key,tm){const c=CARDS[key],vk=c.unit||key,id=vk+tm;if(A3.ghost[id])return T3.SkeletonUtils.clone(A3.ghost[id]);
  let m;if(PROC[vk]||c.type==='building')m=procModel(vk,tm);else{const tpl=bake(vk,tm);m=T3.SkeletonUtils.clone(tpl);m.scale.copy(tpl.scale)}
@@ -618,6 +633,9 @@ function spellModel(key){const g=new T.Group(),E=(c,e,i,o)=>new T.MeshStandardMa
  else if(key==='poison'){const gl=new T.MeshStandardMaterial({color:'#b8ffcf',roughness:.05,transparent:true,opacity:.45});g.add(new T.Mesh(new T.SphereGeometry(.55,24,16),gl));const liq=new T.Mesh(new T.SphereGeometry(.47,24,16,0,6.28,1.2,1.94),E('#7ee05a','#3a9a1a',1.4));g.add(liq);
   const n=new T.Mesh(new T.CylinderGeometry(.14,.16,.4,12),gl);n.position.y=.68;g.add(n);const cork=new T.Mesh(new T.CylinderGeometry(.15,.13,.16,10),flat('#8a5a32'));cork.position.y=.92;g.add(cork);
   for(let i=0;i<5;i++){const b=new T.Mesh(new T.SphereGeometry(.08+.04*(i%2),10,8),E('#a8ff7a','#4cd32a',1.5,{transparent:true,opacity:.8}));b.position.set(-.5+i*.25,.9+(i%3)*.25,.2);g.add(b)}}
+ else if(key==='vortex'){for(let i=0;i<5;i++){const t=new T.Mesh(new T.TorusGeometry(.25+i*.14,.05,8,32,Math.PI*1.6),E('#d8f0ff','#6ab8ff',1.2,{transparent:true,opacity:.85}));t.rotation.set(Math.PI/2,0,i*1.1);t.position.y=-.5+i*.25;g.add(t)}}
+ else if(key==='mend'){const gold=new T.MeshStandardMaterial({color:'#ffe08a',metalness:.7,roughness:.25});const b=new T.Mesh(new T.CylinderGeometry(.18,.5,.75,20,1,true),gold);b.material.side=T.DoubleSide;g.add(b);
+  const k=new T.Mesh(new T.SphereGeometry(.12,10,8),gold);k.position.y=-.42;g.add(k);for(let i=0;i<4;i++){const h=new T.Mesh(new T.TorusGeometry(.12,.035,6,16),E('#9fffb0','#2ad45a',2));h.position.set(-.6+i*.4,.55+(i%2)*.2,.2);g.add(h)}}
  return g}
 async function r3Icons(){if(A3.iconsDone||!R3.ready)return;A3.iconsDone=1;
  const S=240,cv=document.createElement('canvas');cv.width=cv.height=S;let IR;
