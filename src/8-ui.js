@@ -415,6 +415,29 @@ function deny(t){AU.sfx('deny');floatText(clamp(gx,48,W-48),gy-20,t,'#ff9b8f',12
 function togglePause(){if(mode!=='play'||!G||G.over)return;paused=!paused;
  if(paused){showOv(`<div class="scr"><h2>Пауза</h2><button class="big" id="resume">Продолжить</button><button class="ghost" id="quit">Сдаться</button></div>`);$('#resume').onclick=togglePause;$('#quit').onclick=()=>{paused=false;hideOv();G.crowns[1]=3;finish(1)};$('#resume').focus()}
  else hideOv()}
+/* разбор боя: перевес по эликсиру (убитые враги минус свои потери) по секундам, отметки упавших башен */
+function advChart(){const d=G.tl;if(!d||d.length<6)return'';const N=d.length,W0=300,H0=92,L=6,R=294,T=8,B=74,mid=(T+B)/2;
+ const m=Math.max(3,...d.map(Math.abs)),X=i=>L+i/(N-1)*(R-L),Y=v=>mid-v/m*(B-T)/2;
+ const pts=d.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' '),area=`M${X(0)},${mid} L${pts.split(' ').join(' L')} L${X(N-1)},${mid}Z`;
+ let ticks='';for(let s=0;s<N;s+=60)ticks+=`<text x="${X(s)}" y="${H0-4}" text-anchor="${!s?'start':X(s)>R-14?'end':'middle'}">${fmt(s)}</text>`;
+ const ev=G.tlEv.map(e=>{const x=X(Math.min(N-1,e.t));return`<circle cx="${x}" cy="${mid}" r="5" fill="${TEAM[1-e.tm].m}" stroke="var(--panel)" stroke-width="2"><title>${e.tm?'Ты сломал':'Соперник сломал твою'} ${e.kind==='k'?'королевскую башню':'башню'} · ${fmt(e.t)}</title></circle>`}).join('');
+ let bi=0;d.forEach((v,i)=>{if(v>d[bi])bi=i});const best=d[bi]>=1?`Лучший момент: +${String(d[bi]).replace('.',',')} эликсира на ${fmt(bi)}`:'';
+ const fin=d[N-1],sum=`Перевес по эликсиру за бой, в конце ${fin>0?'+':''}${String(fin).replace('.',',')}`;
+ return`<div class="adv" id="adv"><div class="advh"><b>Перевес по эликсиру</b><span><i style="background:${TEAM[0].m}"></i>ты сломал <i style="background:${TEAM[1].m}"></i>он сломал</span></div>
+ <svg viewBox="0 0 ${W0} ${H0}" role="img" aria-label="${sum}"><defs><clipPath id="advU"><rect x="0" y="0" width="${W0}" height="${mid}"/></clipPath><clipPath id="advD"><rect x="0" y="${mid}" width="${W0}" height="${H0}"/></clipPath></defs>
+ <text class="lb" x="${L}" y="${T+8}">ты впереди</text><text class="lb" x="${L}" y="${B-2}">соперник впереди</text>
+ <path d="${area}" fill="${TEAM[0].m}" opacity=".35" clip-path="url(#advU)"/><path d="${area}" fill="${TEAM[1].m}" opacity=".35" clip-path="url(#advD)"/>
+ <line x1="${L}" x2="${R}" y1="${mid}" y2="${mid}" stroke="var(--line)" stroke-width="1"/>
+ <polyline points="${pts}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${ev}
+ <line id="advX" y1="${T}" y2="${B}" stroke="var(--mute)" stroke-width="1" visibility="hidden"/><circle id="advP" r="4" fill="var(--ink)" stroke="var(--panel)" stroke-width="2" visibility="hidden"/>${ticks}
+ <rect x="0" y="0" width="${W0}" height="${B}" fill="transparent" id="advH"/></svg><div class="tip" id="advT" hidden></div>${best?`<small>${best}</small>`:''}</div>`}
+function advHover(){const h=$('#advH');if(!h)return;const d=G.tl,N=d.length,svg=h.ownerSVGElement,tip=$('#advT'),L=6,R=294,T=8,B=74,mid=(T+B)/2,m=Math.max(3,...d.map(Math.abs));
+ const show=e=>{const r=svg.getBoundingClientRect(),vx=(e.clientX-r.left)/r.width*300,i=clamp(Math.round((vx-L)/(R-L)*(N-1)),0,N-1),x=L+i/(N-1)*(R-L),y=mid-d[i]/m*(B-T)/2,v=d[i];
+  $('#advX').setAttribute('x1',x);$('#advX').setAttribute('x2',x);$('#advX').setAttribute('visibility','visible');$('#advP').setAttribute('cx',x);$('#advP').setAttribute('cy',y);$('#advP').setAttribute('visibility','visible');
+  tip.hidden=false;tip.textContent=`${fmt(i)} · ${v===0?'поровну':(v>0?'+':'−')+String(Math.abs(v)).replace('.',',')+(v>0?' в твою пользу':' у соперника')}`;
+  const px=x/300*r.width;tip.style.left=clamp(px,60,r.width-60)+'px'};
+ const hide=()=>{tip.hidden=true;$('#advX').setAttribute('visibility','hidden');$('#advP').setAttribute('visibility','hidden')};
+ h.addEventListener('pointermove',show);h.addEventListener('pointerdown',show);h.addEventListener('pointerleave',hide)}
 function endScreen(){mode='end';sel=null;const r=G.res,cr=G.crowns,S=G.stats[0],train=G.train,ev=G.event;let dtr=0,lucky=-1,gold=0,newA=-1,evr=null,chr=null,tut=null;
  if(ev&&ev!=='challenge'&&ev!=='tutor'&&r===0)evr=eventReward(ev);if(!G.train||ev)clanFight();
  if(ev==='challenge')chr=chalResult(r===0);
@@ -436,9 +459,10 @@ function endScreen(){mode='end';sel=null;const r=G.res,cr=G.crowns,S=G.stats[0],
   <p class="sub">Счёт ${cr[0]} : ${cr[1]} против «${esc(G.names[1])}»</p>
   <div class="endrw">${rw}</div>
   <div class="st2"><span>Урон башням <b>${fmtN(S.dmg)}</b></span><span>Эликсир <b>${Math.round(S.spent)}</b></span><span>Пропало <b>${Math.round(S.leak)}</b></span>${S.trade?`<span>Выгодные размены <b>+${S.trade}</b></span>`:''}</div>
+  ${advChart()}
   <div class="odeck" aria-label="Колода соперника"><small>КОЛОДА СОПЕРНИКА</small>${G.side[1].deck.map(k=>`<canvas width="60" height="60" data-ic="${k}" title="${CARDS[k].n}"></canvas>`).join('')}<button class="link" id="cpd">Скопировать колоду</button></div>
   ${lastReplay?'<button class="ghost" id="rep">Смотреть повтор</button>':''}<button class="big" id="again">${train?'ЕЩЁ РАЗ':'ЕЩЁ БОЙ'}</button><button class="ghost" id="home2">Домой</button></div>`);
- paintIcons(OV);
+ paintIcons(OV);advHover();
  const od=G.side[1].deck.slice();let luckOpen=false;
  const goHome=()=>{AU.sfx('ui');hideOv();G=null;mode='home';r3Stop();showView('home');tab='play';renderHome();if(newA>=0)toast(`Арена ${newA+1}: «${ARENAS[newA].n}» открыта`)};
  if(lucky>=0){P.luck.push(lucky);if(P.luck.length>6)P.luck.shift();saveP();$('#luck').onclick=()=>{if(luckOpen)return;luckOpen=true;const i=P.luck.lastIndexOf(lucky);if(i>=0)P.luck.splice(i,1);saveP();goHome();luckySpin(lucky)}}

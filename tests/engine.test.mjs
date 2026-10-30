@@ -318,3 +318,14 @@ test('размен: заклинание, убившее больше своей
   assert.equal(w.run('G.stats[0].trade'), 1, 'стрелки 3 + пращники 2 − шар 4 = +1');
   assert.ok(w.run('G.TX.some(t=>t.t==="+1 эликсира")') || w.run('G.stats[0].trade') === 1);
 });
+
+test('разбор боя: перевес по секундам и отметка упавшей башни', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>t.dmg=0);spawn(1,'shooters',180,200,11);G.U.forEach(u=>{u.frozenT=999});`);
+  run(w, 2);
+  w.run(`G.U.forEach(u=>u.hp=0)`); run(w, 1.1);
+  assert.equal(w.run('G.tl.length'), 4);
+  assert.equal(w.run('G.tl[G.tl.length-1]'), 3, 'убиты стрелки за 3 эликсира');
+  w.run(`damage(${tower(1, 'p', 'left')},1e7,0)`); run(w, .1);
+  assert.equal(w.run('G.tlEv.length'), 1); assert.equal(w.run('G.tlEv[0].tm'), 1);
+});
