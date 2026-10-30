@@ -339,6 +339,21 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
 #cstat span{display:flex;justify-content:space-between;gap:6px;color:#c9d2ea}#cstat em{font-style:normal;font-weight:800;color:#fff}
 #wrap::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 75% 70% at 50% 48%,transparent 62%,rgba(8,14,32,.32))}
 #wrap>:not(canvas){z-index:2}
+/* шаг 5: рамки карт по редкости, блик на картах и «жидкий» эликсир */
+.card{background:linear-gradient(180deg,#34447a,#1b2644 60%)}
+.card::after{content:'';position:absolute;left:0;right:0;top:0;height:42%;border-radius:8px 8px 40% 40%/8px 8px 18px 18px;background:linear-gradient(180deg,#ffffff26,#ffffff00);pointer-events:none}
+.card[data-r="common"]{border-color:#7f93bd;box-shadow:inset 0 0 0 1px #c8d6f5}
+.card[data-r="rare"]{border-color:#e08a2a;box-shadow:inset 0 0 0 1px #ffc77d,0 0 8px #ff9d3d33}
+.card[data-r="epic"]{border-color:#b05ce0;box-shadow:inset 0 0 0 1px #e2a9ff,0 0 10px #c77dff44}
+.card[data-r="legendary"]{border-color:transparent;background:linear-gradient(180deg,#34447a,#1b2644 60%) padding-box,linear-gradient(120deg,#5ef2d0,#ffe066,#ff7ad9,#5ef2d0) border-box;background-size:100% 100%,300% 300%;animation:leg 4s linear infinite}
+.card[data-r="champion"]{border-color:#ffd84d;box-shadow:inset 0 0 0 1px #fff0a8,0 0 12px #ffd84d55}
+@keyframes leg{to{background-position:0 0,300% 0}}
+#ef{overflow:hidden}
+#ef::after{content:'';position:absolute;left:0;right:0;top:2px;height:35%;border-radius:8px;background:linear-gradient(180deg,#ffffff70,#ffffff00)}
+#ef::before{content:'';position:absolute;top:0;bottom:0;width:40px;left:-40px;background:linear-gradient(90deg,#ffffff00,#ffffff55,#ffffff00);animation:shine 2.6s ease-in-out infinite}
+@keyframes shine{0%{left:-40px}60%,100%{left:110%}}
+#eb{background:linear-gradient(180deg,#05080f,#121a33)}
+@media (prefers-reduced-motion:reduce){.card[data-r="legendary"],#ef::before{animation:none}}
 </style>
 
 <div id="app">

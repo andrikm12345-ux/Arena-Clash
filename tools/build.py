@@ -43,6 +43,7 @@ def site():
 def payloads():
     out = [(f.stem, f.read_bytes()) for f in sorted((ROOT / 'assets/m').glob('*.glb'))]
     out.append(('sky', (ROOT / 'assets/t/sky.hdr').read_bytes()))
+    out += [('s_' + f.stem, f.read_bytes()) for f in sorted((ROOT / 'assets/s').glob('*.mp3'))]
     return ''.join('<script type="text/plain" id="p-%s">%s</script>\n' % (n, base64.b64encode(d).decode()) for n, d in out)
 
 def artifact(out, test=None, three_dir=None):

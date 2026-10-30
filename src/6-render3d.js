@@ -423,7 +423,11 @@ function syncUnits(dt,now){const seen=new Set();
   let y=v.h?v.h+Math.sin(now/300+u.id)*.12:0;
   if(u.spawnT>0&&!v.rise&&!REDUCE){const p=u.spawnT/.3;y+=p*p*3}
   y+=jumpH(u)/TILE*1.1;
-  v.root.position.set(X,y,Z);v.ring.position.set(X,.03,Z);
+  v.root.position.set(X,y,Z);
+  // реакция на удар: короткое «сплющивание» и искры (сильнее на тяжёлых ударах)
+  if(u.fl>.07&&!(v.hitT>0)){v.hitT=.12;const hv=u.mx>1500;for(let i=0;i<(hv?7:4);i++)S3.parts.add.emit(X+rndV(-.25,.25),y+.6+(v.h?0:.4)+rndV(0,.5),Z+rndV(-.25,.25),rndV(-1.4,1.4),rndV(.6,2),rndV(-1.4,1.4),i%2?'#ffffff':'#ffd27a',hv?.32:.24,.28)}
+  if(v.hitT>0){v.hitT-=dt;const q=Math.max(0,v.hitT)/.12;const sq=1-.12*q;v.root.scale.y=(v.sy||(v.sy=v.root.scale.y))*sq;v.root.scale.x=(v.sx0||(v.sx0=v.root.scale.x))*(1+.08*q);v.root.scale.z=(v.sz0||(v.sz0=v.root.scale.z))*(1+.08*q)}
+  else if(v.sy){v.root.scale.set(v.sx0,v.sy,v.sz0)}v.ring.position.set(X,.03,Z);
   // поворот: к цели, если бьёт, иначе по ходу
   let want=v.yaw;if(u.tg&&u.lock&&(alive(u.tg)||u.tg.obj==='t'))want=Math.atan2(u.tg.x-u.x,u.tg.y-u.y);else if(Math.hypot(v.vx,v.vy)>.06)want=Math.atan2(v.vx,v.vy);
   v.yaw=lerpAng(v.yaw,want,dt*10);v.root.rotation.y=v.yaw;

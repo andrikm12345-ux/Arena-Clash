@@ -149,13 +149,23 @@ const BOT_DECKS=[
 const BOT_NAMES=['Ржавый Шлем','Барон Пепел','Кузнец Гром','Тётя Буря','Сэр Носок','Лорд Ватрушка','Капитан Сухарь','Граф Сквозняк','Дед Мороз-Младший','Мадам Кочерга'];
 const EMOTES=['Привет!','Хорошо сыграно','Ой-ой!','Ха-ха-ха!','Грр!','Спасибо'];
 
-/* ================= ЗВУК БЕЗ ФАЙЛОВ ================= */
+/* ================= ЗВУК ================= */
+/* какие файлы играет каждое событие (варианты выбираются случайно; у «tower» звучат все сразу) и их громкость */
+const SFX={hit:['hit1','hit2','hit3'],shot:['shot'],boom:['boom'],tower:['tower','boom'],dep:['dep'],pop:['pop'],wake:['wake'],freeze:['freeze'],chest:['chest'],ui:['ui'],deny:['deny'],emote:['emote'],charge:['swing']};
+const SFX_VOL={hit:.45,shot:.35,boom:.9,tower:1,dep:.6,pop:.35,wake:.7,freeze:.7,chest:.8,ui:.5,deny:.6,emote:.6,charge:.5};
 const AU={c:null,mute:!!store.get('ac.mute',false),nb:null,last:{},
- init(){if(!this.c){try{this.c=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(this.c&&this.c.state==='suspended')this.c.resume()},
+ init(){if(!this.c){try{this.c=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}if(this.c)this.loadFiles()}if(this.c&&this.c.state==='suspended')this.c.resume()},
+ /* звуки из файлов (CC0, assets/s); пока файл не загружен или не декодирован — синтез ниже */
+ buf:{},
+ loadFiles(){const names=[...new Set(Object.values(SFX).flat())];
+  for(const n of names){const get=window.AC_SITE?fetch('assets/s/'+n+'.mp3').then(r=>r.ok?r.arrayBuffer():null):(typeof payload==='function'?payload('s_'+n).then(b=>{const s=atob(b),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a.buffer}):Promise.resolve(null));
+   get.then(ab=>ab&&new Promise((ok,no)=>this.c.decodeAudioData(ab,ok,no))).then(b=>{if(b)this.buf[n]=b}).catch(()=>{})}},
+ file(n,v){const b=this.buf[n];if(!b)return false;const c=this.c,s=c.createBufferSource(),g=c.createGain();s.buffer=b;s.playbackRate.value=.93+Math.random()*.14;g.gain.value=(v||.8)*SET.sfx;s.connect(g);g.connect(c.destination);s.start();return true},
  t(f,d,type,v,sl,dl){if(!this.c||this.mute||!SET.sfx)return;v=(v||.1)*SET.sfx;const c=this.c,t0=c.currentTime+(dl||0),o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t0);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+sl),t0+d);g.gain.setValueAtTime(v||.1,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(c.destination);o.start(t0);o.stop(t0+d+.02)},
  n(d,v,fc,dl){if(!this.c||this.mute||!SET.sfx)return;v=(v||.1)*SET.sfx;const c=this.c;if(!this.nb){this.nb=c.createBuffer(1,c.sampleRate,c.sampleRate);const a=this.nb.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1}
   const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain(),t0=c.currentTime+(dl||0);s.buffer=this.nb;s.loop=true;f.type='lowpass';f.frequency.value=fc||800;g.gain.setValueAtTime(v||.1,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+d);s.connect(f);f.connect(g);g.connect(c.destination);s.start(t0);s.stop(t0+d+.02)},
  sfx(k){const now=performance.now(),gap={hit:60,shot:80,zap:80}[k]||30;if(this.last[k]&&now-this.last[k]<gap)return;this.last[k]=now;
+  if(this.c&&!this.mute&&SET.sfx&&SFX[k]){const f=SFX[k],all=k==='tower';let ok=false;for(const n of all?f:[f[Math.random()*f.length|0]])ok=this.file(n,SFX_VOL[k])||ok;if(ok)return}
   switch(k){
    case 'dep':this.t(260,.14,'triangle',.1,260);this.n(.12,.05,2000);break;
    case 'hit':this.t(420+Math.random()*120,.05,'triangle',.035);break;
@@ -1535,7 +1545,11 @@ function syncUnits(dt,now){const seen=new Set();
   let y=v.h?v.h+Math.sin(now/300+u.id)*.12:0;
   if(u.spawnT>0&&!v.rise&&!REDUCE){const p=u.spawnT/.3;y+=p*p*3}
   y+=jumpH(u)/TILE*1.1;
-  v.root.position.set(X,y,Z);v.ring.position.set(X,.03,Z);
+  v.root.position.set(X,y,Z);
+  // реакция на удар: короткое «сплющивание» и искры (сильнее на тяжёлых ударах)
+  if(u.fl>.07&&!(v.hitT>0)){v.hitT=.12;const hv=u.mx>1500;for(let i=0;i<(hv?7:4);i++)S3.parts.add.emit(X+rndV(-.25,.25),y+.6+(v.h?0:.4)+rndV(0,.5),Z+rndV(-.25,.25),rndV(-1.4,1.4),rndV(.6,2),rndV(-1.4,1.4),i%2?'#ffffff':'#ffd27a',hv?.32:.24,.28)}
+  if(v.hitT>0){v.hitT-=dt;const q=Math.max(0,v.hitT)/.12;const sq=1-.12*q;v.root.scale.y=(v.sy||(v.sy=v.root.scale.y))*sq;v.root.scale.x=(v.sx0||(v.sx0=v.root.scale.x))*(1+.08*q);v.root.scale.z=(v.sz0||(v.sz0=v.root.scale.z))*(1+.08*q)}
+  else if(v.sy){v.root.scale.set(v.sx0,v.sy,v.sz0)}v.ring.position.set(X,.03,Z);
   // поворот: к цели, если бьёт, иначе по ходу
   let want=v.yaw;if(u.tg&&u.lock&&(alive(u.tg)||u.tg.obj==='t'))want=Math.atan2(u.tg.x-u.x,u.tg.y-u.y);else if(Math.hypot(v.vx,v.vy)>.06)want=Math.atan2(v.vx,v.vy);
   v.yaw=lerpAng(v.yaw,want,dt*10);v.root.rotation.y=v.yaw;
@@ -2188,7 +2202,7 @@ function openRules(){AU.init();AU.sfx('ui');const sh=$('#sheet');
   <p class="note"><b>Эволюции и герои.</b> Первый слот колоды — для эволюции: она выходит усиленной сразу и потом через несколько розыгрышей. Второй — для героя со способностью по кнопке (если в колоде нет чемпиона). Открываются за осколки.</p>
   <p class="note"><b>Башня и режимы.</b> Перед боем выбери, кто стоит на башнях: лучница, пушкарь или метательница кинжалов. Во вкладке «События» — тройной эликсир, внезапная смерть и драфт.</p>
   <p class="note"><b>Прогресс.</b> За победы — кубки и сундук удачи. Карты из сундуков улучшают уровни, улучшения дают опыт короля, а он укрепляет башни. Кубки открывают новые арены и карты.</p>
-  <p class="note" style="font-size:11.5px"><b>Авторы.</b> 3D-персонажи, оружие и окружение — наборы KayKit, Kay Lousberg (kaylousberg.com, CC0). Монстры — Ultimate Monsters, Quaternius (quaternius.com, CC0). Склеп, знамёна, факелы — KayKit Dungeon и Halloween (CC0). Небо — Poly Haven (polyhaven.com, CC0). 3D-движок — Three.js (MIT).</p>
+  <p class="note" style="font-size:11.5px"><b>Авторы.</b> 3D-персонажи, оружие и окружение — наборы KayKit, Kay Lousberg (kaylousberg.com, CC0). Монстры — Ultimate Monsters, Quaternius (quaternius.com, CC0). Звуки — Kenney и авторы OpenGameArt (CC0). Склеп, знамёна, факелы — KayKit Dungeon и Halloween (CC0). Небо — Poly Haven (polyhaven.com, CC0). 3D-движок — Three.js (MIT).</p>
   <button class="big blue" id="shx">Понятно</button></div>`;
  sh.hidden=false;sh.onclick=e=>{if(e.target===sh)closeSheet()};$('#shx').onclick=closeSheet;$('#shx').focus()}
 setInterval(()=>{if($('#home').hidden||tab!=='clan')return;const e=$('#reqp');if(e)renderHome()},5000);

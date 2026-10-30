@@ -106,13 +106,23 @@ const BOT_DECKS=[
 const BOT_NAMES=['Ржавый Шлем','Барон Пепел','Кузнец Гром','Тётя Буря','Сэр Носок','Лорд Ватрушка','Капитан Сухарь','Граф Сквозняк','Дед Мороз-Младший','Мадам Кочерга'];
 const EMOTES=['Привет!','Хорошо сыграно','Ой-ой!','Ха-ха-ха!','Грр!','Спасибо'];
 
-/* ================= ЗВУК БЕЗ ФАЙЛОВ ================= */
+/* ================= ЗВУК ================= */
+/* какие файлы играет каждое событие (варианты выбираются случайно; у «tower» звучат все сразу) и их громкость */
+const SFX={hit:['hit1','hit2','hit3'],shot:['shot'],boom:['boom'],tower:['tower','boom'],dep:['dep'],pop:['pop'],wake:['wake'],freeze:['freeze'],chest:['chest'],ui:['ui'],deny:['deny'],emote:['emote'],charge:['swing']};
+const SFX_VOL={hit:.45,shot:.35,boom:.9,tower:1,dep:.6,pop:.35,wake:.7,freeze:.7,chest:.8,ui:.5,deny:.6,emote:.6,charge:.5};
 const AU={c:null,mute:!!store.get('ac.mute',false),nb:null,last:{},
- init(){if(!this.c){try{this.c=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(this.c&&this.c.state==='suspended')this.c.resume()},
+ init(){if(!this.c){try{this.c=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}if(this.c)this.loadFiles()}if(this.c&&this.c.state==='suspended')this.c.resume()},
+ /* звуки из файлов (CC0, assets/s); пока файл не загружен или не декодирован — синтез ниже */
+ buf:{},
+ loadFiles(){const names=[...new Set(Object.values(SFX).flat())];
+  for(const n of names){const get=window.AC_SITE?fetch('assets/s/'+n+'.mp3').then(r=>r.ok?r.arrayBuffer():null):(typeof payload==='function'?payload('s_'+n).then(b=>{const s=atob(b),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a.buffer}):Promise.resolve(null));
+   get.then(ab=>ab&&new Promise((ok,no)=>this.c.decodeAudioData(ab,ok,no))).then(b=>{if(b)this.buf[n]=b}).catch(()=>{})}},
+ file(n,v){const b=this.buf[n];if(!b)return false;const c=this.c,s=c.createBufferSource(),g=c.createGain();s.buffer=b;s.playbackRate.value=.93+Math.random()*.14;g.gain.value=(v||.8)*SET.sfx;s.connect(g);g.connect(c.destination);s.start();return true},
  t(f,d,type,v,sl,dl){if(!this.c||this.mute||!SET.sfx)return;v=(v||.1)*SET.sfx;const c=this.c,t0=c.currentTime+(dl||0),o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t0);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+sl),t0+d);g.gain.setValueAtTime(v||.1,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(c.destination);o.start(t0);o.stop(t0+d+.02)},
  n(d,v,fc,dl){if(!this.c||this.mute||!SET.sfx)return;v=(v||.1)*SET.sfx;const c=this.c;if(!this.nb){this.nb=c.createBuffer(1,c.sampleRate,c.sampleRate);const a=this.nb.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1}
   const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain(),t0=c.currentTime+(dl||0);s.buffer=this.nb;s.loop=true;f.type='lowpass';f.frequency.value=fc||800;g.gain.setValueAtTime(v||.1,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+d);s.connect(f);f.connect(g);g.connect(c.destination);s.start(t0);s.stop(t0+d+.02)},
  sfx(k){const now=performance.now(),gap={hit:60,shot:80,zap:80}[k]||30;if(this.last[k]&&now-this.last[k]<gap)return;this.last[k]=now;
+  if(this.c&&!this.mute&&SET.sfx&&SFX[k]){const f=SFX[k],all=k==='tower';let ok=false;for(const n of all?f:[f[Math.random()*f.length|0]])ok=this.file(n,SFX_VOL[k])||ok;if(ok)return}
   switch(k){
    case 'dep':this.t(260,.14,'triangle',.1,260);this.n(.12,.05,2000);break;
    case 'hit':this.t(420+Math.random()*120,.05,'triangle',.035);break;
