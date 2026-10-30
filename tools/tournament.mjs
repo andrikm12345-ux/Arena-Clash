@@ -5,7 +5,7 @@ import {makeWorld} from '../tests/harness.mjs';
 
 export function duel(w, a, b, seed, arena = 7) {
   return w.run(`(()=>{const L=CFG.bot.levels,mk=(k)=>{const d=genBotDeck(${arena}),lv={},o=(L[k]||{lvOff:0}).lvOff;for(const c of d){const s=START_LV[CARDS[c].rar];lv[c]=clamp(s+5+o,s,MAXLV)}return{d,lv,thp:(L[k]||{thp:1}).thp}};
-   const A=mk('${a}'),B=mk('${b}');
+   const R0=Math.random;Math.random=mul(${seed}*7919+13);let A,B;try{A=mk('${a}');B=mk('${b}')}finally{Math.random=R0} // колоды тоже по seed — турнир повторяем
    newMatch({decks:[A.d,B.d],lv:[A.lv,B.lv],kl:[11,11],bots:['${a}','${b}'],thp:[A.thp,B.thp],seed:${seed}});
    let n=0;while(!G.over&&n<CFG.sim.hz*400){step(TICK);n++}
    const f=st=>{const N=st.fullN+(st.fullCur>0?1:0);return N?(st.fullSum+st.fullCur)/N:0};
