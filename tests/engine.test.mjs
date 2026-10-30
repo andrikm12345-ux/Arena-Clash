@@ -393,3 +393,35 @@ test('Сумрак прячет даже днём, кроме ближнего �
   w.run('c.y=200+2*TILE'); run(w, 1/30);
   assert.equal(w.run('seen(0,s)'), true, 'вплотную видно');
 });
+
+// ---------- разрушаемый ландшафт ----------
+test('Подрыв обрушивает мост: стоявшие на нём падают на берег и оглушены, через 20 с мост цел', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>t.dmg=0);spawn(1,'guard',BR[0],RY,11);globalThis.g=G.U[0];g.hp=g.mx=1e6;castSpell(0,'sapper',BR[0],RY,11)`);
+  run(w, 1.5);
+  assert.ok(w.run('G.bridges[0].down') > 0, 'мост лежит'); assert.equal(w.run('G.bridges[1].down'), 0);
+  assert.ok(w.run('Math.abs(g.y-RY)') >= w.run('RIV'), 'юнит на берегу');
+  assert.equal(w.run('onBridge(BR[0])'), false);
+  run(w, 21);
+  assert.equal(w.run('G.bridges[0].down'), 0); assert.equal(w.run('G.bridges[0].hp'), w.run('CFG.bridge.hp')); assert.equal(w.run('onBridge(BR[0])'), true);
+});
+
+test('без моста наземные идут через другой, летающие — напрямую', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>t.dmg=0);bridgeDown(0);spawn(0,'giant',70,470,11);globalThis.g=G.U[0];spawn(0,'bats',70,470,11)`);
+  run(w, 13);
+  assert.ok(w.run('g.x') > 200, `великан ушёл к правому мосту: x=${w.run('g.x')}`);
+  assert.ok(w.run('G.U.filter(u=>u.key==="bats").every(u=>u.x<150)'), 'летуны не сворачивают');
+});
+
+test('обычный сплэш мост не ломает; огненный шар — царапает и оставляет воронку, она замедляет', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>t.dmg=0);spawn(1,'bomber',BR[0],RY-40,11);spawn(0,'guard',BR[0],RY+10,11);G.U.forEach(u=>{u.hp=u.mx=1e6})`);
+  run(w, 6);
+  assert.equal(w.run('G.bridges[0].hp'), w.run('CFG.bridge.hp'), 'бомбы не трогают');
+  w.run(`G.U=[];castSpell(0,'fireball',BR[0],RY,11)`); run(w, 2);
+  assert.ok(w.run('G.bridges[0].hp') < w.run('CFG.bridge.hp') && w.run('G.bridges[0].down') === 0);
+  assert.equal(w.run('G.Z.filter(z=>z.k==="crater").length'), 1);
+  w.run(`spawn(0,'guard',BR[0],RY+5,11);globalThis.u=G.U[0]`); run(w, 1/30);
+  assert.ok(Math.abs(w.run('spdOf(u)') / w.run('SPD[u.c.spd]') - 0.7) < 1e-9);
+});

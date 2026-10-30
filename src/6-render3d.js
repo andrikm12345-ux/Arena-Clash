@@ -231,7 +231,7 @@ function ribbon(pts,w,mat,y){const pos=[],uv=[],idx=[];let len=0;
  const m=new T.Mesh(g,mat);m.receiveShadow=true;return m}
 function edgeAlpha(){const c=document.createElement('canvas');c.width=64;c.height=4;const g=c.getContext('2d'),r=g.createLinearGradient(0,0,64,0);
  r.addColorStop(0,'rgba(0,0,0,1)');r.addColorStop(.22,'#fff');r.addColorStop(.78,'#fff');r.addColorStop(1,'rgba(0,0,0,1)');g.fillStyle=r;g.fillRect(0,0,64,4);return new T.CanvasTexture(c)}
-function buildArena(th){if(S3.arena){S3.scene.remove(S3.arena)}const A=new T.Group();S3.arena=A;S3.scene.add(A);const rng=mul(17+th*31);
+function buildArena(th){if(S3.arena){S3.scene.remove(S3.arena)}S3.bridgeG=[];const A=new T.Group();S3.arena=A;S3.scene.add(A);const rng=mul(17+th*31);
  // земля и поле
  const TH3=ATH[th]||ATH[0];S3.theme=th;applyLook(TH3);const grass=pbr('grass',20,28),gr=new T.Mesh(new T.PlaneGeometry(88,120),grass);gr.rotation.x=-Math.PI/2;gr.receiveShadow=true;A.add(gr);S3.gmats=[grass];
  const ck=document.createElement('canvas');ck.width=18;ck.height=32;const cg=ck.getContext('2d');
@@ -268,7 +268,7 @@ function buildArena(th){if(S3.arena){S3.scene.remove(S3.arena)}const A=new T.Gro
   const deck=new T.Mesh(new T.BoxGeometry(2.1,.16,3.2),[beam,beam,planks,planks,beam,beam]);deck.position.y=.16;deck.castShadow=deck.receiveShadow=true;b.add(deck);
   for(const sx of[-1.12,1.12]){const rail=new T.Mesh(new T.BoxGeometry(.12,.12,3.3),beam);rail.position.set(sx,.62,0);rail.castShadow=true;b.add(rail);
    for(const sz of[-1.5,-.5,.5,1.5]){const post=new T.Mesh(new T.CylinderGeometry(.07,.08,.6,6),beam);post.position.set(sx,.4,sz);post.castShadow=true;b.add(post)}}
-  b.position.x=bx;A.add(b)}
+  b.position.x=bx;A.add(b);(S3.bridgeG=S3.bridgeG||[]).push(b)}
  // окружение тренировочного лагеря
  const ring=(n,fn)=>{for(let i=0;i<n;i++)fn(i)};
  const place=(name,x,z,s,ry)=>{if(Math.abs(x)>9.6&&Math.abs(x)<15.4&&Math.abs(z)<16.5)x+=Math.sign(x)*5.6;const p=propClone(name,s);p.position.set(x,0,z);p.rotation.y=ry??rng()*6.28;A.add(p);return p};
@@ -411,7 +411,7 @@ function r3Frame(now){const dt=Math.min(.05,(now-S3.last)/1000||0);S3.last=now;c
  if(S3.water){const m=S3.water.material;for(const n of[m.normalMap,m.map])if(n){n.offset.x=(now/1000*.03)%1;n.offset.y=(now/1000*.05)%1}}
  if(S3.foam)for(const t of S3.foam){t.offset.x=(now/1000*.04)%1;t.offset.y=Math.sin(now/900)*.08}if(S3.windU)S3.windU.value=now/1000;
  syncTowers(dt,now);syncUnits(dt,now);syncBuildings(dt,now);syncProj(dt);syncFx(dt,now);syncZones(now);syncPending(now);syncGhost(now);syncParticles(dt);
- stepDebris(dt);stepLights(dt);stepNight(now);if(S3.hype>0)S3.hype-=dt;crowdStep(now);if(Math.random()<.5)towerSmoke();weather(dt);autoQ(dt);
+ stepDebris(dt);stepLights(dt);stepNight(now);stepBridges(dt);if(S3.hype>0)S3.hype-=dt;crowdStep(now);if(Math.random()<.5)towerSmoke();weather(dt);autoQ(dt);
  if(S3.comp)S3.comp.render();else S3.R.render(sc,cam);overlay(now)}
 
 /* башни: лучники и король целятся и стреляют, павшие сменяются руинами */
@@ -534,8 +534,8 @@ function syncZones(now){const seen=new Set();for(const z of G.Z){if(z.k==='glow'
   if(z.k==='roll'){if(!v){v=new T.Group();const L=spellModel('roller',0);L.scale.set(z.r/TILE*1.05,1,1);v.add(L);v.userData.L=L;S3.dyn.add(v);S3.zones.set(z,v)}
    const back=Math.min(z.spd*TICK,z.spd*TICK)*(1-ALPHA),ry=z.y-z.dir*back;v.position.set(W3(z.x),.45,Z3(ry));v.userData.L.rotation.x=-(z.ang-back/12)*z.dir;
    if(Math.random()<.8)S3.parts.norm.emit(W3(z.x)+rndV(-1,1)*z.r/TILE,.1,Z3(ry)-z.dir*.4,rndV(-.3,.3),.6,-z.dir*.6,'#b9a27e',.35,.5);continue}
-  if(!v){const col={freeze:'#bfe9ff',rage:'#ff4f86',poison:'#7ee05a',aura:'#ffd84d',pull:'#9fd0ff',heal:'#4fdc7c',grave:'#7a55b0',flash:'#fff2b0',shade:'#140a26'}[z.k];
-   v=new T.Mesh(new T.CircleGeometry(1,40),new T.MeshBasicMaterial({map:S3.soft,color:col,transparent:true,depthWrite:false,blending:z.k==='poison'||z.k==='heal'||z.k==='grave'||z.k==='shade'?T.NormalBlending:T.AdditiveBlending}));v.rotation.x=-Math.PI/2;S3.dyn.add(v);S3.zones.set(z,v);
+  if(!v){const col={freeze:'#bfe9ff',rage:'#ff4f86',poison:'#7ee05a',aura:'#ffd84d',pull:'#9fd0ff',heal:'#4fdc7c',grave:'#7a55b0',flash:'#fff2b0',shade:'#140a26',crater:'#24160a'}[z.k];
+   v=new T.Mesh(new T.CircleGeometry(1,40),new T.MeshBasicMaterial({map:S3.soft,color:col,transparent:true,depthWrite:false,blending:z.k==='poison'||z.k==='heal'||z.k==='grave'||z.k==='shade'||z.k==='crater'?T.NormalBlending:T.AdditiveBlending}));v.rotation.x=-Math.PI/2;S3.dyn.add(v);S3.zones.set(z,v);
    if(z.k==='freeze'){v.userData.ice=iceCrystals(z);S3.dyn.add(v.userData.ice)}
    if(z.k==='pull'||z.k==='heal'||z.k==='grave'||z.k==='shade'){const sw=new T.Group(),m=new T.MeshBasicMaterial({color:z.k==='pull'?'#e4f3ff':z.k==='grave'?'#9a6ae0':z.k==='shade'?'#8a6ae8':'#2fbf62',transparent:true,opacity:.8,blending:z.k==='pull'?T.AdditiveBlending:T.NormalBlending,depthWrite:false,side:T.DoubleSide});
     for(let i=0;i<(z.k==='pull'?3:1);i++){const ar=new T.Mesh(z.k==='pull'?new T.RingGeometry(.55+i*.17,.62+i*.17,40,1,i*2.1,3.4):new T.RingGeometry(.93,1,48),m);ar.rotation.x=-Math.PI/2;ar.position.y=.09+i*.01;sw.add(ar)}
@@ -547,8 +547,8 @@ function syncZones(now){const seen=new Set();for(const z of G.Z){if(z.k==='glow'
   if(z.k==='heal'&&Math.random()<.7){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*z.r/TILE;S3.parts.add.emit(W3(z.x)+Math.cos(an)*d,.2,Z3(z.y)+Math.sin(an)*d,0,1.6,0,'#9dffb8',.3,.7)}
   if(z.k==='poison'&&Math.random()<.6){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*z.r/TILE;S3.parts.norm.emit(W3(z.x)+Math.cos(an)*d,.4,Z3(z.y)+Math.sin(an)*d,rndV(-.2,.2),.25,rndV(-.2,.2),['#6fcf4a','#3f8a2a','#9be86a'][Math.random()*3|0],.9,1.8)}
   const r=z.r/TILE,a=Math.min(1,z.t/.4,(z.tot-z.t)/.2+.2);v.scale.set(r,r,r);v.position.set(W3(z.x),.07,Z3(z.y));v.material.opacity=(z.k==='poison'?.55:.6)*a*(z.k==='rage'?.75+.25*Math.sin(now/150):1);
-  if(Math.random()<.5){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*r,c={freeze:'#e8f8ff',rage:'#ff7aa2',poison:'#a8ff7a',aura:'#ffe27a',pull:'#e4f3ff',heal:'#3fd46f',grave:'#b48cff',flash:'#fff6c0',shade:'#3a2560'}[z.k];
-   S3.parts[z.k==='poison'||z.k==='heal'||z.k==='grave'||z.k==='shade'?'norm':'add'].emit(W3(z.x)+Math.cos(an)*d,.2,Z3(z.y)+Math.sin(an)*d,0,z.k==='freeze'?-.3:.9,0,c,z.k==='poison'?.5:.22,1)}}
+  if(Math.random()<.5){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*r,c={freeze:'#e8f8ff',rage:'#ff7aa2',poison:'#a8ff7a',aura:'#ffe27a',pull:'#e4f3ff',heal:'#3fd46f',grave:'#b48cff',flash:'#fff6c0',shade:'#3a2560',crater:'#6a5440'}[z.k];
+   S3.parts[z.k==='poison'||z.k==='heal'||z.k==='grave'||z.k==='shade'||z.k==='crater'?'norm':'add'].emit(W3(z.x)+Math.cos(an)*d,.2,Z3(z.y)+Math.sin(an)*d,0,z.k==='freeze'?-.3:.9,0,c,z.k==='poison'?.5:.22,1)}}
  for(const[z,v]of S3.zones)if(!seen.has(z)){S3.zones.delete(z);S3.dyn.remove(v);if(v.userData.sw)S3.dyn.remove(v.userData.sw);if(v.userData.ice){S3.dyn.remove(v.userData.ice);burst(z.x,z.y,.5,'#e8f8ff',20,1.6,.6,0)}}}
 /* карты в пути: полупрозрачный призрак и кольцо отсчёта (в слое поверх) */
 function ghostModel(key,tm){const c=CARDS[key],vk=c.unit||key,id=vk+tm;if(A3.ghost[id])return T3.SkeletonUtils.clone(A3.ghost[id]);
@@ -604,6 +604,7 @@ function proj(x,y,h){if(!PV)PV=new T.Vector3();PV.set(W3(x),h,Z3(y)).project(S3.
 function overlay(now){const g=X,k=C.width/360;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,C.width,C.height);
  const bar=(sx,sy,w,p,tm,gold)=>{w*=k;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,gold?'#ffd84d':'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,Math.max(0,w*p),4*k,2*k,tm?'#ff6a5a':'#4cd37a')};
  for(const b of G.B){const[sx,sy]=proj(b.x,b.y,1.9);bar(sx,sy,28,b.hp/b.mx,b.tm)}
+ for(const b of G.bridges||[]){if(b.down<=0&&b.hp>=b.mx)continue;const[sx,sy]=proj(b.x,RY,1.2),w=34*k,p=b.down>0?1-b.down/CFG.bridge.down:b.hp/b.mx;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,w*p,4*k,2*k,b.down>0?'#9fd8ff':b.fl>0?'#ffffff':'#ffc83d')}
  for(const u of G.U){if(u.spawnT>0)continue;const v=S3.units.get(u),hh=(v&&v.inst?(v.inst.V.hh||2.47*v.inst.V.s*US3):1.7)+(HEIGHT[u.key]||0)+.25;
   if(G.vis&&u.tm===1&&!G.vis[0].has(u))continue;
   if(u.hp<u.mx||u.c.ability||u.shield>0){const[sx,sy]=proj(IX(u),IY(u),hh);const w=Math.max(16,u.r*2.2);bar(sx,sy,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,sx-w*k/2,sy-6*k,w*k*u.shield/u.smx,3*k,1.5*k,'#ffd84d')}
@@ -653,6 +654,10 @@ function spellModel(key){const g=new T.Group(),E=(c,e,i,o)=>new T.MeshStandardMa
  else if(key==='poison'){const gl=new T.MeshStandardMaterial({color:'#b8ffcf',roughness:.05,transparent:true,opacity:.45});g.add(new T.Mesh(new T.SphereGeometry(.55,24,16),gl));const liq=new T.Mesh(new T.SphereGeometry(.47,24,16,0,6.28,1.2,1.94),E('#7ee05a','#3a9a1a',1.4));g.add(liq);
   const n=new T.Mesh(new T.CylinderGeometry(.14,.16,.4,12),gl);n.position.y=.68;g.add(n);const cork=new T.Mesh(new T.CylinderGeometry(.15,.13,.16,10),flat('#8a5a32'));cork.position.y=.92;g.add(cork);
   for(let i=0;i<5;i++){const b=new T.Mesh(new T.SphereGeometry(.08+.04*(i%2),10,8),E('#a8ff7a','#4cd32a',1.5,{transparent:true,opacity:.8}));b.position.set(-.5+i*.25,.9+(i%3)*.25,.2);g.add(b)}}
+ else if(key==='sapper'){const k=new T.Mesh(new T.CylinderGeometry(.42,.42,.8,18),new T.MeshStandardMaterial({color:'#7a5232',roughness:.8}));g.add(k);
+  for(const y of[-.28,.28]){const h=new T.Mesh(new T.TorusGeometry(.43,.05,6,24),new T.MeshStandardMaterial({color:'#3a3d44',metalness:.8,roughness:.4}));h.rotation.x=Math.PI/2;h.position.y=y;g.add(h)}
+  const f=new T.Mesh(new T.CylinderGeometry(.03,.03,.45,6),new T.MeshStandardMaterial({color:'#2a2a2a'}));f.position.set(.15,.6,0);f.rotation.z=-.4;g.add(f);
+  const sp=new T.Mesh(new T.SphereGeometry(.09,10,8),E('#fff3c0','#ff8a1a',3));sp.position.set(.27,.82,0);g.add(sp)}
  else if(key==='flash'){const c=new T.Mesh(new T.OctahedronGeometry(.42,0),E('#fffbe0','#ffe066',3));g.add(c);
   for(let i=0;i<8;i++){const r=new T.Mesh(new T.BoxGeometry(.06,.75,.06),E('#fff6c0','#ffd84d',2.5));const a=i/8*Math.PI*2;r.position.set(Math.cos(a)*.62,Math.sin(a)*.62,0);r.rotation.z=a-Math.PI/2;g.add(r)}}
  else if(key==='shade'){const o=new T.Mesh(new T.SphereGeometry(.5,24,16),new T.MeshStandardMaterial({color:'#1a1030',roughness:.4,metalness:.2}));g.add(o);
@@ -728,6 +733,11 @@ function stepNight(now){nightSetup();const k=nightK(),L=S3.pal,sc=S3.scene;if(!L
  P.count=n;P.instanceMatrix.needsUpdate=true;if(P.instanceColor)P.instanceColor.needsUpdate=true;P.material.opacity=.2*k;
  const fl=1+Math.sin(now/110)*.06+Math.sin(now/47)*.04;
  S3.pl.forEach((l,i)=>{const s=src[i];if(!s||k<=0){l.intensity=0;return}l.position.set(W3(s.x),1.6,Z3(s.y));l.distance=s.r/TILE*1.15;l.intensity=3.2*k*fl})}
+/* мосты: рушатся с обломками и брызгами, отстраиваются, вздрагивают от ударов */
+function stepBridges(dt){if(!S3.bridgeG||!G.bridges)return;G.bridges.forEach((b,i)=>{const v=S3.bridgeG[i];if(!v)return;const down=b.down>0;
+ if(down&&v.visible){v.visible=false;explosion(b.x,RY,44);burst(b.x,RY,1.2,'#8a5a32',36,2.4,1.6,0);burst(b.x,RY,1,'#cfefff',30,2.2,1.2,0)}
+ if(!down&&!v.visible){v.visible=true;v.userData.rise=1}
+ if(v.userData.rise>0){v.userData.rise=Math.max(0,v.userData.rise-dt*1.5);v.position.y=-.5*v.userData.rise**2}else v.position.y=b.fl>0?-.04:0})}
 function stepLights(dt){if(S3.lights)for(const L of S3.lights){L.t=Math.max(0,L.t-dt);L.l.intensity=L.I*(L.t/L.m)**1.5}}
 function debris(t){S3.hype=3;const k=t.kind==='k',wall=pbr('wall',1,1,{color:'#d8cfbe'}),X=W3(t.x),Z=Z3(t.y);S3.deb=S3.deb||[];
  for(let i=0;i<(k?26:18);i++){const s=.14+Math.random()*.26,m=new T.Mesh(new T.DodecahedronGeometry(s,0),wall);m.castShadow=true;m.position.set(X+rndV(-.8,.8),1+Math.random()*2.4,Z+rndV(-.8,.8));

@@ -57,6 +57,12 @@ function bush(g,x,y){g.fillStyle='rgba(0,0,0,.2)';g.beginPath();g.ellipse(x+2,y+
 function drawRiver(g,now){const y0=RY-RIV,h=2*RIV,rg=g.createLinearGradient(0,y0,0,y0+h);rg.addColorStop(0,TH.w0);rg.addColorStop(.5,TH.w1);rg.addColorStop(1,TH.w0);g.fillStyle=rg;g.fillRect(0,y0,W,h);
  g.lineWidth=1.3;for(let i=0;i<6;i++){g.strokeStyle=`rgba(${TH.wave},${.13+(i%2)*.1})`;g.beginPath();for(let x=0;x<=W;x+=6){const y=y0+5+i*6+Math.sin(x/17+now/650+i*1.7)*1.8;x?g.lineTo(x,y):g.moveTo(x,y)}g.stroke()}}
 
+/* мосты: рухнувший закрыт водой с обломками и полосой восстановления, повреждённый — с полосой прочности */
+function drawBridges(g,now){const h=CFG.arena.bridgeHalf*TILE;G.bridges.forEach(b=>{
+ if(b.down>0){const rg=g.createLinearGradient(0,RY-RIV,0,RY+RIV);rg.addColorStop(0,TH.w0);rg.addColorStop(.5,TH.w1);rg.addColorStop(1,TH.w0);g.fillStyle=rg;g.fillRect(b.x-h-3,RY-RIV,2*h+6,2*RIV);
+  g.fillStyle='#7a5232';for(let i=0;i<5;i++){const x=b.x-h+((i*37)%(2*h)),y=RY-RIV+6+((i*23)%(2*RIV-12));g.save();g.translate(x,y+Math.sin(now/500+i)*1.5);g.rotate(i*1.3);g.fillRect(-7,-2,14,4);g.restore()}
+  const p=1-b.down/CFG.bridge.down;rr(g,b.x-16,RY-RIV-9,32,5,2.5,'rgba(5,8,20,.75)');rr(g,b.x-15,RY-RIV-8,30*p,3,1.5,'#9fd8ff')}
+ else if(b.hp<b.mx){rr(g,b.x-16,RY-RIV-9,32,5,2.5,'rgba(5,8,20,.75)');rr(g,b.x-15,RY-RIV-8,30*b.hp/b.mx,3,1.5,b.fl>0?'#fff':'#ffc83d')}})}
 /* ---------- башни ---------- */
 function drawTower(g,t,now){const T=TEAM[t.tm],x=t.x,y=t.y,r=t.r,k=t.kind==='k';
  if(t.hp<=0){g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.ellipse(x,y+3,r+4,r*.7,0,0,7);g.fill();
@@ -160,6 +166,7 @@ function drawZone(g,z,now){const a=Math.min(1,z.t/.4,(z.tot-z.t)/.2+.2);g.global
  else if(z.k==='pull'){g.strokeStyle='rgba(180,220,255,.8)';g.lineWidth=2;for(let i=0;i<3;i++){g.beginPath();g.ellipse(z.x,z.y,z.r*(.35+i*.3),z.r*(.35+i*.3)*.78,now/300+i,0,4.5);g.stroke()}}
  else if(z.k==='roll'){g.fillStyle='#8a5a32';g.strokeStyle='#4a2e18';g.lineWidth=2;rr(g,z.x-z.r,z.y-9,z.r*2,18,8,'#8a5a32');g.stroke();g.fillStyle='#e2b77a';for(const s of[-1,1]){g.beginPath();g.ellipse(z.x+s*z.r,z.y,4,9,0,0,7);g.fill()}
   g.strokeStyle='#5c3a1e';for(let i=0;i<4;i++){const yy=z.y-9+((z.ang*6+i*4.5)%18);g.beginPath();g.moveTo(z.x-z.r+4,yy);g.lineTo(z.x+z.r-4,yy);g.stroke()}}
+ else if(z.k==='crater'){g.fillStyle='rgba(60,40,22,.45)';g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.7,0,0,7);g.fill();g.strokeStyle='rgba(30,20,10,.5)';g.lineWidth=1.5;g.stroke()}
  else if(z.k==='flash'){g.fillStyle='rgba(255,246,190,.25)';g.strokeStyle='rgba(255,236,150,.85)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.light,z.light*.78,0,0,7);g.fill();g.stroke()}
  else if(z.k==='shade'){g.fillStyle='rgba(16,8,34,.55)';g.strokeStyle='rgba(150,110,230,.7)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke()}
  else if(z.k==='grave'){g.fillStyle='rgba(70,40,100,.28)';g.strokeStyle='rgba(180,140,255,.7)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke()}
@@ -211,6 +218,7 @@ function draw(now){const g=X;g.setTransform(1,0,0,1,0,0);if(!BG||!G)return;
  for(const d of G.DEC){g.fillStyle=`rgba(20,12,6,${Math.min(.42,d.l*.15)})`;g.beginPath();g.ellipse(d.x,d.y,d.r,d.r*.7,0,0,7);g.fill()}
  drawRiver(g,now);
  g.setTransform(1,0,0,1,0,0);g.drawImage(BG.a,sx*K,sy*K);g.setTransform(K,0,0,K,sx*K,sy*K);
+ drawBridges(g,now);
  if(sel!=null&&mode==='play'&&!G.over){const key=G.side[0].hand[sel];if(key)drawDeployZones(g,key,now)}
  for(const z of G.Z)drawZone(g,z,now);
  for(const d of G.D)drawPending(g,d);

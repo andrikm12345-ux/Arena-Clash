@@ -90,6 +90,11 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
  // добить башню заклинанием
  if(RNG()<s.spell)for(const k of hand){const c=CARDS[k];if(c.type!=='spell'||!c.tdmg||c.freeze)continue;const td=LV(c.tdmg,S.lv[k]||1);
   for(const t of G.T)if(t.tm!==b.tm&&t.hp>0&&t.hp<=td*(c.poison?.9:1)){if(botPlay(b,k,t.x,fyOf(b,t.y),true))return}}
+ // Подрыв: большой пуш врага на его стороне идёт к мосту — обрушить мост перед ним
+ const sp=hand.find(k=>CARDS[k].bdmg);
+ if(sp&&RNG()<s.spell)for(const lane of[0,1]){const br=G.bridges[lane];if(br.down>0)continue;const bx=BR[lane];
+  const near=G.U.filter(u=>u.tm!==b.tm&&alive(u)&&!u.fly&&!u.c.jump&&!u.c.tunnel&&Math.abs(u.x-bx)<70&&fyOf(b,u.y)>345&&fyOf(b,u.y)<470);
+  if(near.reduce((a,u)=>a+uval(u),0)>=5&&botPlay(b,sp,bx,fyOf(b,RY),true))return}
  // оборона: самая опасная линия
  let need=null;
  for(const lane of[0,1]){const T=L[lane];if(!T.n||T.age<s.react)continue;const n=T.v-laneDef(b,lane)+(T.bt?1:0)+(T.fy<200?1:0);if(n>.6&&(!need||n>need.n))need={lane,n,T}}

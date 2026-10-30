@@ -18,6 +18,8 @@ const CFG={
   p:{hp:3052,dmg:109,hit:.8,rng:7.5,r:24},
   k:{hp:4824,dmg:109,hit:1,rng:7,r:32,wakeAim:3.3,wakeShot:.7}},
  phys:{knockDamp:12,knockMinMass:10,deployPushMass:8,deployPush:90,pullMass:8}, // отбрасывание — скоростью с затуханием; толчок при высадке тяжёлых; вихрь тянет в полную силу юнитов до pullMass
+ bridge:{hp:2000,down:20,stun:1},          // прочность моста, сколько секунд он лежит, оглушение упавших
+ crater:{t:8,slow:.3,k:.7},                // воронка от больших взрывов: время, замедление, радиус как доля взрыва
  /* день и ночь: day/night — длительность фаз (с), fade — переход; ночью враг виден, только если в свете или ближе near клеток.
     light — радиусы света (клетки); aff — бонус карт в «своё» время суток */
  cycle:{on:1,day:50,night:40,fade:3,near:2.5,light:{p:5,k:6,bld:2,boom:3,boomT:2},aff:{dmg:.25,spd:.15}},
@@ -104,6 +106,7 @@ const CARDS={
  spring:{n:'Родник',rar:'rare',type:'building',cost:6,hp:1070,tg:'g',r:13,life:70,elx:{every:9.8,n:1},noStart:1,tip:'Добывает эликсир: +1 каждые 9,8 секунды, пока стоит. Окупается, если его не сломают. Не бывает в стартовой руке.'},
  raider:{aff:'night',n:'Налётчица',rar:'legendary',type:'troop',cost:3,hp:906,dmg:193,hit:1,rng:.75,spd:'fast',tg:'g',r:8,dash:{min:3.5,max:6,spd:500,mul:2},tip:'Рывком сокращает дистанцию до цели в 3,5–6 клеток. Во время рывка неуязвима, первый удар — двойной.'},
  mend:{n:'Целебный звон',rar:'rare',type:'spell',cost:2,rad:3,heal:420,healT:2,tip:'Две секунды лечит своих бойцов в круге. Спасает пуш, который вот-вот развалится.'},
+ sapper:{n:'Подрыв',rar:'epic',type:'spell',cost:3,rad:2,dmg:150,tdmg:45,bdmg:2000,crater:1,tip:'Взрыв обрушивает мост, если попасть по нему: 20 с наземные идут через другой. Юниты на мосту падают на берег и оглушены. По юнитам — 150 урона.'},
  torchman:{n:'Факелоносец',rar:'common',type:'troop',cost:2,hp:560,dmg:110,hit:1.1,rng:.7,spd:'fast',tg:'g',r:7,light:3.5,tip:'Несёт факел: свет 3,5 клетки вокруг себя. Ночью — глаза для твоих стрелков и башен.'},
  lantern:{n:'Фонарь',rar:'common',type:'building',cost:2,hp:420,tg:'g',r:10,life:45,light:6,tip:'Свет 6 клеток на 45 с. Сам не бьёт, но ночью открывает врагов у моста и притягивает «только здания».'},
  flash:{n:'Вспышка',rar:'rare',type:'spell',cost:1,rad:2.5,dmg:96,tdmg:29,blind:1,flash:{light:5,t:6},tip:'Яркий свет на 5 клеток на 6 с; враги в центре (2,5 клетки) обожжены и ослеплены: 1 с не двигаются и не атакуют.'},
@@ -434,7 +437,7 @@ function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.rand
    if(kind==='p'){const q=TT[tt[tm]]||TT.archer,t=T[T.length-1];t.hp=t.mx=Math.round(hp*q.hp);t.dmg=Math.round(t.dmg*q.dmg);t.hit*=q.hit;t.pk=q.pk;t.tt=tt[tm];if(q.mag){t.mag=t.ammo=q.mag;t.reload=q.reload}}}}
  G={seed,simR,log:[],replay:o.replay||null,rpi:0,setup:null,mc,tick:0,downs:[],tb:null,t:0,ot:0,otT:0,over:0,res:-1,endAt:0,crowns:[0,0],U:[],B:[],T,PR:[],FX:[],Z:[],D:[],S:[],PT:[],TX:[],DEC:[],EM:[],CF:[],shake:0,
   side:[0,1].map(tm=>mkSide(tm,o.decks[tm],o.lv[tm],o.kl[tm],o.ex&&o.ex[tm],mc.elStart)),mode:o.mode||'normal',bots:[0,1].map(tm=>o.bots[tm]?mkBot(tm,o.bots[tm]):null),
-  names:o.names||['Ты','Соперник'],train:!!o.train,tl:[0],tlEv:[],cyc:CFG.cycle.on&&mc.cycle!==0?1:0,night:0,vis:null,stats:[0,1].map(()=>({lost:0,trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
+  names:o.names||['Ты','Соперник'],train:!!o.train,tl:[0],tlEv:[],bridges:BR.map(x=>({x,hp:CFG.bridge.hp,mx:CFG.bridge.hp,down:0})),riv:RIVER.slice(),cyc:CFG.cycle.on&&mc.cycle!==0?1:0,night:0,vis:null,stats:[0,1].map(()=>({lost:0,trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
  G.side.forEach((S,tm)=>{S.elMul=o.elMul?o.elMul[tm]:G.bots[tm]?G.bots[tm].s.el:1});
  G.bots.forEach((b,tm)=>{if(b){b.r=mul(seed*31+tm+7);b.think=1.2+b.r()*1.3;b.lane=b.r()<.5?0:1}});
  G.setup={elMul:G.side.map(S=>S.elMul),decks:o.decks,lv:o.lv,kl:o.kl,mode:o.mode||'normal',ex:o.ex||null,tt:o.tt||null,thp:o.thp||null,seed,names:G.names,train:G.train};
@@ -505,13 +508,14 @@ function tradeReport(tr,x,y){if(!tr||tr.done)return;tr.done=1;const g=Math.floor
 function castSpell(tm,key,x,y,lvl){const c=CARDS[key],tr={tm,cost:c.cost,val:0};withTrade(tr,()=>castSpell0(tm,key,x,y,lvl,tr));if(!G.Z.some(z=>z.tr===tr)&&!G.S.some(s=>s.tr===tr))tradeReport(tr,x,y)}
 function castSpell0(tm,key,x,y,lvl,tr){const c=CARDS[key],r=c.rad*TILE,dmg=LV(c.dmg||0,lvl),tdmg=LV(c.tdmg||0,lvl);
  if(key==='fireball'){const k=G.T.find(t=>t.tm===tm&&t.kind==='k'),tt=Math.max(.35,Math.hypot(x-k.x,y-k.y)/300);
-  G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg,tdmg,'ga',{knock:c.knock}));boomFx(x,y,r);G.Z.push({k:'glow',tm,x,y,r,t:CFG.cycle.light.boomT,tot:CFG.cycle.light.boomT,light:CFG.cycle.light.boom*TILE});tradeReport(tr,x,y)}});AU.sfx('shot');return}
+  G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg,tdmg,'ga',{knock:c.knock,br:tdmg,crater:1}));boomFx(x,y,r);G.Z.push({k:'glow',tm,x,y,r,t:CFG.cycle.light.boomT,tot:CFG.cycle.light.boomT,light:CFG.cycle.light.boom*TILE});tradeReport(tr,x,y)}});AU.sfx('shot');return}
  if(c.waves){for(let w=0;w<c.waves;w++)G.S.push({t:G.t+.45+w*.3,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg/c.waves,tdmg/c.waves,'ga'));if(w===c.waves-1)tradeReport(tr,x,y);ring(x,y,r,'#ffffff');AU.sfx('hit');for(let i=0;i<8;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;puff(x+Math.cos(a)*d,y+Math.sin(a)*d,'#e9eef7',2,20,1.6)}}});
   for(let i=0;i<28;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;G.FX.push({k:'rain',x:x+Math.cos(a)*d+16,y:y+Math.sin(a)*d-80,x2:x+Math.cos(a)*d,y2:y+Math.sin(a)*d,l:-rnd(0,.95),m:.3})}AU.sfx('shot');return}
  if(c.freeze){areaHit(tm,x,y,r,dmg,tdmg,'ga',{freeze:c.freeze});G.Z.push({k:'freeze',tm,x,y,r,t:c.freeze,tot:c.freeze});AU.sfx('freeze');return}
  if(c.stun){areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.stun});G.FX.push({k:'zapring',x,y,r,l:0,m:.35});AU.sfx('zap');return}
  if(c.rage){G.Z.push({k:'rage',tm,x,y,r,t:c.rage,tot:c.rage});AU.sfx('rage');return}
  if(c.pull){G.Z.push({k:'pull',tr,tm,x,y,r,t:c.pull,tot:c.pull,tick:0,dmg:dmg/4,tdmg:tdmg/4,spd:c.pullSpd});AU.sfx('poison');return}
+ if(c.bdmg){const k=G.T.find(t=>t.tm===tm&&t.kind==='k'),tt=Math.max(.35,Math.hypot(x-k.x,y-k.y)/320);G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg,tdmg,'ga',{br:c.bdmg,crater:1}));boomFx(x,y,r);tradeReport(tr,x,y)}});AU.sfx('shot');return}
  if(c.flash){G.Z.push({k:'flash',tm,x,y,r,t:c.flash.t,tot:c.flash.t,light:c.flash.light*TILE});areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.blind});AU.sfx('zap');return}
  if(c.shade){G.Z.push({k:'shade',tm,x,y,r,t:c.shade,tot:c.shade});AU.sfx('freeze');return}
  if(c.roll){const dir=tm?1:-1;G.Z.push({k:'roll',tr,tm,x,y,r,t:99,tot:99,dir,left:c.roll.len*TILE,spd:c.roll.spd,dmg,tdmg,knock:c.knock,hit:new Set(),ang:0});AU.sfx('hit');return}
@@ -535,6 +539,7 @@ function updZone(z,dt){z.t-=dt;
    if(G.tick%3===0)puff(z.x+rnd(-z.r,z.r),z.y,'#c9b99a',1,30,2)}
   else if(z.k==='grave'){z.tick-=dt;if(z.tick<=0&&z.t>.3){z.tick+=z.every;for(let n=0;n<8;n++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*z.r*.9,px=clamp(z.x+Math.cos(a)*d,10,W-10),py=z.y+Math.sin(a)*d;
      if(Math.abs(py-RY)<RIV+4||G.T.some(t=>t.hp>0&&dist(t,{x:px,y:py})<t.r+4))continue;const u=mkUnit(z.tm,z.id,px,py,z.lvl);G.U.push(u);puff(px,py,'#6b5a7a',6,30,2.2);break}}}
+  else if(z.k==='crater'){for(const u of G.U)if(alive(u)&&!u.fly&&dist(u,z)<z.r+u.r*.3)u.mudT=.2}
   else if(z.k==='heal'){for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r+u.r*.5)u.hp=Math.min(u.mx,u.hp+z.hps*dt)}
   else if(z.k==='aura'){if(alive(z.u)){z.x=z.u.x;z.y=z.u.y}for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r)u.rageT=Math.max(u.rageT,.5)}}
 function useAbility(tm){const R0=RNG;RNG=G.simR;let ok;try{ok=doAbility(tm)}finally{RNG=R0}if(ok)G.log.push({k:'a',tk:G.tick,ph:G.inBots?1:0,tm});return ok}
@@ -575,7 +580,7 @@ function seen(tm,o){return!G.vis||o.obj==='t'||G.vis[tm].has(o)}
 /* сродство: дневные и ночные карты сильнее в своё время суток */
 function affOn(c){return c.aff&&G.cyc&&(c.aff==='night')===isNight()}
 function canHit(c,o){if(o.fly&&c.tg==='g')return false;if(c.tg==='b'&&o.obj==='u')return false;return true}
-function pathDist(u,o){if(u.fly||u.c.jump)return dist(u,o);if((u.y-RY)*(o.y-RY)>0)return dist(u,o);let m=1e9;for(const bx of BR){const d=Math.hypot(u.x-bx,u.y-RY)+Math.hypot(o.x-bx,o.y-RY);if(d<m)m=d}return m}
+function pathDist(u,o){if(u.fly||u.c.jump)return dist(u,o);if((u.y-RY)*(o.y-RY)>0)return dist(u,o);let m=1e9;BR.forEach((bx,i)=>{if(G.bridges[i].down>0)return;const d=Math.hypot(u.x-bx,u.y-RY)+Math.hypot(o.x-bx,o.y-RY);if(d<m)m=d});return m<1e9?m:dist(u,o)*3}
 /* обзор: явный у карты; у «только здания» — CFG.sight.building; у дальнобойных — дальность + CFG.sight.ranged; иначе по умолчанию */
 function sightOf(c){return c.sight||(c.tg==='b'?CFG.sight.building:c.rng>=2?c.rng+CFG.sight.ranged:CFG.sight.def)}
 function findTarget(u){const c=u.c,sight=sightOf(c)*TILE;let best=null,bd=1e9;
@@ -600,9 +605,19 @@ function obstacleGrid(){if(G.grid&&G.gridTick===G.tick)return G.grid;const g=new
  if(sig!==G.gridSig){G.gridSig=sig;G.fields=new Map()}G.grid=g;G.gridTick=G.tick;return g}
 function markObs(g,o){const r=o.r+6;for(let ty=Math.max(0,Math.floor((o.y-r)/TILE));ty<=Math.min(GH-1,Math.floor((o.y+r)/TILE));ty++)
  for(let tx=Math.max(0,Math.floor((o.x-r)/TILE));tx<=Math.min(GW-1,Math.floor((o.x+r)/TILE));tx++){const cx=(tx+.5)*TILE,cy=(ty+.5)*TILE;if(Math.abs(cx-o.x)<r&&Math.abs(cy-o.y)<r)g[ty*GW+tx]=o.id}}
-const riverTile=(tx,ty)=>RIVER[ty*GW+tx]===1;
-const onBridge=x=>BR.some(b=>Math.abs(x-b)<=CFG.arena.bridgeHalf*TILE);
-function passable(g,u,tx,ty,tid){if(tx<0||ty<0||tx>=GW||ty>=GH)return false;const i=ty*GW+tx,o=g[i];if(o&&o!==tid)return false;return!!u.c.jump||!RIVER[i]}
+const riverTile=(tx,ty)=>(G?G.riv:RIVER)[ty*GW+tx]===1;
+const onBridge=x=>BR.some((b,i)=>Math.abs(x-b)<=CFG.arena.bridgeHalf*TILE&&!(G&&G.bridges[i].down>0));
+/* ---------- разрушаемые мосты ----------
+   по мосту бьют только заклинания, снаряды мортиры и взрывы при гибели (opt.br); рухнувший мост — река на bridge.down секунд */
+function bridgeHit(x,y,r,d){if(!d)return;G.bridges.forEach((b,i)=>{if(b.down>0)return;const h=CFG.arena.bridgeHalf*TILE;
+ if(Math.abs(x-b.x)<h+r&&Math.abs(y-RY)<RIV+r){b.hp-=d;b.fl=.15;if(b.hp<=0)bridgeDown(i)}})}
+function bridgeDown(i){const b=G.bridges[i],h=CFG.arena.bridgeHalf*TILE;b.hp=0;b.down=CFG.bridge.down;setRiver(i,1);
+ for(const u of G.U)if(alive(u)&&!u.fly&&!u.c.jump&&Math.abs(u.x-b.x)<=h+u.r&&Math.abs(u.y-RY)<RIV+u.r){u.y=RY+(u.y<RY?-(RIV+u.r+2):RIV+u.r+2);stunObj(u,CFG.bridge.stun);puff(u.x,u.y,'#9fd8ff',6,50,2.4)}
+ puff(b.x,RY,'#8a6a44',26,90,4);puff(b.x,RY,'#bfe6ff',18,70,3);G.shake=Math.max(G.shake,8);AU.sfx('tower');floatText(b.x,RY-26,'Мост рухнул!','#ffb38a',13);G.FX.push({k:'bridge',i,l:0,m:1})}
+function setRiver(i,v){const h=CFG.arena.bridgeHalf*TILE,bx=BR[i];for(let ty=0;ty<GH;ty++)for(let tx=0;tx<GW;tx++){const cy=(ty+.5)*TILE,cx=(tx+.5)*TILE;if(Math.abs(cy-RY)<RIV&&Math.abs(cx-bx)<=h)G.riv[ty*GW+tx]=v}
+ G.gridSig='';G.fields=new Map();G.grid=null}
+function updBridges(dt){G.bridges.forEach((b,i)=>{b.fl=Math.max(0,(b.fl||0)-dt);if(b.down>0){b.down-=dt;if(b.down<=0){b.down=0;b.hp=b.mx;setRiver(i,0);floatText(b.x,RY-26,'Мост восстановлен','#bfe6ff',12);puff(b.x,RY,'#c69a6a',12,50,3)}}})}
+function passable(g,u,tx,ty,tid){if(tx<0||ty<0||tx>=GW||ty>=GH)return false;const i=ty*GW+tx,o=g[i];if(o&&o!==tid)return false;return!!u.c.jump||!G.riv[i]}
 const tileOf=o=>clamp(Math.floor(o.y/TILE),0,GH-1)*GW+clamp(Math.floor(o.x/TILE),0,GW-1);
 /* поле расстояний до цели t (для прыгунов — отдельное, река им не мешает) */
 function fieldFor(u,t){const g=obstacleGrid(),stat=t.obj!=='u',key=(stat?'o'+t.id:'t'+tileOf(t))+(u.c.jump?'j':'');let F=G.fields.get(key);if(F)return F;
@@ -614,7 +629,7 @@ function fieldFor(u,t){const g=obstacleGrid(),stat=t.obj!=='u',key=(stat?'o'+t.i
  while(heap.length){const[d,c]=pop();if(d>F[c])continue;const cx=c%GW,cy=c/GW|0;
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const nx=cx+dx,ny=cy+dy;
    if(!passable(g,pu,nx,ny,tid))continue;if(dx&&dy&&(!passable(g,pu,cx+dx,cy,tid)||!passable(g,pu,cx,cy+dy,tid)))continue;
-   const ni=ny*GW+nx,nd=d+(dx&&dy?1.414:1);if(nd<F[ni]){F[ni]=nd;push(ni,nd)}}}
+   const ni=ny*GW+nx,nd=d+(dx&&dy?1.414:1);if(nd<F[ni]){F[ni]=nd;push(ni,F[ni])}}}  // в куче — то же округлённое значение, что в поле (Float32), иначе клетка пропускается
  G.fields.set(key,F);return F}
 /* следующая точка пути: спуск по полю на несколько шагов (для отладки путь сохраняется в u.path) */
 function findPath(u,t){const F=fieldFor(u,t),g=obstacleGrid(),tid=t.obj!=='u'?t.id:-1,P=[];let c=tileOf(u);
@@ -637,11 +652,11 @@ function goalLane(u,t){if(u.c.jump){if(Math.abs(u.y-RY)<RIV+8&&!u.jmp){u.jmp=1;A
  if(u.bx==null)u.bx=bestBridge(u,t);const bx=u.bx;
  if(Math.abs(dy)<=RIV+6){if(Math.abs(u.x-bx)>5&&Math.abs(dy)>RIV-3)return{x:bx,y:u.y};return{x:bx,y:RY+s2*(RIV+16)}}
  return{x:bx,y:RY+s*(RIV+4)}}
-function spdOf(u){let s=SPD[u.c.spd]||30;if(affOn(u.c))s*=1+CFG.cycle.aff.spd;if(u.rageT>0)s*=1.35;if(u.slowT>0)s*=1-u.slowF;if(u.charging)s*=2;return s}
+function spdOf(u){let s=SPD[u.c.spd]||30;if(affOn(u.c))s*=1+CFG.cycle.aff.spd;if(u.rageT>0)s*=1.35;if(u.slowT>0)s*=1-u.slowF;if(u.mudT>0)s*=1-CFG.crater.slow;if(u.charging)s*=2;return s}
 function hitOf(u){let h=u.c.hit;if(u.rageT>0)h/=1.35;if(u.slowT>0)h/=1-u.slowF;return h}
 function updUnit(u,dt){if(!alive(u))return;const c=u.c;stepImpulse(u,dt);if(u.dashCd>0)u.dashCd-=dt;if(u.dashing&&(u.frozenT>0||u.stunT>0||!u.tg||!aliveT(u.tg))){u.dashing=0;u.dashCd=.4}
  u.fl=Math.max(0,u.fl-dt);u.sw=Math.max(0,u.sw-dt);u.spawnT=Math.max(0,u.spawnT-dt);
- if(u.slowT>0){u.slowT-=dt;if(u.slowT<=0)u.slowF=0}if(u.rageT>0)u.rageT-=dt;
+ if(u.slowT>0){u.slowT-=dt;if(u.slowT<=0)u.slowF=0}if(u.rageT>0)u.rageT-=dt;if(u.mudT>0)u.mudT-=dt;
  if(u.frozenT>0||u.stunT>0){u.frozenT=Math.max(0,u.frozenT-dt);u.stunT=Math.max(0,u.stunT-dt);u.run=0;u.charging=0;return}
  u.cd-=dt;
  if(u.tg&&(!aliveT(u.tg)||!seen(u.tm,u.tg))){u.tg=null;u.lock=0;u.wu=0;u.rt=0}
@@ -675,13 +690,15 @@ function attack(u,t,mul){const c=u.c,am=affOn(c)?1+CFG.cycle.aff.dmg:1;let dmg=u
  puff(t.x,t.y-6,'#fff',2,30,1.8);G.FX.push({k:'slash',x:t.x,y:t.y-10-(t.fly?FLYOFF:0),a:rnd(-.7,.7),s:u.r>10?1.3:1,l:0,m:.2});AU.sfx('hit')}
 function hitTarget(src,o,dmg){if((o.obj==='t'||o.obj==='b')&&src.c&&src.c.td)dmg*=src.c.td;damage(o,dmg,src.tm)}
 function explode(u,t){areaHit(u.tm,t.x,t.y,u.c.splash*TILE,u.dmg,u.dmg,'ga');ring(t.x,t.y,u.c.splash*TILE,'#ffb347');puff(t.x,t.y,'#ff8a2a',12,70,3);AU.sfx('boom');u.hp=0;u.nodeath=1}
-function areaHit(tm,x,y,r,dmg,tdmg,tg,opt){opt=opt||{};const p={x,y};
+function areaHit(tm,x,y,r,dmg,tdmg,tg,opt){opt=opt||{};const p={x,y};if(opt.br)bridgeHit(x,y,r,opt.br);if(opt.crater)crater(x,y,r);
  if(tg!=='b')for(const v of G.U)if(v.tm!==tm&&v!==opt.skip&&alive(v)&&!(v.fly&&tg==='g')&&dist(v,p)<r+v.r*.5){damage(v,dmg,tm);
   if(opt.stun)stunObj(v,opt.stun);if(opt.slow)slowObj(v,opt.slow);if(opt.freeze){v.frozenT=Math.max(v.frozenT,opt.freeze);v.wu=0;v.beamT=0}
   if(opt.knock&&v.mass<CFG.phys.knockMinMass&&!v.fly&&!v.dashing&&!(v.shield>0)){const d=dist(v,p)||1;impulse(v,(v.x-x)/d,(v.y-y)/d,opt.knock*CFG.phys.knockDamp);v.wu=0;v.lock=0;v.rt=0;v.beamT=0}}
  for(const o of G.B)if(o.tm!==tm&&o!==opt.skip&&alive(o)&&dist(o,p)<r+o.r*.6){damage(o,tdmg,tm);if(opt.stun)stunObj(o,opt.stun);if(opt.freeze)o.frozenT=Math.max(o.frozenT,opt.freeze)}
  for(const o of G.T)if(o.tm!==tm&&o!==opt.skip&&o.hp>0&&dist(o,p)<r+o.r*.6){damage(o,tdmg,tm);if(opt.stun)stunObj(o,opt.stun);if(opt.freeze)o.frozenT=Math.max(o.frozenT,opt.freeze)}}
 /* физика толчков: скорость, которая плавно гаснет (CFG.phys.knockDamp), путь ≈ скорость / затухание */
+/* воронка: наземные обеих сторон в ней медленнее */
+function crater(x,y,r){const C=CFG.crater;G.Z.push({k:'crater',tm:-1,x,y,r:r*C.k,t:C.t,tot:C.t})}
 function impulse(u,nx,ny,v){u.kx=(u.kx||0)+nx*v;u.ky=(u.ky||0)+ny*v}
 function stepImpulse(u,dt){if(!u.kx&&!u.ky)return;u.x+=u.kx*dt;u.y+=u.ky*dt;const f=Math.exp(-CFG.phys.knockDamp*dt);u.kx*=f;u.ky*=f;if(Math.hypot(u.kx,u.ky)<3){u.kx=u.ky=0}}
 function stunObj(o,t){if(o.shield>0)return;o.stunT=Math.max(o.stunT||0,t);if(o.obj==='u'){o.charging=0;o.run=0;o.wu=0;o.beamT=0;o.beamTg=null;o.cd=Math.max(o.cd,hitOf(o)*.5)}else o.cd=Math.max(o.cd||0,(o.hit||1)*.5)}
@@ -748,13 +765,13 @@ function updProj(p,dt){p.l+=dt;
  const dx=p.lx-p.x,dy=p.ly-p.y,d=Math.hypot(dx,dy),s=p.sp*dt;
  if(d<=s+3||p.l>3){p.done=1;impact(p);return}p.x+=dx/d*s;p.y+=dy/d*s}
 function impact(p){const x=p.lx,y=p.ly;
- if(p.spl>0){areaHit(p.tm,x,y,p.spl,p.dmg,p.dmg*(p.td||1),p.tgf||'ga',{slow:p.slow,stun:p.stun});ring(x,y,p.spl,p.pk==='ice'?'#bfe6ff':'#ffb347');puff(x,y,p.pk==='ice'?'#d8f2ff':p.pk==='bomb'?'#666':'#ffb347',8,60,2.6);if(p.pk==='bomb'||p.pk==='orb')AU.sfx('boom')}
+ if(p.spl>0){areaHit(p.tm,x,y,p.spl,p.dmg,p.dmg*(p.td||1),p.tgf||'ga',{slow:p.slow,stun:p.stun,br:p.hi?p.dmg:0});ring(x,y,p.spl,p.pk==='ice'?'#bfe6ff':'#ffb347');puff(x,y,p.pk==='ice'?'#d8f2ff':p.pk==='bomb'?'#666':'#ffb347',8,60,2.6);if(p.pk==='bomb'||p.pk==='orb')AU.sfx('boom')}
  else{const t=p.tg;if(aliveT(t)){let d=p.dmg;if((t.obj==='t'||t.obj==='b')&&p.td)d*=p.td;damage(t,d,p.tm);if(p.slow)slowObj(t,p.slow);if(p.stun)stunObj(t,p.stun)}puff(x,y-4,'#fff',3,34,1.6)}}
 /* сколько эликсира стоит один юнит (для размена и графика перевеса) */
 function unitVal(o){const c=CARDS[o.key]||o.c;return c.token?.5:(c.cost||0)/(c.count||1)}
 function onDeath(o){const c=o.c;if(o.obj==='u')G.stats[o.tm].lost+=unitVal(o);if(o.nodeath)return;
  puff(o.x,o.y,o.obj==='b'?'#9a8f7a':'#e8e0cb',8,50,2.6);if(o.obj==='u'){G.FX.push({k:'soul',x:o.x,y:o.y-(o.fly?FLYOFF:0),c:TEAM[o.tm].l,s:Math.min(1.6,o.r/8),l:0,m:.8});AU.sfx('pop')}
- if(c.death){const d=LV(c.death.dmg,o.lvl);areaHit(o.tm,o.x,o.y,c.death.r*TILE,d,d,'g');ring(o.x,o.y,c.death.r*TILE,'#ffb347');puff(o.x,o.y,'#ffb347',12,80,3);AU.sfx('boom');G.shake=Math.max(G.shake,3)}
+ if(c.death){const d=LV(c.death.dmg,o.lvl);areaHit(o.tm,o.x,o.y,c.death.r*TILE,d,d,'g',{br:d,crater:c.death.r>=2});ring(o.x,o.y,c.death.r*TILE,'#ffb347');puff(o.x,o.y,'#ffb347',12,80,3);AU.sfx('boom');G.shake=Math.max(G.shake,3)}
  if(c.dspawn)for(let i=0;i<c.dspawn.n;i++){const a=i/c.dspawn.n*6.28+rnd(0,1);G.U.push(mkUnit(o.tm,c.dspawn.id,clamp(o.x+Math.cos(a)*10,10,W-10),o.y+Math.sin(a)*10,o.lvl))}
  if(o.obj==='b')ring(o.x,o.y,28,'#ffffff')}
 function separate(){const L=G.U;
@@ -799,7 +816,7 @@ function step(dt){if(!G)return;dt=dt||TICK;if(G.over){fxStep(dt);return}
  for(const b of G.B)updBuilding(b,dt);
  for(const t of G.T)updTower(t,dt);
  for(const p of G.PR)updProj(p,dt);
- updZones(dt);
+ updZones(dt);updBridges(dt);
  for(const s of G.S)if(!s.done&&G.t>=s.t){s.done=1;s.fn()}
  for(const t of G.T)if(t.hp>0&&t.hp<t.mx*.4&&RNG()<dt*6)G.PT.push({x:t.x+rnd(-8,8),y:t.y-10,vx:rnd(-6,6),vy:-rnd(14,28),l:0,m:rnd(.6,1.1),c:'#6e6a66',s:rnd(2,4)});
  for(let i=0;i<G.U.length;i++){const u=G.U[i];if(u.hp<=0&&!u.gone){u.gone=1;onDeath(u)}}
@@ -908,6 +925,11 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
  // добить башню заклинанием
  if(RNG()<s.spell)for(const k of hand){const c=CARDS[k];if(c.type!=='spell'||!c.tdmg||c.freeze)continue;const td=LV(c.tdmg,S.lv[k]||1);
   for(const t of G.T)if(t.tm!==b.tm&&t.hp>0&&t.hp<=td*(c.poison?.9:1)){if(botPlay(b,k,t.x,fyOf(b,t.y),true))return}}
+ // Подрыв: большой пуш врага на его стороне идёт к мосту — обрушить мост перед ним
+ const sp=hand.find(k=>CARDS[k].bdmg);
+ if(sp&&RNG()<s.spell)for(const lane of[0,1]){const br=G.bridges[lane];if(br.down>0)continue;const bx=BR[lane];
+  const near=G.U.filter(u=>u.tm!==b.tm&&alive(u)&&!u.fly&&!u.c.jump&&!u.c.tunnel&&Math.abs(u.x-bx)<70&&fyOf(b,u.y)>345&&fyOf(b,u.y)<470);
+  if(near.reduce((a,u)=>a+uval(u),0)>=5&&botPlay(b,sp,bx,fyOf(b,RY),true))return}
  // оборона: самая опасная линия
  let need=null;
  for(const lane of[0,1]){const T=L[lane];if(!T.n||T.age<s.react)continue;const n=T.v-laneDef(b,lane)+(T.bt?1:0)+(T.fy<200?1:0);if(n>.6&&(!need||n>need.n))need={lane,n,T}}
@@ -1037,6 +1059,12 @@ function bush(g,x,y){g.fillStyle='rgba(0,0,0,.2)';g.beginPath();g.ellipse(x+2,y+
 function drawRiver(g,now){const y0=RY-RIV,h=2*RIV,rg=g.createLinearGradient(0,y0,0,y0+h);rg.addColorStop(0,TH.w0);rg.addColorStop(.5,TH.w1);rg.addColorStop(1,TH.w0);g.fillStyle=rg;g.fillRect(0,y0,W,h);
  g.lineWidth=1.3;for(let i=0;i<6;i++){g.strokeStyle=`rgba(${TH.wave},${.13+(i%2)*.1})`;g.beginPath();for(let x=0;x<=W;x+=6){const y=y0+5+i*6+Math.sin(x/17+now/650+i*1.7)*1.8;x?g.lineTo(x,y):g.moveTo(x,y)}g.stroke()}}
 
+/* мосты: рухнувший закрыт водой с обломками и полосой восстановления, повреждённый — с полосой прочности */
+function drawBridges(g,now){const h=CFG.arena.bridgeHalf*TILE;G.bridges.forEach(b=>{
+ if(b.down>0){const rg=g.createLinearGradient(0,RY-RIV,0,RY+RIV);rg.addColorStop(0,TH.w0);rg.addColorStop(.5,TH.w1);rg.addColorStop(1,TH.w0);g.fillStyle=rg;g.fillRect(b.x-h-3,RY-RIV,2*h+6,2*RIV);
+  g.fillStyle='#7a5232';for(let i=0;i<5;i++){const x=b.x-h+((i*37)%(2*h)),y=RY-RIV+6+((i*23)%(2*RIV-12));g.save();g.translate(x,y+Math.sin(now/500+i)*1.5);g.rotate(i*1.3);g.fillRect(-7,-2,14,4);g.restore()}
+  const p=1-b.down/CFG.bridge.down;rr(g,b.x-16,RY-RIV-9,32,5,2.5,'rgba(5,8,20,.75)');rr(g,b.x-15,RY-RIV-8,30*p,3,1.5,'#9fd8ff')}
+ else if(b.hp<b.mx){rr(g,b.x-16,RY-RIV-9,32,5,2.5,'rgba(5,8,20,.75)');rr(g,b.x-15,RY-RIV-8,30*b.hp/b.mx,3,1.5,b.fl>0?'#fff':'#ffc83d')}})}
 /* ---------- башни ---------- */
 function drawTower(g,t,now){const T=TEAM[t.tm],x=t.x,y=t.y,r=t.r,k=t.kind==='k';
  if(t.hp<=0){g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.ellipse(x,y+3,r+4,r*.7,0,0,7);g.fill();
@@ -1140,6 +1168,7 @@ function drawZone(g,z,now){const a=Math.min(1,z.t/.4,(z.tot-z.t)/.2+.2);g.global
  else if(z.k==='pull'){g.strokeStyle='rgba(180,220,255,.8)';g.lineWidth=2;for(let i=0;i<3;i++){g.beginPath();g.ellipse(z.x,z.y,z.r*(.35+i*.3),z.r*(.35+i*.3)*.78,now/300+i,0,4.5);g.stroke()}}
  else if(z.k==='roll'){g.fillStyle='#8a5a32';g.strokeStyle='#4a2e18';g.lineWidth=2;rr(g,z.x-z.r,z.y-9,z.r*2,18,8,'#8a5a32');g.stroke();g.fillStyle='#e2b77a';for(const s of[-1,1]){g.beginPath();g.ellipse(z.x+s*z.r,z.y,4,9,0,0,7);g.fill()}
   g.strokeStyle='#5c3a1e';for(let i=0;i<4;i++){const yy=z.y-9+((z.ang*6+i*4.5)%18);g.beginPath();g.moveTo(z.x-z.r+4,yy);g.lineTo(z.x+z.r-4,yy);g.stroke()}}
+ else if(z.k==='crater'){g.fillStyle='rgba(60,40,22,.45)';g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.7,0,0,7);g.fill();g.strokeStyle='rgba(30,20,10,.5)';g.lineWidth=1.5;g.stroke()}
  else if(z.k==='flash'){g.fillStyle='rgba(255,246,190,.25)';g.strokeStyle='rgba(255,236,150,.85)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.light,z.light*.78,0,0,7);g.fill();g.stroke()}
  else if(z.k==='shade'){g.fillStyle='rgba(16,8,34,.55)';g.strokeStyle='rgba(150,110,230,.7)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke()}
  else if(z.k==='grave'){g.fillStyle='rgba(70,40,100,.28)';g.strokeStyle='rgba(180,140,255,.7)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke()}
@@ -1191,6 +1220,7 @@ function draw(now){const g=X;g.setTransform(1,0,0,1,0,0);if(!BG||!G)return;
  for(const d of G.DEC){g.fillStyle=`rgba(20,12,6,${Math.min(.42,d.l*.15)})`;g.beginPath();g.ellipse(d.x,d.y,d.r,d.r*.7,0,0,7);g.fill()}
  drawRiver(g,now);
  g.setTransform(1,0,0,1,0,0);g.drawImage(BG.a,sx*K,sy*K);g.setTransform(K,0,0,K,sx*K,sy*K);
+ drawBridges(g,now);
  if(sel!=null&&mode==='play'&&!G.over){const key=G.side[0].hand[sel];if(key)drawDeployZones(g,key,now)}
  for(const z of G.Z)drawZone(g,z,now);
  for(const d of G.D)drawPending(g,d);
@@ -1468,7 +1498,7 @@ function ribbon(pts,w,mat,y){const pos=[],uv=[],idx=[];let len=0;
  const m=new T.Mesh(g,mat);m.receiveShadow=true;return m}
 function edgeAlpha(){const c=document.createElement('canvas');c.width=64;c.height=4;const g=c.getContext('2d'),r=g.createLinearGradient(0,0,64,0);
  r.addColorStop(0,'rgba(0,0,0,1)');r.addColorStop(.22,'#fff');r.addColorStop(.78,'#fff');r.addColorStop(1,'rgba(0,0,0,1)');g.fillStyle=r;g.fillRect(0,0,64,4);return new T.CanvasTexture(c)}
-function buildArena(th){if(S3.arena){S3.scene.remove(S3.arena)}const A=new T.Group();S3.arena=A;S3.scene.add(A);const rng=mul(17+th*31);
+function buildArena(th){if(S3.arena){S3.scene.remove(S3.arena)}S3.bridgeG=[];const A=new T.Group();S3.arena=A;S3.scene.add(A);const rng=mul(17+th*31);
  // земля и поле
  const TH3=ATH[th]||ATH[0];S3.theme=th;applyLook(TH3);const grass=pbr('grass',20,28),gr=new T.Mesh(new T.PlaneGeometry(88,120),grass);gr.rotation.x=-Math.PI/2;gr.receiveShadow=true;A.add(gr);S3.gmats=[grass];
  const ck=document.createElement('canvas');ck.width=18;ck.height=32;const cg=ck.getContext('2d');
@@ -1505,7 +1535,7 @@ function buildArena(th){if(S3.arena){S3.scene.remove(S3.arena)}const A=new T.Gro
   const deck=new T.Mesh(new T.BoxGeometry(2.1,.16,3.2),[beam,beam,planks,planks,beam,beam]);deck.position.y=.16;deck.castShadow=deck.receiveShadow=true;b.add(deck);
   for(const sx of[-1.12,1.12]){const rail=new T.Mesh(new T.BoxGeometry(.12,.12,3.3),beam);rail.position.set(sx,.62,0);rail.castShadow=true;b.add(rail);
    for(const sz of[-1.5,-.5,.5,1.5]){const post=new T.Mesh(new T.CylinderGeometry(.07,.08,.6,6),beam);post.position.set(sx,.4,sz);post.castShadow=true;b.add(post)}}
-  b.position.x=bx;A.add(b)}
+  b.position.x=bx;A.add(b);(S3.bridgeG=S3.bridgeG||[]).push(b)}
  // окружение тренировочного лагеря
  const ring=(n,fn)=>{for(let i=0;i<n;i++)fn(i)};
  const place=(name,x,z,s,ry)=>{if(Math.abs(x)>9.6&&Math.abs(x)<15.4&&Math.abs(z)<16.5)x+=Math.sign(x)*5.6;const p=propClone(name,s);p.position.set(x,0,z);p.rotation.y=ry??rng()*6.28;A.add(p);return p};
@@ -1648,7 +1678,7 @@ function r3Frame(now){const dt=Math.min(.05,(now-S3.last)/1000||0);S3.last=now;c
  if(S3.water){const m=S3.water.material;for(const n of[m.normalMap,m.map])if(n){n.offset.x=(now/1000*.03)%1;n.offset.y=(now/1000*.05)%1}}
  if(S3.foam)for(const t of S3.foam){t.offset.x=(now/1000*.04)%1;t.offset.y=Math.sin(now/900)*.08}if(S3.windU)S3.windU.value=now/1000;
  syncTowers(dt,now);syncUnits(dt,now);syncBuildings(dt,now);syncProj(dt);syncFx(dt,now);syncZones(now);syncPending(now);syncGhost(now);syncParticles(dt);
- stepDebris(dt);stepLights(dt);stepNight(now);if(S3.hype>0)S3.hype-=dt;crowdStep(now);if(Math.random()<.5)towerSmoke();weather(dt);autoQ(dt);
+ stepDebris(dt);stepLights(dt);stepNight(now);stepBridges(dt);if(S3.hype>0)S3.hype-=dt;crowdStep(now);if(Math.random()<.5)towerSmoke();weather(dt);autoQ(dt);
  if(S3.comp)S3.comp.render();else S3.R.render(sc,cam);overlay(now)}
 
 /* башни: лучники и король целятся и стреляют, павшие сменяются руинами */
@@ -1771,8 +1801,8 @@ function syncZones(now){const seen=new Set();for(const z of G.Z){if(z.k==='glow'
   if(z.k==='roll'){if(!v){v=new T.Group();const L=spellModel('roller',0);L.scale.set(z.r/TILE*1.05,1,1);v.add(L);v.userData.L=L;S3.dyn.add(v);S3.zones.set(z,v)}
    const back=Math.min(z.spd*TICK,z.spd*TICK)*(1-ALPHA),ry=z.y-z.dir*back;v.position.set(W3(z.x),.45,Z3(ry));v.userData.L.rotation.x=-(z.ang-back/12)*z.dir;
    if(Math.random()<.8)S3.parts.norm.emit(W3(z.x)+rndV(-1,1)*z.r/TILE,.1,Z3(ry)-z.dir*.4,rndV(-.3,.3),.6,-z.dir*.6,'#b9a27e',.35,.5);continue}
-  if(!v){const col={freeze:'#bfe9ff',rage:'#ff4f86',poison:'#7ee05a',aura:'#ffd84d',pull:'#9fd0ff',heal:'#4fdc7c',grave:'#7a55b0',flash:'#fff2b0',shade:'#140a26'}[z.k];
-   v=new T.Mesh(new T.CircleGeometry(1,40),new T.MeshBasicMaterial({map:S3.soft,color:col,transparent:true,depthWrite:false,blending:z.k==='poison'||z.k==='heal'||z.k==='grave'||z.k==='shade'?T.NormalBlending:T.AdditiveBlending}));v.rotation.x=-Math.PI/2;S3.dyn.add(v);S3.zones.set(z,v);
+  if(!v){const col={freeze:'#bfe9ff',rage:'#ff4f86',poison:'#7ee05a',aura:'#ffd84d',pull:'#9fd0ff',heal:'#4fdc7c',grave:'#7a55b0',flash:'#fff2b0',shade:'#140a26',crater:'#24160a'}[z.k];
+   v=new T.Mesh(new T.CircleGeometry(1,40),new T.MeshBasicMaterial({map:S3.soft,color:col,transparent:true,depthWrite:false,blending:z.k==='poison'||z.k==='heal'||z.k==='grave'||z.k==='shade'||z.k==='crater'?T.NormalBlending:T.AdditiveBlending}));v.rotation.x=-Math.PI/2;S3.dyn.add(v);S3.zones.set(z,v);
    if(z.k==='freeze'){v.userData.ice=iceCrystals(z);S3.dyn.add(v.userData.ice)}
    if(z.k==='pull'||z.k==='heal'||z.k==='grave'||z.k==='shade'){const sw=new T.Group(),m=new T.MeshBasicMaterial({color:z.k==='pull'?'#e4f3ff':z.k==='grave'?'#9a6ae0':z.k==='shade'?'#8a6ae8':'#2fbf62',transparent:true,opacity:.8,blending:z.k==='pull'?T.AdditiveBlending:T.NormalBlending,depthWrite:false,side:T.DoubleSide});
     for(let i=0;i<(z.k==='pull'?3:1);i++){const ar=new T.Mesh(z.k==='pull'?new T.RingGeometry(.55+i*.17,.62+i*.17,40,1,i*2.1,3.4):new T.RingGeometry(.93,1,48),m);ar.rotation.x=-Math.PI/2;ar.position.y=.09+i*.01;sw.add(ar)}
@@ -1784,8 +1814,8 @@ function syncZones(now){const seen=new Set();for(const z of G.Z){if(z.k==='glow'
   if(z.k==='heal'&&Math.random()<.7){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*z.r/TILE;S3.parts.add.emit(W3(z.x)+Math.cos(an)*d,.2,Z3(z.y)+Math.sin(an)*d,0,1.6,0,'#9dffb8',.3,.7)}
   if(z.k==='poison'&&Math.random()<.6){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*z.r/TILE;S3.parts.norm.emit(W3(z.x)+Math.cos(an)*d,.4,Z3(z.y)+Math.sin(an)*d,rndV(-.2,.2),.25,rndV(-.2,.2),['#6fcf4a','#3f8a2a','#9be86a'][Math.random()*3|0],.9,1.8)}
   const r=z.r/TILE,a=Math.min(1,z.t/.4,(z.tot-z.t)/.2+.2);v.scale.set(r,r,r);v.position.set(W3(z.x),.07,Z3(z.y));v.material.opacity=(z.k==='poison'?.55:.6)*a*(z.k==='rage'?.75+.25*Math.sin(now/150):1);
-  if(Math.random()<.5){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*r,c={freeze:'#e8f8ff',rage:'#ff7aa2',poison:'#a8ff7a',aura:'#ffe27a',pull:'#e4f3ff',heal:'#3fd46f',grave:'#b48cff',flash:'#fff6c0',shade:'#3a2560'}[z.k];
-   S3.parts[z.k==='poison'||z.k==='heal'||z.k==='grave'||z.k==='shade'?'norm':'add'].emit(W3(z.x)+Math.cos(an)*d,.2,Z3(z.y)+Math.sin(an)*d,0,z.k==='freeze'?-.3:.9,0,c,z.k==='poison'?.5:.22,1)}}
+  if(Math.random()<.5){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*r,c={freeze:'#e8f8ff',rage:'#ff7aa2',poison:'#a8ff7a',aura:'#ffe27a',pull:'#e4f3ff',heal:'#3fd46f',grave:'#b48cff',flash:'#fff6c0',shade:'#3a2560',crater:'#6a5440'}[z.k];
+   S3.parts[z.k==='poison'||z.k==='heal'||z.k==='grave'||z.k==='shade'||z.k==='crater'?'norm':'add'].emit(W3(z.x)+Math.cos(an)*d,.2,Z3(z.y)+Math.sin(an)*d,0,z.k==='freeze'?-.3:.9,0,c,z.k==='poison'?.5:.22,1)}}
  for(const[z,v]of S3.zones)if(!seen.has(z)){S3.zones.delete(z);S3.dyn.remove(v);if(v.userData.sw)S3.dyn.remove(v.userData.sw);if(v.userData.ice){S3.dyn.remove(v.userData.ice);burst(z.x,z.y,.5,'#e8f8ff',20,1.6,.6,0)}}}
 /* карты в пути: полупрозрачный призрак и кольцо отсчёта (в слое поверх) */
 function ghostModel(key,tm){const c=CARDS[key],vk=c.unit||key,id=vk+tm;if(A3.ghost[id])return T3.SkeletonUtils.clone(A3.ghost[id]);
@@ -1841,6 +1871,7 @@ function proj(x,y,h){if(!PV)PV=new T.Vector3();PV.set(W3(x),h,Z3(y)).project(S3.
 function overlay(now){const g=X,k=C.width/360;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,C.width,C.height);
  const bar=(sx,sy,w,p,tm,gold)=>{w*=k;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,gold?'#ffd84d':'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,Math.max(0,w*p),4*k,2*k,tm?'#ff6a5a':'#4cd37a')};
  for(const b of G.B){const[sx,sy]=proj(b.x,b.y,1.9);bar(sx,sy,28,b.hp/b.mx,b.tm)}
+ for(const b of G.bridges||[]){if(b.down<=0&&b.hp>=b.mx)continue;const[sx,sy]=proj(b.x,RY,1.2),w=34*k,p=b.down>0?1-b.down/CFG.bridge.down:b.hp/b.mx;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,w*p,4*k,2*k,b.down>0?'#9fd8ff':b.fl>0?'#ffffff':'#ffc83d')}
  for(const u of G.U){if(u.spawnT>0)continue;const v=S3.units.get(u),hh=(v&&v.inst?(v.inst.V.hh||2.47*v.inst.V.s*US3):1.7)+(HEIGHT[u.key]||0)+.25;
   if(G.vis&&u.tm===1&&!G.vis[0].has(u))continue;
   if(u.hp<u.mx||u.c.ability||u.shield>0){const[sx,sy]=proj(IX(u),IY(u),hh);const w=Math.max(16,u.r*2.2);bar(sx,sy,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,sx-w*k/2,sy-6*k,w*k*u.shield/u.smx,3*k,1.5*k,'#ffd84d')}
@@ -1890,6 +1921,10 @@ function spellModel(key){const g=new T.Group(),E=(c,e,i,o)=>new T.MeshStandardMa
  else if(key==='poison'){const gl=new T.MeshStandardMaterial({color:'#b8ffcf',roughness:.05,transparent:true,opacity:.45});g.add(new T.Mesh(new T.SphereGeometry(.55,24,16),gl));const liq=new T.Mesh(new T.SphereGeometry(.47,24,16,0,6.28,1.2,1.94),E('#7ee05a','#3a9a1a',1.4));g.add(liq);
   const n=new T.Mesh(new T.CylinderGeometry(.14,.16,.4,12),gl);n.position.y=.68;g.add(n);const cork=new T.Mesh(new T.CylinderGeometry(.15,.13,.16,10),flat('#8a5a32'));cork.position.y=.92;g.add(cork);
   for(let i=0;i<5;i++){const b=new T.Mesh(new T.SphereGeometry(.08+.04*(i%2),10,8),E('#a8ff7a','#4cd32a',1.5,{transparent:true,opacity:.8}));b.position.set(-.5+i*.25,.9+(i%3)*.25,.2);g.add(b)}}
+ else if(key==='sapper'){const k=new T.Mesh(new T.CylinderGeometry(.42,.42,.8,18),new T.MeshStandardMaterial({color:'#7a5232',roughness:.8}));g.add(k);
+  for(const y of[-.28,.28]){const h=new T.Mesh(new T.TorusGeometry(.43,.05,6,24),new T.MeshStandardMaterial({color:'#3a3d44',metalness:.8,roughness:.4}));h.rotation.x=Math.PI/2;h.position.y=y;g.add(h)}
+  const f=new T.Mesh(new T.CylinderGeometry(.03,.03,.45,6),new T.MeshStandardMaterial({color:'#2a2a2a'}));f.position.set(.15,.6,0);f.rotation.z=-.4;g.add(f);
+  const sp=new T.Mesh(new T.SphereGeometry(.09,10,8),E('#fff3c0','#ff8a1a',3));sp.position.set(.27,.82,0);g.add(sp)}
  else if(key==='flash'){const c=new T.Mesh(new T.OctahedronGeometry(.42,0),E('#fffbe0','#ffe066',3));g.add(c);
   for(let i=0;i<8;i++){const r=new T.Mesh(new T.BoxGeometry(.06,.75,.06),E('#fff6c0','#ffd84d',2.5));const a=i/8*Math.PI*2;r.position.set(Math.cos(a)*.62,Math.sin(a)*.62,0);r.rotation.z=a-Math.PI/2;g.add(r)}}
  else if(key==='shade'){const o=new T.Mesh(new T.SphereGeometry(.5,24,16),new T.MeshStandardMaterial({color:'#1a1030',roughness:.4,metalness:.2}));g.add(o);
@@ -1965,6 +2000,11 @@ function stepNight(now){nightSetup();const k=nightK(),L=S3.pal,sc=S3.scene;if(!L
  P.count=n;P.instanceMatrix.needsUpdate=true;if(P.instanceColor)P.instanceColor.needsUpdate=true;P.material.opacity=.2*k;
  const fl=1+Math.sin(now/110)*.06+Math.sin(now/47)*.04;
  S3.pl.forEach((l,i)=>{const s=src[i];if(!s||k<=0){l.intensity=0;return}l.position.set(W3(s.x),1.6,Z3(s.y));l.distance=s.r/TILE*1.15;l.intensity=3.2*k*fl})}
+/* мосты: рушатся с обломками и брызгами, отстраиваются, вздрагивают от ударов */
+function stepBridges(dt){if(!S3.bridgeG||!G.bridges)return;G.bridges.forEach((b,i)=>{const v=S3.bridgeG[i];if(!v)return;const down=b.down>0;
+ if(down&&v.visible){v.visible=false;explosion(b.x,RY,44);burst(b.x,RY,1.2,'#8a5a32',36,2.4,1.6,0);burst(b.x,RY,1,'#cfefff',30,2.2,1.2,0)}
+ if(!down&&!v.visible){v.visible=true;v.userData.rise=1}
+ if(v.userData.rise>0){v.userData.rise=Math.max(0,v.userData.rise-dt*1.5);v.position.y=-.5*v.userData.rise**2}else v.position.y=b.fl>0?-.04:0})}
 function stepLights(dt){if(S3.lights)for(const L of S3.lights){L.t=Math.max(0,L.t-dt);L.l.intensity=L.I*(L.t/L.m)**1.5}}
 function debris(t){S3.hype=3;const k=t.kind==='k',wall=pbr('wall',1,1,{color:'#d8cfbe'}),X=W3(t.x),Z=Z3(t.y);S3.deb=S3.deb||[];
  for(let i=0;i<(k?26:18);i++){const s=.14+Math.random()*.26,m=new T.Mesh(new T.DodecahedronGeometry(s,0),wall);m.castShadow=true;m.position.set(X+rndV(-.8,.8),1+Math.random()*2.4,Z+rndV(-.8,.8));
@@ -2056,7 +2096,7 @@ function crowdStep(now){const c=S3.crowd;if(!c)return;const M=new T.Matrix4(),hy
 const ARENAS=[
  {n:'Тренировочный лагерь',tr:0},{n:'Костяной овраг',tr:300},{n:'Кузнечная слобода',tr:650},{n:'Морозный перевал',tr:1000},
  {n:'Драконьи скалы',tr:1400},{n:'Ядовитая топь',tr:1800},{n:'Грозовая цитадель',tr:2250},{n:'Каменный трон',tr:2750}];
-const ARENA_OF={torchman:0,lantern:1,flash:2,shade:3,roller:4,shieldman:1,mortar:2,grave:6,guard:0,shooters:0,bones:0,imps:0,slingers:0,bomber:0,cannon:0,volley:0,giant:0,crossbow:0,axe:0,fireball:0,
+const ARENA_OF={sapper:4,torchman:0,lantern:1,flash:2,shade:3,roller:4,shieldman:1,mortar:2,grave:6,guard:0,shooters:0,bones:0,imps:0,slingers:0,bomber:0,cannon:0,volley:0,giant:0,crossbow:0,axe:0,fireball:0,
  lair:1,legion:1,wisp:1,spark:1,hammer:2,militia:2,ram:2,bats:3,freeze:3,frostsage:3,drake:4,airship:4,sorcerer:4,
  poison:5,mole:5,scorch:4,vortex:3,spring:2,raider:5,mend:1,cry:5,thunder:6,knightrider:6,colossus:7,warlord:7};
 const arenaOf=tr=>{let a=0;ARENAS.forEach((x,i)=>{if(tr>=x.tr)a=i});return a};
@@ -2462,7 +2502,7 @@ function openDeckMenu(){AU.init();AU.sfx('ui');const sh=$('#sheet');
  $('#drnd').onclick=()=>{const own=shuffleV(CARD_IDS.filter(k=>P.cards[k])),d=[];for(const k of own)if(d.length<8&&!(CARDS[k].ability&&d.some(x=>CARDS[x].ability)))d.push(k);if(d.length<8||!okDeck(d)){AU.sfx('deny');return}P.decks[P.slot]=d;saveP();AU.sfx('dep');closeSheet();renderHome()};
  sh.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{P.decks[P.slot]=P.decks[+b.dataset.cp].slice();saveP();AU.sfx('dep');closeSheet();renderHome()})}
 function statRows(k,lv){const c=CARDS[k],n=c.count||1,R=[];
- if(c.type==='spell'){if(c.dmg)R.push(['Урон',LV(c.dmg,lv)]);if(c.tdmg)R.push(['Урон по башням',LV(c.tdmg,lv)]);R.push(c.roll?['Ширина',c.rad*2+' кл.']:['Радиус',c.rad+' кл.']);if(c.roll)R.push(['Катится',c.roll.len+' кл.']);if(c.flash)R.push(['Свет',c.flash.light+' кл.',` на ${c.flash.t} с`]);if(c.blind)R.push(['Ослепление',c.blind+' с']);if(c.shade)R.push(['Тьма',c.shade+' с']);if(c.grave)R.push(['Скелетов',c.grave.n,` за ${c.grave.t} с`]);
+ if(c.type==='spell'){if(c.dmg)R.push(['Урон',LV(c.dmg,lv)]);if(c.tdmg)R.push(['Урон по башням',LV(c.tdmg,lv)]);R.push(c.roll?['Ширина',c.rad*2+' кл.']:['Радиус',c.rad+' кл.']);if(c.roll)R.push(['Катится',c.roll.len+' кл.']);if(c.bdmg)R.push(['Урон мосту',c.bdmg]);if(c.flash)R.push(['Свет',c.flash.light+' кл.',` на ${c.flash.t} с`]);if(c.blind)R.push(['Ослепление',c.blind+' с']);if(c.shade)R.push(['Тьма',c.shade+' с']);if(c.grave)R.push(['Скелетов',c.grave.n,` за ${c.grave.t} с`]);
   if(c.freeze)R.push(['Заморозка',c.freeze+' с']);if(c.rage)R.push(['Ярость',c.rage+' с, +35%']);if(c.pull)R.push(['Затягивает',c.pull+' с']);if(c.heal)R.push(['Лечит',LV(c.heal,lv),` за ${c.healT} с`]);if(c.poison)R.push(['Длится',c.poison+' с']);if(c.stun)R.push(['Оглушение',c.stun+' с']);if(c.waves)R.push(['Волн',c.waves]);return R}
  const u=CARDS[c.unit||k];
  R.push(['Здоровье',LV(u.hp,lv),n>1?' ×'+n:'']);if(u.light)R.push(['Свет',u.light+' кл.']);if(u.aff)R.push([u.aff==='night'?'Ночью':'Днём',`+${CFG.cycle.aff.dmg*100}% урона, +${CFG.cycle.aff.spd*100}% скорости`]);if(u.shield)R.push(['Щит',LV(u.shield,lv)]);
@@ -2476,7 +2516,7 @@ function statRows(k,lv){const c=CARDS[k],n=c.count||1,R=[];
 function tagsOf(k){const c=CARDS[k],T=[];
  if(c.fly)T.push('Летает');if(c.splash||c.spin)T.push('Урон по площади');if(c.charge)T.push('Рывок: удар ×2');if(c.stun)T.push('Оглушает');if(c.slow)T.push('Замедляет');
  if(c.chain)T.push('Бьёт сразу двоих');if(c.kami)T.push('Взрывается');if(c.death)T.push('Урон при гибели');if(c.dspawn)T.push(c.type==='building'?'При разрушении — ещё костяшки':'Распадается на камешки');
- if(c.spawn)T.push('Выпускает костяшек');if(c.tunnel)T.push('Роет ход куда угодно');if(c.zap)T.push('Разряд при выходе');if(c.td)T.push('По башням бьёт слабо');if(c.knock)T.push('Отбрасывает');if(c.ability)T.push('Один чемпион в колоде');if(c.dash)T.push('Рывок, во время рывка неуязвима');if(c.pull)T.push('Затягивает к центру');if(c.heal)T.push('Лечит своих');if(c.elx)T.push('Добывает эликсир');if(c.noStart)T.push('Не бывает в стартовой руке');if(c.roll)T.push('Катится и отталкивает');{const a=(CARDS[c.unit]||c).aff;if(a)T.push(a==='night'?'Ночная карта':'Дневная карта')}if((CARDS[c.unit]||c).light||c.flash)T.push('Даёт свет');if(c.shade)T.push('Гасит свет');if(c.shield)T.push('Щит');if(c.siege)T.push('Бьёт башни издалека');if(c.minRng)T.push('Мёртвая зона вблизи');if(c.grave)T.push('Поднимает скелетов');
+ if(c.spawn)T.push('Выпускает костяшек');if(c.tunnel)T.push('Роет ход куда угодно');if(c.zap)T.push('Разряд при выходе');if(c.td)T.push('По башням бьёт слабо');if(c.knock)T.push('Отбрасывает');if(c.ability)T.push('Один чемпион в колоде');if(c.dash)T.push('Рывок, во время рывка неуязвима');if(c.pull)T.push('Затягивает к центру');if(c.heal)T.push('Лечит своих');if(c.elx)T.push('Добывает эликсир');if(c.noStart)T.push('Не бывает в стартовой руке');if(c.roll)T.push('Катится и отталкивает');{const a=(CARDS[c.unit]||c).aff;if(a)T.push(a==='night'?'Ночная карта':'Дневная карта')}if((CARDS[c.unit]||c).light||c.flash)T.push('Даёт свет');if(c.shade)T.push('Гасит свет');if(c.bdmg)T.push('Рушит мосты');if(c.shield)T.push('Щит');if(c.siege)T.push('Бьёт башни издалека');if(c.minRng)T.push('Мёртвая зона вблизи');if(c.grave)T.push('Поднимает скелетов');
  return T}
 function openSheet(k){const c=CARDS[k],o=P.cards[k],lv=o?o.lv:1,inDeck=curDeck().includes(k),sh=$('#sheet'),type=c.type==='spell'?'заклинание':c.type==='building'?'строение':'боец',tags=tagsOf(k);
  if(P.fresh.includes(k)){P.fresh=P.fresh.filter(x=>x!==k);saveP()}
