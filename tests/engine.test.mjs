@@ -250,9 +250,9 @@ test('родник: +1 эликсир каждые 9,8 с, не бывает в 
 
 test('налётчица: рывок к цели в 3,5–6 тайлах, неуязвима в рывке, удар ×2', () => {
   const w = world();
-  w.run(`G.T.forEach(t=>t.dmg=0);spawn(0,'raider',180,560,11);spawn(1,'giant',180,400,11);globalThis.r=G.U.find(u=>u.key==='raider');globalThis.g=G.U.find(u=>u.key==='giant');g.frozenT=999;g.hp=g.mx=1e7;globalThis.seen=0`);
-  for (let i = 0; i < 60; i++) { run(w, 1 / 30); if (w.run('r.dashing')) { w.run('globalThis.seen=1;globalThis.h0=r.hp;damage(r,500,1)'); assert.equal(w.run('r.hp'), w.run('h0')); break; } }
-  assert.equal(w.run('seen'), 1, 'рывок начался');
+  w.run(`G.T.forEach(t=>t.dmg=0);spawn(0,'raider',180,560,11);spawn(1,'giant',180,400,11);globalThis.r=G.U.find(u=>u.key==='raider');globalThis.g=G.U.find(u=>u.key==='giant');g.frozenT=999;g.hp=g.mx=1e7;globalThis.dashSeen=0`);
+  for (let i = 0; i < 60; i++) { run(w, 1 / 30); if (w.run('r.dashing')) { w.run('globalThis.dashSeen=1;globalThis.h0=r.hp;damage(r,500,1)'); assert.equal(w.run('r.hp'), w.run('h0')); break; } }
+  assert.equal(w.run('dashSeen'), 1, 'рывок начался');
   run(w, 1);
   assert.ok(w.run('1e7-g.hp') >= w.run('LV(CARDS.raider.dmg,11)*2') - 1);
 });
@@ -328,4 +328,46 @@ test('разбор боя: перевес по секундам и отметк�
   assert.equal(w.run('G.tl[G.tl.length-1]'), 3, 'убиты стрелки за 3 эликсира');
   w.run(`damage(${tower(1, 'p', 'left')},1e7,0)`); run(w, .1);
   assert.equal(w.run('G.tlEv.length'), 1); assert.equal(w.run('G.tlEv[0].tm'), 1);
+});
+
+// ---------- день и ночь ----------
+test('цикл: день 50 с, ночь 40 с, плавный переход; в обучении цикла нет', () => {
+  const w = world();
+  assert.equal(w.run('nightK(10)'), 0); assert.equal(w.run('nightK(60)'), 1); assert.equal(w.run('nightK(95)'), 0);
+  assert.ok(w.run('nightK(48.5)') > 0 && w.run('nightK(48.5)') < 1);
+  assert.equal(w.run('nightK(140)+nightK(160)'), 2, 'вторая ночь 2:20–3:00');
+  const t = world({mode: 'tutor'}); assert.equal(t.run('nightK(60)'), 0);
+});
+
+test('ночью башня не видит врага вне света, а близкого — видит', () => {
+  const w = world();
+  w.run(`G.t=60;${tower(0, 'p', 'left')}.dmg=0;spawn(1,'shooters',70,380,11);G.U.length=1;globalThis.s=G.U[0];globalThis.k=${tower(0, 'p', 'left')};s.frozenT=999;s.hp=s.mx=1e6;k.dmg=100`);
+  // стрелок в 6,5 клетки от башни: в радиусе стрельбы (7,5), но вне света (5)
+  w.run(`s.x=k.x;s.y=k.y-6.5*TILE-k.r*.2`);
+  run(w, 2);
+  assert.equal(w.run('s.hp'), 1e6, 'в темноте не стреляет');
+  assert.equal(w.run('G.night'), true);
+  w.run(`G.t=10`); run(w, 2);
+  assert.ok(w.run('s.hp') < 1e6, 'днём стреляет');
+});
+
+test('факел и ближний бой открывают врага ночью', () => {
+  const w = world();
+  w.run(`G.t=60;CARDS.guard.light=0;spawn(1,'shooters',180,200,11);G.U.length=1;globalThis.s=G.U[0];s.frozenT=999;s.hp=s.mx=1e6;spawn(0,'crossbow',180,320,11);globalThis.c=G.U.find(u=>u.key==='crossbow');c.frozenT=0`);
+  w.run('c.x=180;c.y=200+5.5*TILE');run(w, 1/30);
+  assert.equal(w.run('seen(0,s)'), false, 'в 5,5 клетки, без света — не видно');
+  w.run('G.Z.push({k:"glow",tm:0,x:180,y:200,r:20,t:5,tot:5,light:60})');run(w, 1/30);
+  assert.equal(w.run('seen(0,s)'), true, 'свет открывает');
+  w.run('G.Z=[];c.y=200+2*TILE');run(w, 1/30);
+  assert.equal(w.run('seen(0,s)'), true, 'ближе 2,5 клетки — видно');
+});
+
+test('сродство: ночная карта ночью бьёт на 25% сильнее и ходит на 15% быстрее', () => {
+  const w = world();
+  w.run(`CARDS.guard.aff='night';spawn(0,'guard',180,450,11);globalThis.g=G.U[0]`);
+  const day = w.run('spdOf(g)');
+  w.run('G.t=60');
+  assert.ok(Math.abs(w.run('spdOf(g)') / day - 1.15) < 1e-9);
+  w.run(`spawn(1,'giant',180,430,11);globalThis.v=G.U.find(u=>u.key==='giant');v.hp=v.mx=1e6;attack(g,v)`);
+  assert.ok(Math.abs((1e6 - w.run('v.hp')) / w.run('g.dmg') - 1.25) < 1e-9);
 });

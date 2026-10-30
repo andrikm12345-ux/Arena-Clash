@@ -17,6 +17,9 @@ const CFG={
   p:{hp:3052,dmg:109,hit:.8,rng:7.5,r:24},
   k:{hp:4824,dmg:109,hit:1,rng:7,r:32,wakeAim:3.3,wakeShot:.7}},
  phys:{knockDamp:12,knockMinMass:10,deployPushMass:8,deployPush:90,pullMass:8}, // отбрасывание — скоростью с затуханием; толчок при высадке тяжёлых; вихрь тянет в полную силу юнитов до pullMass
+ /* день и ночь: day/night — длительность фаз (с), fade — переход; ночью враг виден, только если в свете или ближе near клеток.
+    light — радиусы света (клетки); aff — бонус карт в «своё» время суток */
+ cycle:{on:1,day:50,night:40,fade:3,near:2.5,light:{p:5,k:6,bld:2,boom:3,boomT:2},aff:{dmg:.25,spd:.15}},
  juice:{heavyHit:500,hitStop:.05,kingSlow:.5,slowScale:.25,shakeDecay:60}, // хит-стоп на ударах от heavyHit урона; замедление при падении короля
  music:{battle:{bpm:134,key:0},ot:{bpm:156,key:2},menu:{bpm:104,key:-5}},    // темп и сдвиг тональности (полутоны от ля минора)
  /* бот: think — пауза между решениями; react — задержка реакции на угрозу; mist — доля ошибок;
@@ -38,6 +41,6 @@ const CFG={
   double:{elStart:0,phases:[[0,2]],ot:[[0,2],[60,3]]},
   triple:{elStart:0,phases:[[0,3]],ot:[[0,3]]},
   sudden:{elStart:0,phases:[[0,2],[120,3]],ot:[[0,3]],sudden:1},
-  tutor:{elStart:7,phases:[[0,1.5]],ot:[[0,2]]}},             // обучение: ускоренный эликсир
+  tutor:{elStart:7,phases:[[0,1.5]],ot:[[0,2]],cycle:0}},             // обучение: ускоренный эликсир
  tutor:{battles:3,thp:[.2,.3,.4],bot:'novice',gold:50}
 };
