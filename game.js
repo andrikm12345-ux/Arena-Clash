@@ -110,6 +110,10 @@ const CARDS={
  raider:{aff:'night',n:'Налётчица',rar:'legendary',type:'troop',cost:3,hp:906,dmg:193,hit:1,rng:.75,spd:'fast',tg:'g',r:8,dash:{min:3.5,max:6,spd:500,mul:2},tip:'Рывком сокращает дистанцию до цели в 3,5–6 клеток. Во время рывка неуязвима, первый удар — двойной.'},
  mend:{n:'Целебный звон',rar:'rare',type:'spell',cost:2,rad:3,heal:420,healT:2,tip:'Две секунды лечит своих бойцов в круге. Спасает пуш, который вот-вот развалится.'},
  sapper:{n:'Подрыв',rar:'epic',type:'spell',cost:3,rad:2,dmg:150,tdmg:45,bdmg:2000,crater:1,tip:'Взрыв обрушивает мост, если попасть по нему: 20 с наземные идут через другой. Юниты на мосту падают на берег и оглушены. По юнитам — 150 урона.'},
+ shadowblade:{aff:'night',n:'Тень',rar:'epic',type:'troop',cost:3,hp:690,dmg:230,hit:1,rng:.7,spd:'fast',tg:'g',r:7,stealth:1,tip:'Ночью её видно, только вблизи 2,5 клеток: свет не помогает. Днём обычная ловкая убийца.'},
+ priest:{aff:'day',n:'Страж рассвета',rar:'rare',type:'troop',cost:4,hp:820,dmg:120,hit:1.3,rng:5,spd:'med',tg:'ga',r:8,proj:'orb',light:4,tip:'Дальний боец с собственным светом на 4 клетки. Днём бьёт сильнее; ночью освещает стрелков и открывает врагов.'},
+ eclipse:{n:'Затмение',rar:'legendary',type:'spell',cost:5,rad:0,force:{k:1,t:14},tip:'14 секунд — ночь для всех, где бы ты ни был. Ночные карты и Тени сильнее, дневные слабее, дальний бой слепнет.'},
+ dawn:{n:'Рассвет',rar:'epic',type:'spell',cost:3,rad:0,force:{k:0,t:12},tip:'12 секунд — день для всех. Ночь отменяется, дальний бой снова видит поле, дневные карты сильнее.'},
  torchman:{n:'Факелоносец',rar:'common',type:'troop',cost:2,hp:640,dmg:130,hit:1.1,rng:.7,spd:'fast',tg:'g',r:7,light:3.5,tip:'Несёт факел: свет 3,5 клетки вокруг себя. Ночью — глаза для твоих стрелков и башен.'},
  lantern:{n:'Фонарь',rar:'common',type:'building',cost:2,hp:520,tg:'g',r:10,life:55,light:6,tip:'Свет 6 клеток на 55 с. Сам не бьёт, но ночью открывает врагов у моста и притягивает «только здания».'},
  flash:{n:'Вспышка',rar:'rare',type:'spell',cost:1,rad:2.5,dmg:96,tdmg:29,blind:1,flash:{light:5,t:6},tip:'Яркий свет на 5 клеток на 6 с; враги в центре (2,5 клетки) обожжены и ослеплены: 1 с не двигаются и не атакуют.'},
@@ -440,7 +444,7 @@ function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.rand
    if(kind==='p'){const q=TT[tt[tm]]||TT.archer,t=T[T.length-1];t.hp=t.mx=Math.round(hp*q.hp);t.dmg=Math.round(t.dmg*q.dmg);t.hit*=q.hit;t.pk=q.pk;t.tt=tt[tm];if(q.mag){t.mag=t.ammo=q.mag;t.reload=q.reload}}}}
  G={seed,simR,log:[],replay:o.replay||null,rpi:0,setup:null,mc,tick:0,downs:[],tb:null,t:0,ot:0,otT:0,over:0,res:-1,endAt:0,crowns:[0,0],U:[],B:[],T,PR:[],FX:[],Z:[],D:[],S:[],PT:[],TX:[],DEC:[],EM:[],CF:[],shake:0,
   side:[0,1].map(tm=>mkSide(tm,o.decks[tm],o.lv[tm],o.kl[tm],o.ex&&o.ex[tm],mc.elStart)),mode:o.mode||'normal',bots:[0,1].map(tm=>o.bots[tm]?mkBot(tm,o.bots[tm]):null),
-  names:o.names||['Ты','Соперник'],train:!!o.train,tl:[0],tlEv:[],rules:Object.assign({},CFG.arenaRules[o.arena||0]),stormT:0,bridges:BR.map(x=>({x,hp:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),mx:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),down:0})),riv:RIVER.slice(),cyc:CFG.cycle.on&&mc.cycle!==0?1:0,night:0,vis:null,stats:[0,1].map(()=>({lost:0,trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
+  names:o.names||['Ты','Соперник'],train:!!o.train,tl:[0],tlEv:[],force:null,rules:Object.assign({},CFG.arenaRules[o.arena||0]),stormT:0,bridges:BR.map(x=>({x,hp:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),mx:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),down:0})),riv:RIVER.slice(),cyc:CFG.cycle.on&&mc.cycle!==0?1:0,night:0,vis:null,stats:[0,1].map(()=>({lost:0,trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
  G.side.forEach((S,tm)=>{S.elMul=o.elMul?o.elMul[tm]:G.bots[tm]?G.bots[tm].s.el:1});
  G.bots.forEach((b,tm)=>{if(b){b.r=mul(seed*31+tm+7);b.think=1.2+b.r()*1.3;b.lane=b.r()<.5?0:1}});
  G.setup={arena:o.arena||0,elMul:G.side.map(S=>S.elMul),decks:o.decks,lv:o.lv,kl:o.kl,mode:o.mode||'normal',ex:o.ex||null,tt:o.tt||null,thp:o.thp||null,seed,names:G.names,train:G.train};
@@ -521,6 +525,7 @@ const SPELL_FX={
  rage:{when:(c,k)=>c.rage,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'rage',tm,x,y,r,t:c.rage,tot:c.rage});AU.sfx('rage');return}},
  pull:{when:(c,k)=>c.pull,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'pull',tr,tm,x,y,r,t:c.pull,tot:c.pull,tick:0,dmg:dmg/4,tdmg:tdmg/4,spd:c.pullSpd});AU.sfx('poison');return}},
  bdmg:{when:(c,k)=>c.bdmg,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){const k=G.T.find(t=>t.tm===tm&&t.kind==='k'),tt=Math.max(.35,Math.hypot(x-k.x,y-k.y)/320);G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg,tdmg,'ga',{br:c.bdmg,crater:1}));boomFx(x,y,r);tradeReport(tr,x,y)}});AU.sfx('shot');return}},
+ force:{when:(c,k)=>c.force,cast(c,tm){G.force={k:c.force.k,t:c.force.t,tot:c.force.t};banner(c.force.k?'Затмение!':'Рассвет!',c.force.k?'#9fb4ff':'#ffd27a');AU.sfx('phase')}},
  flash:{when:(c,k)=>c.flash,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'flash',tm,x,y,r,t:c.flash.t,tot:c.flash.t,light:c.flash.light*TILE});areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.blind});AU.sfx('zap');return}},
  shade:{when:(c,k)=>c.shade,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'shade',tm,x,y,r,t:c.shade,tot:c.shade});AU.sfx('freeze');return}},
  roll:{when:(c,k)=>c.roll,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){const dir=tm?1:-1;G.Z.push({k:'roll',tr,tm,x,y,r,t:99,tot:99,dir,left:c.roll.len*TILE,spd:c.roll.spd,dmg,tdmg,knock:c.knock,hit:new Set(),ang:0});AU.sfx('hit');return}},
@@ -567,7 +572,10 @@ function doAbility(tm){const S=G.side[tm],u=S.champ;if(!alive(u))return false;co
    nightK — плавная доля ночи 0…1 (для отрисовки), isNight — ночь ли сейчас для правил */
 function cycOf(){const C=CFG.cycle,c=G.rules&&G.rules.cyc;return c?Object.assign({},C,{day:c[0],night:c[1]}):C}
 function nightK(t){if(!G||!G.cyc)return 0;const C=cycOf(),per=C.day+C.night,ph=(t??G.t)%per,f=C.fade;
- if(ph<C.day-f)return 0;if(ph<C.day)return(ph-(C.day-f))/f;if(ph<per-f)return 1;return 1-(ph-(per-f))/f}
+ let b=ph<C.day-f?0:ph<C.day?(ph-(C.day-f))/f:ph<per-f?1:1-(ph-(per-f))/f;
+ // принудительное время суток (Затмение, Рассвет): плавный вход и выход за 2 с
+ if(t===undefined&&G.force){const F=G.force,k=clamp(Math.min(F.tot-F.t,F.t)/2,0,1);b+=(F.k-b)*k}
+ return b}
 function isNight(){return nightK()>=.5}
 /* источники света: башни, здания, юниты и зоны со светом; в зоне «Сумрака» свет не действует */
 function lightSources(){const L=CFG.cycle.light,S=[];
@@ -583,7 +591,7 @@ function computeVis(){const n=isNight();if(n!==!!G.night){G.night=n;if(G.t>1)ban
  const sh=G.Z.some(z=>z.k==='shade');if(!n&&!sh){G.vis=null;return}const S=n?lightSources():[],near=CFG.cycle.near*TILE,V=[new Set(),new Set()];
  const ents=tm=>[...G.U.filter(u=>u.tm===tm&&alive(u)),...G.B.filter(b=>b.tm===tm&&alive(b)),...G.T.filter(t=>t.tm===tm&&t.hp>0)];
  const E=[ents(0),ents(1)];
- for(const tm of[0,1])for(const o of E[1-tm]){if(o.obj==='t'||(n?litBy(S,o):!inShade(o))){V[tm].add(o);continue}
+ for(const tm of[0,1])for(const o of E[1-tm]){if(o.obj==='t'||(n?litBy(S,o)&&!(o.c&&o.c.stealth):!inShade(o))){V[tm].add(o);continue}
   for(const e of E[tm])if(dist(e,o)<near+o.r+e.r){V[tm].add(o);break}}
  G.vis=V}
 /* видит ли сторона tm объект o (башни видно всегда) */
@@ -821,6 +829,7 @@ function step(dt){if(!G)return;dt=dt||TICK;if(G.over){fxStep(dt);return}
   for(const p of S.pend){p.t-=dt;if(p.t<=0){S.hand[p.i]=p.key;p.done=1}}S.pend=S.pend.filter(p=>!p.done)}
  G.inBots=1;for(const b of G.bots)if(b){RNG=b.r;botThink(b,dt);RNG=G.simR}if(G.replay)applyReplay(1);G.inBots=0;
  updDeploys(dt);
+ if(G.force){G.force.t-=dt;if(G.force.t<=0)G.force=null}
  computeVis();
  for(const u of G.U)updUnit(u,dt);
  separate();
@@ -937,6 +946,11 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
  // добить башню заклинанием
  if(RNG()<s.spell)for(const k of hand){const c=CARDS[k];if(c.type!=='spell'||!c.tdmg||c.freeze)continue;const td=LV(c.tdmg,S.lv[k]||1);
   for(const t of G.T)if(t.tm!==b.tm&&t.hp>0&&t.hp<=td*(c.poison?.9:1)){if(botPlay(b,k,t.x,fyOf(b,t.y),true))return}}
+ // Затмение / Рассвет: когда на поле больше своих карт нужной стороны, чем врага
+ const fc=hand.find(k=>CARDS[k].force);
+ if(fc&&!G.force){const want=CARDS[fc].force.k?'night':'day',cur=isNight()?'night':'day';
+  if(want!==cur){const mine=G.U.filter(u=>u.tm===b.tm&&alive(u)&&u.c.aff===want).reduce((a,u)=>a+uval(u),0),theirs=G.U.filter(u=>u.tm!==b.tm&&alive(u)&&u.c.aff===want).reduce((a,u)=>a+uval(u),0);
+   if(mine>=5&&mine>theirs+2&&botPlay(b,fc,W/2,fyOf(b,RY),true))return}}
  // Подрыв: большой пуш врага на его стороне идёт к мосту — обрушить мост перед ним
  const sp=hand.find(k=>CARDS[k].bdmg);
  if(sp&&RNG()<s.spell)for(const lane of[0,1]){const br=G.bridges[lane];if(br.down>0)continue;const bx=BR[lane];
@@ -1397,6 +1411,8 @@ const VIS={
  knightrider:{m:'Knight',keep:['Knight_Helmet','Knight_Cape','2H_Sword','Round_Shield'],s:.7,idle:'2H_Melee_Idle',move:'Running_A',atk:['2H_Melee_Attack_Stab','2H_Melee_Attack_Chop']},
  frostsage:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.56,tint:'ice',atk:['Spellcast_Shoot']},
  torchman:{m:'Barbarian',keep:['Barbarian_Hat','1H_Axe'],add:[['#torch','handslot.l']],s:.5,tint:'tan',atk:['1H_Melee_Attack_Chop','1H_Melee_Attack_Slice_Diagonal']},
+ shadowblade:{m:'Skeleton_Rogue',keep:['Skeleton_Rogue_Hood','Skeleton_Rogue_Cape'],add:[['sk_blade','handslot.r']],s:.52,atk:['1H_Melee_Attack_Stab','1H_Melee_Attack_Chop'],spawn:'Spawn_Ground_Skeletons'},
+ priest:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.58,tint:'gold',atk:['Spellcast_Shoot']},
  shieldman:{m:'Knight',keep:['Knight_Helmet','1H_Sword','Spike_Shield'],s:.6,tint:'gold',atk:['1H_Melee_Attack_Chop','1H_Melee_Attack_Slice_Diagonal']},
  raider:{m:'Rogue_Hooded',keep:['Rogue_Cape','Knife','Knife_Offhand'],s:.5,tint:'storm',move:'Running_A',atk:['1H_Melee_Attack_Stab','1H_Melee_Attack_Slice_Diagonal']},
  scorch:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.56,tint:'storm',atk:['Spellcast_Shoot']},
@@ -1933,6 +1949,10 @@ function spellModel(key){const g=new T.Group(),E=(c,e,i,o)=>new T.MeshStandardMa
  else if(key==='poison'){const gl=new T.MeshStandardMaterial({color:'#b8ffcf',roughness:.05,transparent:true,opacity:.45});g.add(new T.Mesh(new T.SphereGeometry(.55,24,16),gl));const liq=new T.Mesh(new T.SphereGeometry(.47,24,16,0,6.28,1.2,1.94),E('#7ee05a','#3a9a1a',1.4));g.add(liq);
   const n=new T.Mesh(new T.CylinderGeometry(.14,.16,.4,12),gl);n.position.y=.68;g.add(n);const cork=new T.Mesh(new T.CylinderGeometry(.15,.13,.16,10),flat('#8a5a32'));cork.position.y=.92;g.add(cork);
   for(let i=0;i<5;i++){const b=new T.Mesh(new T.SphereGeometry(.08+.04*(i%2),10,8),E('#a8ff7a','#4cd32a',1.5,{transparent:true,opacity:.8}));b.position.set(-.5+i*.25,.9+(i%3)*.25,.2);g.add(b)}}
+ else if(key==='eclipse'){const d=new T.Mesh(new T.SphereGeometry(.5,24,16),new T.MeshStandardMaterial({color:'#05060e',roughness:.6}));g.add(d);
+  const r=new T.Mesh(new T.TorusGeometry(.58,.07,10,40),E('#ffe9b0','#ffb347',3));g.add(r);const r2=new T.Mesh(new T.TorusGeometry(.78,.03,8,40),E('#b8c4ff','#7a8cff',1.6));r2.rotation.x=.5;g.add(r2)}
+ else if(key==='dawn'){const s=new T.Mesh(new T.SphereGeometry(.38,20,14),E('#fff3c0','#ffc83d',3));g.add(s);
+  for(let i=0;i<10;i++){const a=i/10*Math.PI*2,ray=new T.Mesh(new T.ConeGeometry(.06,.34,5),E('#ffe38a','#ffb02a',2.2));ray.position.set(Math.cos(a)*.62,Math.sin(a)*.62,0);ray.rotation.z=a-Math.PI/2;g.add(ray)}}
  else if(key==='sapper'){const k=new T.Mesh(new T.CylinderGeometry(.42,.42,.8,18),new T.MeshStandardMaterial({color:'#7a5232',roughness:.8}));g.add(k);
   for(const y of[-.28,.28]){const h=new T.Mesh(new T.TorusGeometry(.43,.05,6,24),new T.MeshStandardMaterial({color:'#3a3d44',metalness:.8,roughness:.4}));h.rotation.x=Math.PI/2;h.position.y=y;g.add(h)}
   const f=new T.Mesh(new T.CylinderGeometry(.03,.03,.45,6),new T.MeshStandardMaterial({color:'#2a2a2a'}));f.position.set(.15,.6,0);f.rotation.z=-.4;g.add(f);
@@ -2109,7 +2129,7 @@ const ARENAS=[
  {n:'Тренировочный лагерь',tr:0},{n:'Костяной овраг',tr:300},{n:'Кузнечная слобода',tr:650},{n:'Морозный перевал',tr:1000},
  {n:'Драконьи скалы',tr:1400},{n:'Ядовитая топь',tr:1800},{n:'Грозовая цитадель',tr:2250},{n:'Каменный трон',tr:2750}];
 const ARENA_RULE=['','Ночь длиннее дня','Наземные медленнее на 8%','','Воронки держатся дольше','Воронки тормозят сильнее','Молния бьёт по центру','Мосты прочнее в 1,6 раза'];
-const ARENA_OF={sapper:4,torchman:0,lantern:1,flash:2,shade:3,roller:4,shieldman:1,mortar:2,grave:6,guard:0,shooters:0,bones:0,imps:0,slingers:0,bomber:0,cannon:0,volley:0,giant:0,crossbow:0,axe:0,fireball:0,
+const ARENA_OF={shadowblade:5,priest:2,eclipse:7,dawn:4,sapper:4,torchman:0,lantern:1,flash:2,shade:3,roller:4,shieldman:1,mortar:2,grave:6,guard:0,shooters:0,bones:0,imps:0,slingers:0,bomber:0,cannon:0,volley:0,giant:0,crossbow:0,axe:0,fireball:0,
  lair:1,legion:1,wisp:1,spark:1,hammer:2,militia:2,ram:2,bats:3,freeze:3,frostsage:3,drake:4,airship:4,sorcerer:4,
  poison:5,mole:5,scorch:4,vortex:3,spring:2,raider:5,mend:1,cry:5,thunder:6,knightrider:6,colossus:7,warlord:7};
 const arenaOf=tr=>{let a=0;ARENAS.forEach((x,i)=>{if(tr>=x.tr)a=i});return a};
@@ -2516,7 +2536,7 @@ function openDeckMenu(){AU.init();AU.sfx('ui');const sh=$('#sheet');
  $('#drnd').onclick=()=>{const own=shuffleV(CARD_IDS.filter(k=>P.cards[k])),d=[];for(const k of own)if(d.length<8&&!(CARDS[k].ability&&d.some(x=>CARDS[x].ability)))d.push(k);if(d.length<8||!okDeck(d)){AU.sfx('deny');return}P.decks[P.slot]=d;saveP();AU.sfx('dep');closeSheet();renderHome()};
  sh.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{P.decks[P.slot]=P.decks[+b.dataset.cp].slice();saveP();AU.sfx('dep');closeSheet();renderHome()})}
 function statRows(k,lv){const c=CARDS[k],n=c.count||1,R=[];
- if(c.type==='spell'){if(c.dmg)R.push(['Урон',LV(c.dmg,lv)]);if(c.tdmg)R.push(['Урон по башням',LV(c.tdmg,lv)]);R.push(c.roll?['Ширина',c.rad*2+' кл.']:['Радиус',c.rad+' кл.']);if(c.roll)R.push(['Катится',c.roll.len+' кл.']);if(c.bdmg)R.push(['Урон мосту',c.bdmg]);if(c.flash)R.push(['Свет',c.flash.light+' кл.',` на ${c.flash.t} с`]);if(c.blind)R.push(['Ослепление',c.blind+' с']);if(c.shade)R.push(['Тьма',c.shade+' с']);if(c.grave)R.push(['Скелетов',c.grave.n,` за ${c.grave.t} с`]);
+ if(c.type==='spell'){if(c.dmg)R.push(['Урон',LV(c.dmg,lv)]);if(c.tdmg)R.push(['Урон по башням',LV(c.tdmg,lv)]);R.push(c.roll?['Ширина',c.rad*2+' кл.']:['Радиус',c.rad+' кл.']);if(c.roll)R.push(['Катится',c.roll.len+' кл.']);if(c.bdmg)R.push(['Урон мосту',c.bdmg]);if(c.force)R.push([c.force.k?'Ночь':'День',c.force.t+' с']);if(c.flash)R.push(['Свет',c.flash.light+' кл.',` на ${c.flash.t} с`]);if(c.blind)R.push(['Ослепление',c.blind+' с']);if(c.shade)R.push(['Тьма',c.shade+' с']);if(c.grave)R.push(['Скелетов',c.grave.n,` за ${c.grave.t} с`]);
   if(c.freeze)R.push(['Заморозка',c.freeze+' с']);if(c.rage)R.push(['Ярость',c.rage+' с, +35%']);if(c.pull)R.push(['Затягивает',c.pull+' с']);if(c.heal)R.push(['Лечит',LV(c.heal,lv),` за ${c.healT} с`]);if(c.poison)R.push(['Длится',c.poison+' с']);if(c.stun)R.push(['Оглушение',c.stun+' с']);if(c.waves)R.push(['Волн',c.waves]);return R}
  const u=CARDS[c.unit||k];
  R.push(['Здоровье',LV(u.hp,lv),n>1?' ×'+n:'']);if(u.light)R.push(['Свет',u.light+' кл.']);if(u.aff)R.push([u.aff==='night'?'Ночью':'Днём',`+${CFG.cycle.aff.dmg*100}% урона, +${CFG.cycle.aff.spd*100}% скорости`]);if(u.shield)R.push(['Щит',LV(u.shield,lv)]);
@@ -2530,7 +2550,7 @@ function statRows(k,lv){const c=CARDS[k],n=c.count||1,R=[];
 function tagsOf(k){const c=CARDS[k],T=[];
  if(c.fly)T.push('Летает');if(c.splash||c.spin)T.push('Урон по площади');if(c.charge)T.push('Рывок: удар ×2');if(c.stun)T.push('Оглушает');if(c.slow)T.push('Замедляет');
  if(c.chain)T.push('Бьёт сразу двоих');if(c.kami)T.push('Взрывается');if(c.death)T.push('Урон при гибели');if(c.dspawn)T.push(c.type==='building'?'При разрушении — ещё костяшки':'Распадается на камешки');
- if(c.spawn)T.push('Выпускает костяшек');if(c.tunnel)T.push('Роет ход куда угодно');if(c.zap)T.push('Разряд при выходе');if(c.td)T.push('По башням бьёт слабо');if(c.knock)T.push('Отбрасывает');if(c.ability)T.push('Один чемпион в колоде');if(c.dash)T.push('Рывок, во время рывка неуязвима');if(c.pull)T.push('Затягивает к центру');if(c.heal)T.push('Лечит своих');if(c.elx)T.push('Добывает эликсир');if(c.noStart)T.push('Не бывает в стартовой руке');if(c.roll)T.push('Катится и отталкивает');{const a=(CARDS[c.unit]||c).aff;if(a)T.push(a==='night'?'Ночная карта':'Дневная карта')}if((CARDS[c.unit]||c).light||c.flash)T.push('Даёт свет');if(c.shade)T.push('Гасит свет');if(c.bdmg)T.push('Рушит мосты');if(c.shield)T.push('Щит');if(c.siege)T.push('Бьёт башни издалека');if(c.minRng)T.push('Мёртвая зона вблизи');if(c.grave)T.push('Поднимает скелетов');
+ if(c.spawn)T.push('Выпускает костяшек');if(c.tunnel)T.push('Роет ход куда угодно');if(c.zap)T.push('Разряд при выходе');if(c.td)T.push('По башням бьёт слабо');if(c.knock)T.push('Отбрасывает');if(c.ability)T.push('Один чемпион в колоде');if(c.dash)T.push('Рывок, во время рывка неуязвима');if(c.pull)T.push('Затягивает к центру');if(c.heal)T.push('Лечит своих');if(c.elx)T.push('Добывает эликсир');if(c.noStart)T.push('Не бывает в стартовой руке');if(c.roll)T.push('Катится и отталкивает');{const a=(CARDS[c.unit]||c).aff;if(a)T.push(a==='night'?'Ночная карта':'Дневная карта')}if((CARDS[c.unit]||c).light||c.flash)T.push('Даёт свет');if(c.shade)T.push('Гасит свет');if(c.bdmg)T.push('Рушит мосты');if(c.force)T.push(c.force.k?'Вызывает ночь':'Вызывает день');if((CARDS[c.unit]||c).stealth)T.push('Невидима ночью');if(c.shield)T.push('Щит');if(c.siege)T.push('Бьёт башни издалека');if(c.minRng)T.push('Мёртвая зона вблизи');if(c.grave)T.push('Поднимает скелетов');
  return T}
 function openSheet(k){const c=CARDS[k],o=P.cards[k],lv=o?o.lv:1,inDeck=curDeck().includes(k),sh=$('#sheet'),type=c.type==='spell'?'заклинание':c.type==='building'?'строение':'боец',tags=tagsOf(k);
  if(P.fresh.includes(k)){P.fresh=P.fresh.filter(x=>x!==k);saveP()}
@@ -2739,7 +2759,7 @@ function hud(){const S=G.side[0],e=S.el,ei=Math.floor(e);
  $('#ef').style.width=(e*10)+'%';if(ei!==hs.el){hs.el=ei;$('#en').textContent=ei;$('#eb').classList.toggle('full',ei>=10)}
  const M=CFG.match,left=G.tb?0:G.ot?M.ot-G.otT:M.len-G.t,tm=fmt(left);if(tm!==hs.tm){if(hs.tm&&left<=10&&left>0&&!G.over)AU.sfx('tick');hs.tm=tm;$('#tm').textContent=tm;$('#tm').classList.toggle('low',left<=10||!!G.ot)}
  tips();if(G.ot&&MUS.theme!=='ot')MUS.play('ot');else if(!G.ot&&!G.over&&(MUS.theme==='battle'||MUS.theme==='night')){const th=G.night?'night':'battle';if(MUS.theme!==th)MUS.play(th)}
- if(G.cyc&&!G.tb){const C=cycOf(),per=C.day+C.night,p=G.t%per,n=p>=C.day,left=Math.ceil(n?per-p:C.day-p),tx=(n?'☾ рассвет через ':'☀ ночь через ')+left;if(tx!==hs.dn){hs.dn=tx;const e=$('#dn');e.textContent=tx;e.classList.toggle('n',n)}}
+ if(G.cyc&&!G.tb){const C=cycOf(),per=C.day+C.night,p=G.t%per,n=p>=C.day,left=Math.ceil(n?per-p:C.day-p),tx=G.force?(G.force.k?'☾ затмение ещё ':'☀ рассвет ещё ')+Math.ceil(G.force.t):(n?'☾ рассвет через ':'☀ ночь через ')+left;if(tx!==hs.dn){hs.dn=tx;const e=$('#dn');e.textContent=tx;e.classList.toggle('n',n)}}
  else if(hs.dn){hs.dn='';$('#dn').textContent=''}
  const er=elRate(),ph=G.tb?'ТАЙБРЕЙКЕР':G.ot?'ОВЕРТАЙМ · ×'+er:er>1?'ЭЛИКСИР ×'+er:'ОСТАЛОСЬ';if(ph!==hs.ph){hs.ph=ph;$('#ph').textContent=ph}
  const cr=G.crowns.join();if(cr!==hs.cr){hs.cr=cr;setPips(0,G.crowns[0]);setPips(1,G.crowns[1])}

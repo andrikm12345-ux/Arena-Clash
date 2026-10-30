@@ -435,3 +435,22 @@ test('погода арен: Овраг — ночь длиннее, Перев�
   assert.equal(world().run('G.rules.storm||0'), 0);
   assert.ok(c.run('G.stormT') >= 0);
 });
+
+// ---------- карты под цикл ----------
+test('Затмение вызывает ночь днём на 14 с и плавно уходит; Рассвет — день ночью', () => {
+  const w = world();
+  assert.equal(w.run('nightK()'), 0);
+  w.run(`castSpell(0,'eclipse',180,320,11)`); run(w, 7);
+  assert.equal(w.run('nightK()'), 1); assert.equal(w.run('G.night'), true);
+  run(w, 8); assert.equal(w.run('G.force'), null); assert.equal(w.run('nightK()'), 0);
+  w.run(`G.t=60;castSpell(0,'dawn',180,320,11)`); run(w, 6);
+  assert.equal(w.run('nightK()'), 0); assert.equal(w.run('G.night'), false);
+});
+
+test('Тень невидима ночью даже в свете, но видна вплотную; днём видна всегда', () => {
+  const w = world();
+  w.run(`G.t=60;spawn(1,'shadowblade',180,200,11);G.U.length=1;globalThis.s=G.U[0];s.frozenT=999;G.Z.push({k:'glow',tm:0,x:180,y:200,r:20,t:9,tot:9,light:200});spawn(0,'crossbow',180,200+5*TILE,11);globalThis.c=G.U.find(u=>u.key==='crossbow');c.frozenT=999`);
+  run(w, 1/30); assert.equal(w.run('seen(0,s)'), false, 'в свете, но скрыта');
+  w.run('c.y=200+2*TILE'); run(w, 1/30); assert.equal(w.run('seen(0,s)'), true, 'вплотную видна');
+  w.run('G.t=10;c.y=200+5*TILE'); run(w, 1/30); assert.equal(w.run('seen(0,s)'), true, 'днём видна');
+});

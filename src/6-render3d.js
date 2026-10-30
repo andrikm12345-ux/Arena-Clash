@@ -118,6 +118,8 @@ const VIS={
  knightrider:{m:'Knight',keep:['Knight_Helmet','Knight_Cape','2H_Sword','Round_Shield'],s:.7,idle:'2H_Melee_Idle',move:'Running_A',atk:['2H_Melee_Attack_Stab','2H_Melee_Attack_Chop']},
  frostsage:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.56,tint:'ice',atk:['Spellcast_Shoot']},
  torchman:{m:'Barbarian',keep:['Barbarian_Hat','1H_Axe'],add:[['#torch','handslot.l']],s:.5,tint:'tan',atk:['1H_Melee_Attack_Chop','1H_Melee_Attack_Slice_Diagonal']},
+ shadowblade:{m:'Skeleton_Rogue',keep:['Skeleton_Rogue_Hood','Skeleton_Rogue_Cape'],add:[['sk_blade','handslot.r']],s:.52,atk:['1H_Melee_Attack_Stab','1H_Melee_Attack_Chop'],spawn:'Spawn_Ground_Skeletons'},
+ priest:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.58,tint:'gold',atk:['Spellcast_Shoot']},
  shieldman:{m:'Knight',keep:['Knight_Helmet','1H_Sword','Spike_Shield'],s:.6,tint:'gold',atk:['1H_Melee_Attack_Chop','1H_Melee_Attack_Slice_Diagonal']},
  raider:{m:'Rogue_Hooded',keep:['Rogue_Cape','Knife','Knife_Offhand'],s:.5,tint:'storm',move:'Running_A',atk:['1H_Melee_Attack_Stab','1H_Melee_Attack_Slice_Diagonal']},
  scorch:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.56,tint:'storm',atk:['Spellcast_Shoot']},
@@ -654,6 +656,10 @@ function spellModel(key){const g=new T.Group(),E=(c,e,i,o)=>new T.MeshStandardMa
  else if(key==='poison'){const gl=new T.MeshStandardMaterial({color:'#b8ffcf',roughness:.05,transparent:true,opacity:.45});g.add(new T.Mesh(new T.SphereGeometry(.55,24,16),gl));const liq=new T.Mesh(new T.SphereGeometry(.47,24,16,0,6.28,1.2,1.94),E('#7ee05a','#3a9a1a',1.4));g.add(liq);
   const n=new T.Mesh(new T.CylinderGeometry(.14,.16,.4,12),gl);n.position.y=.68;g.add(n);const cork=new T.Mesh(new T.CylinderGeometry(.15,.13,.16,10),flat('#8a5a32'));cork.position.y=.92;g.add(cork);
   for(let i=0;i<5;i++){const b=new T.Mesh(new T.SphereGeometry(.08+.04*(i%2),10,8),E('#a8ff7a','#4cd32a',1.5,{transparent:true,opacity:.8}));b.position.set(-.5+i*.25,.9+(i%3)*.25,.2);g.add(b)}}
+ else if(key==='eclipse'){const d=new T.Mesh(new T.SphereGeometry(.5,24,16),new T.MeshStandardMaterial({color:'#05060e',roughness:.6}));g.add(d);
+  const r=new T.Mesh(new T.TorusGeometry(.58,.07,10,40),E('#ffe9b0','#ffb347',3));g.add(r);const r2=new T.Mesh(new T.TorusGeometry(.78,.03,8,40),E('#b8c4ff','#7a8cff',1.6));r2.rotation.x=.5;g.add(r2)}
+ else if(key==='dawn'){const s=new T.Mesh(new T.SphereGeometry(.38,20,14),E('#fff3c0','#ffc83d',3));g.add(s);
+  for(let i=0;i<10;i++){const a=i/10*Math.PI*2,ray=new T.Mesh(new T.ConeGeometry(.06,.34,5),E('#ffe38a','#ffb02a',2.2));ray.position.set(Math.cos(a)*.62,Math.sin(a)*.62,0);ray.rotation.z=a-Math.PI/2;g.add(ray)}}
  else if(key==='sapper'){const k=new T.Mesh(new T.CylinderGeometry(.42,.42,.8,18),new T.MeshStandardMaterial({color:'#7a5232',roughness:.8}));g.add(k);
   for(const y of[-.28,.28]){const h=new T.Mesh(new T.TorusGeometry(.43,.05,6,24),new T.MeshStandardMaterial({color:'#3a3d44',metalness:.8,roughness:.4}));h.rotation.x=Math.PI/2;h.position.y=y;g.add(h)}
   const f=new T.Mesh(new T.CylinderGeometry(.03,.03,.45,6),new T.MeshStandardMaterial({color:'#2a2a2a'}));f.position.set(.15,.6,0);f.rotation.z=-.4;g.add(f);

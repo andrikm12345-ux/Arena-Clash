@@ -90,6 +90,11 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
  // добить башню заклинанием
  if(RNG()<s.spell)for(const k of hand){const c=CARDS[k];if(c.type!=='spell'||!c.tdmg||c.freeze)continue;const td=LV(c.tdmg,S.lv[k]||1);
   for(const t of G.T)if(t.tm!==b.tm&&t.hp>0&&t.hp<=td*(c.poison?.9:1)){if(botPlay(b,k,t.x,fyOf(b,t.y),true))return}}
+ // Затмение / Рассвет: когда на поле больше своих карт нужной стороны, чем врага
+ const fc=hand.find(k=>CARDS[k].force);
+ if(fc&&!G.force){const want=CARDS[fc].force.k?'night':'day',cur=isNight()?'night':'day';
+  if(want!==cur){const mine=G.U.filter(u=>u.tm===b.tm&&alive(u)&&u.c.aff===want).reduce((a,u)=>a+uval(u),0),theirs=G.U.filter(u=>u.tm!==b.tm&&alive(u)&&u.c.aff===want).reduce((a,u)=>a+uval(u),0);
+   if(mine>=5&&mine>theirs+2&&botPlay(b,fc,W/2,fyOf(b,RY),true))return}}
  // Подрыв: большой пуш врага на его стороне идёт к мосту — обрушить мост перед ним
  const sp=hand.find(k=>CARDS[k].bdmg);
  if(sp&&RNG()<s.spell)for(const lane of[0,1]){const br=G.bridges[lane];if(br.down>0)continue;const bx=BR[lane];
