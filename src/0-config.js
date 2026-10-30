@@ -19,11 +19,11 @@ const CFG={
  juice:{heavyHit:500,hitStop:.05,kingSlow:.5,slowScale:.25,shakeDecay:60}, // хит-стоп на ударах от heavyHit урона; замедление при падении короля
  music:{battle:{bpm:134,key:0},ot:{bpm:156,key:2},menu:{bpm:104,key:-5}},    // темп и сдвиг тональности (полутоны от ля минора)
  /* бот: think — пауза между решениями; react — задержка реакции на угрозу; mist — доля ошибок;
-    el — множитель эликсира; thp — HP его башен; lvOff — сдвиг уровня карт; countEl — считает эликсир соперника;
+    el — множитель эликсира; thp — HP его башен (по просьбе игрока у всех 1 — башни равные); lvOff — сдвиг уровня карт; countEl — считает эликсир соперника;
     acc — разброс позиции (точки); spell — готовность к заклинаниям; push — эликсир для атаки; abil — активность способностей */
  bot:{levels:{
-  novice:{n:'Новичок',think:1.6,react:1.5,mist:.25,el:.8,thp:.4,lvOff:-2,acc:20,spell:.35,push:10,abil:.3},
-  easy:{n:'Лёгкий',think:1.2,react:1.1,mist:.15,el:.9,thp:.7,lvOff:-1,acc:16,spell:.55,push:9.5,abil:.5},
+  novice:{n:'Новичок',think:1.6,react:1.5,mist:.25,el:.8,thp:1,lvOff:-2,acc:20,spell:.35,push:10,abil:.3},
+  easy:{n:'Лёгкий',think:1.2,react:1.1,mist:.15,el:.9,thp:1,lvOff:-1,acc:16,spell:.55,push:9.5,abil:.5},
   normal:{n:'Средний',think:.9,react:.8,mist:.07,el:1,thp:1,lvOff:0,acc:12,spell:.75,push:9,abil:.7},
   hard:{n:'Сложный',think:.6,react:.5,mist:.02,el:1,thp:1,lvOff:1,acc:8,spell:.95,push:8.5,abil:.9},
   expert:{n:'Эксперт',think:.4,react:.4,mist:0,el:1.1,thp:1,lvOff:1,acc:5,spell:1,push:8,abil:1,countEl:1}},

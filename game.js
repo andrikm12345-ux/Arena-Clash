@@ -20,11 +20,11 @@ const CFG={
  juice:{heavyHit:500,hitStop:.05,kingSlow:.5,slowScale:.25,shakeDecay:60}, // хит-стоп на ударах от heavyHit урона; замедление при падении короля
  music:{battle:{bpm:134,key:0},ot:{bpm:156,key:2},menu:{bpm:104,key:-5}},    // темп и сдвиг тональности (полутоны от ля минора)
  /* бот: think — пауза между решениями; react — задержка реакции на угрозу; mist — доля ошибок;
-    el — множитель эликсира; thp — HP его башен; lvOff — сдвиг уровня карт; countEl — считает эликсир соперника;
+    el — множитель эликсира; thp — HP его башен (по просьбе игрока у всех 1 — башни равные); lvOff — сдвиг уровня карт; countEl — считает эликсир соперника;
     acc — разброс позиции (точки); spell — готовность к заклинаниям; push — эликсир для атаки; abil — активность способностей */
  bot:{levels:{
-  novice:{n:'Новичок',think:1.6,react:1.5,mist:.25,el:.8,thp:.4,lvOff:-2,acc:20,spell:.35,push:10,abil:.3},
-  easy:{n:'Лёгкий',think:1.2,react:1.1,mist:.15,el:.9,thp:.7,lvOff:-1,acc:16,spell:.55,push:9.5,abil:.5},
+  novice:{n:'Новичок',think:1.6,react:1.5,mist:.25,el:.8,thp:1,lvOff:-2,acc:20,spell:.35,push:10,abil:.3},
+  easy:{n:'Лёгкий',think:1.2,react:1.1,mist:.15,el:.9,thp:1,lvOff:-1,acc:16,spell:.55,push:9.5,abil:.5},
   normal:{n:'Средний',think:.9,react:.8,mist:.07,el:1,thp:1,lvOff:0,acc:12,spell:.75,push:9,abil:.7},
   hard:{n:'Сложный',think:.6,react:.5,mist:.02,el:1,thp:1,lvOff:1,acc:8,spell:.95,push:8.5,abil:.9},
   expert:{n:'Эксперт',think:.4,react:.4,mist:0,el:1.1,thp:1,lvOff:1,acc:5,spell:1,push:8,abil:1,countEl:1}},
@@ -517,7 +517,9 @@ function findTarget(u){const c=u.c,sight=sightOf(c)*TILE;let best=null,bd=1e9;
   for(const o of G.B)if(o.tm!==u.tm&&alive(o)){const d=dist(u,o)-o.r;if(d<sight&&d<bd){bd=d;best=o}}
   for(const o of G.T)if(o.tm!==u.tm&&o.hp>0){const d=dist(u,o)-o.r;if(d<sight&&d<bd){bd=d;best=o}}
   if(best)return best}
- for(const o of G.B)if(o.tm!==u.tm&&alive(o)){const d=pathDist(u,o);if(d<bd){bd=d;best=o}}
+ // здания притягивают только в пределах обзора (у «только здания» — 7,5 тайла); иначе — ближайшая башня по пути через мост
+ for(const o of G.B)if(o.tm!==u.tm&&alive(o)){const d=dist(u,o)-o.r;if(d<sight&&d<bd){bd=d;best=o}}
+ if(best)return best;
  for(const o of G.T)if(o.tm!==u.tm&&o.hp>0){const d=pathDist(u,o);if(d<bd){bd=d;best=o}}
  return best}
 /* ---------- поиск пути по тайлам: поля расстояний ----------
@@ -2041,7 +2043,7 @@ const botTT=a=>a<1?'archer':pickV(Object.keys(TT));
 const relLv=k=>lvOf(k)-START_LV[CARDS[k].rar];
 function botSetup(a,train){const deck=genBotDeck(a),avg=curDeck().reduce((s,k)=>s+relLv(k),0)/8,lv={},sk=train?P.train:skillFor(a),L=SKILL[sk];
  const base=(train?avg:(ARENA_LV[a]-1+avg)/2)+L.lvOff;for(const k of deck){const s0=START_LV[CARDS[k].rar];lv[k]=clamp(s0+Math.round(base+(train?0:rndV(-.6,.6))),s0,MAXLV)}
- const kl=train?P.kl:clamp(Math.round((ARENA_LV[a]+P.kl)/2),1,KL_MAX);
+ const kl=P.kl; // башни бота того же уровня, что у игрока
  return{deck,lv,kl,skill:sk,thp:L.thp,ex:botExtras(deck,a),tt:botTT(a)}}
 /* трофеи: +30 за победу, −15…−30 за поражение (больше на высоких аренах); первая арена не отнимает */
 const TROPHY={win:30,lose:[0,15,18,21,24,26,28,30]};

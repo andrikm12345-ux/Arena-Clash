@@ -111,7 +111,9 @@ function findTarget(u){const c=u.c,sight=sightOf(c)*TILE;let best=null,bd=1e9;
   for(const o of G.B)if(o.tm!==u.tm&&alive(o)){const d=dist(u,o)-o.r;if(d<sight&&d<bd){bd=d;best=o}}
   for(const o of G.T)if(o.tm!==u.tm&&o.hp>0){const d=dist(u,o)-o.r;if(d<sight&&d<bd){bd=d;best=o}}
   if(best)return best}
- for(const o of G.B)if(o.tm!==u.tm&&alive(o)){const d=pathDist(u,o);if(d<bd){bd=d;best=o}}
+ // здания притягивают только в пределах обзора (у «только здания» — 7,5 тайла); иначе — ближайшая башня по пути через мост
+ for(const o of G.B)if(o.tm!==u.tm&&alive(o)){const d=dist(u,o)-o.r;if(d<sight&&d<bd){bd=d;best=o}}
+ if(best)return best;
  for(const o of G.T)if(o.tm!==u.tm&&o.hp>0){const d=pathDist(u,o);if(d<bd){bd=d;best=o}}
  return best}
 /* ---------- поиск пути по тайлам: поля расстояний ----------

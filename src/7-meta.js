@@ -178,7 +178,7 @@ const botTT=a=>a<1?'archer':pickV(Object.keys(TT));
 const relLv=k=>lvOf(k)-START_LV[CARDS[k].rar];
 function botSetup(a,train){const deck=genBotDeck(a),avg=curDeck().reduce((s,k)=>s+relLv(k),0)/8,lv={},sk=train?P.train:skillFor(a),L=SKILL[sk];
  const base=(train?avg:(ARENA_LV[a]-1+avg)/2)+L.lvOff;for(const k of deck){const s0=START_LV[CARDS[k].rar];lv[k]=clamp(s0+Math.round(base+(train?0:rndV(-.6,.6))),s0,MAXLV)}
- const kl=train?P.kl:clamp(Math.round((ARENA_LV[a]+P.kl)/2),1,KL_MAX);
+ const kl=P.kl; // башни бота того же уровня, что у игрока
  return{deck,lv,kl,skill:sk,thp:L.thp,ex:botExtras(deck,a),tt:botTT(a)}}
 /* трофеи: +30 за победу, −15…−30 за поражение (больше на высоких аренах); первая арена не отнимает */
 const TROPHY={win:30,lose:[0,15,18,21,24,26,28,30]};

@@ -89,3 +89,11 @@ test('турнир (малый): эксперт > 90% против новичк�
   assert.ok(b.winA >= 0.8, `средний ${b.winA}`);
   assert.ok(a.fullAvg < 3 && b.fullAvg < 3);
 });
+
+test('здание в чужой дорожке за пределами обзора не тянет танка', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>t.dmg=0);spawn(1,'giant',290,280,11);spawn(0,'cannon',60,520,11);globalThis.g=G.U.find(u=>u.key==='giant');G.B[0].dmg=0`);
+  run(w, 6);
+  assert.equal(w.run('g.tg&&g.tg.obj'), 't', 'идёт к башне своей дорожки');
+  assert.ok(w.run('g.x') > 200, 'не ушёл в другую дорожку');
+});
