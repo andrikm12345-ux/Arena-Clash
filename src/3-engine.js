@@ -11,10 +11,10 @@ function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.rand
    if(kind==='p'){const q=TT[tt[tm]]||TT.archer,t=T[T.length-1];t.hp=t.mx=Math.round(hp*q.hp);t.dmg=Math.round(t.dmg*q.dmg);t.hit*=q.hit;t.pk=q.pk;t.tt=tt[tm];if(q.mag){t.mag=t.ammo=q.mag;t.reload=q.reload}}}}
  G={seed,simR,log:[],replay:o.replay||null,rpi:0,setup:null,mc,tick:0,downs:[],tb:null,t:0,ot:0,otT:0,over:0,res:-1,endAt:0,crowns:[0,0],U:[],B:[],T,PR:[],FX:[],Z:[],D:[],S:[],PT:[],TX:[],DEC:[],EM:[],CF:[],shake:0,
   side:[0,1].map(tm=>mkSide(tm,o.decks[tm],o.lv[tm],o.kl[tm],o.ex&&o.ex[tm],mc.elStart)),mode:o.mode||'normal',bots:[0,1].map(tm=>o.bots[tm]?mkBot(tm,o.bots[tm]):null),
-  names:o.names||['Ты','Соперник'],train:!!o.train,tl:[0],tlEv:[],bridges:BR.map(x=>({x,hp:CFG.bridge.hp,mx:CFG.bridge.hp,down:0})),riv:RIVER.slice(),cyc:CFG.cycle.on&&mc.cycle!==0?1:0,night:0,vis:null,stats:[0,1].map(()=>({lost:0,trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
+  names:o.names||['Ты','Соперник'],train:!!o.train,tl:[0],tlEv:[],rules:Object.assign({},CFG.arenaRules[o.arena||0]),stormT:0,bridges:BR.map(x=>({x,hp:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),mx:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),down:0})),riv:RIVER.slice(),cyc:CFG.cycle.on&&mc.cycle!==0?1:0,night:0,vis:null,stats:[0,1].map(()=>({lost:0,trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
  G.side.forEach((S,tm)=>{S.elMul=o.elMul?o.elMul[tm]:G.bots[tm]?G.bots[tm].s.el:1});
  G.bots.forEach((b,tm)=>{if(b){b.r=mul(seed*31+tm+7);b.think=1.2+b.r()*1.3;b.lane=b.r()<.5?0:1}});
- G.setup={elMul:G.side.map(S=>S.elMul),decks:o.decks,lv:o.lv,kl:o.kl,mode:o.mode||'normal',ex:o.ex||null,tt:o.tt||null,thp:o.thp||null,seed,names:G.names,train:G.train};
+ G.setup={arena:o.arena||0,elMul:G.side.map(S=>S.elMul),decks:o.decks,lv:o.lv,kl:o.kl,mode:o.mode||'normal',ex:o.ex||null,tt:o.tt||null,thp:o.thp||null,seed,names:G.names,train:G.train};
  return G}
 /* стартовая рука — первые карты перемешанной по seed колоды, кроме помеченных noStart */
 function mkSide(tm,deck,lv,kl,ex,el0){const sh=shuffle(deck),n=CFG.hand.size,hand=[];for(const k of sh)if(hand.length<n&&!CARDS[k].noStart)hand.push(k);
@@ -136,7 +136,8 @@ function doAbility(tm){const S=G.side[tm],u=S.champ;if(!alive(u))return false;co
 /* ---------- цели и движение ---------- */
 /* ---------- день и ночь ----------
    nightK — плавная доля ночи 0…1 (для отрисовки), isNight — ночь ли сейчас для правил */
-function nightK(t){if(!G||!G.cyc)return 0;const C=CFG.cycle,per=C.day+C.night,ph=(t??G.t)%per,f=C.fade;
+function cycOf(){const C=CFG.cycle,c=G.rules&&G.rules.cyc;return c?Object.assign({},C,{day:c[0],night:c[1]}):C}
+function nightK(t){if(!G||!G.cyc)return 0;const C=cycOf(),per=C.day+C.night,ph=(t??G.t)%per,f=C.fade;
  if(ph<C.day-f)return 0;if(ph<C.day)return(ph-(C.day-f))/f;if(ph<per-f)return 1;return 1-(ph-(per-f))/f}
 function isNight(){return nightK()>=.5}
 /* источники света: башни, здания, юниты и зоны со светом; в зоне «Сумрака» свет не действует */
@@ -233,7 +234,7 @@ function goalLane(u,t){if(u.c.jump){if(Math.abs(u.y-RY)<RIV+8&&!u.jmp){u.jmp=1;A
  if(u.bx==null)u.bx=bestBridge(u,t);const bx=u.bx;
  if(Math.abs(dy)<=RIV+6){if(Math.abs(u.x-bx)>5&&Math.abs(dy)>RIV-3)return{x:bx,y:u.y};return{x:bx,y:RY+s2*(RIV+16)}}
  return{x:bx,y:RY+s*(RIV+4)}}
-function spdOf(u){let s=SPD[u.c.spd]||30;if(affOn(u.c))s*=1+CFG.cycle.aff.spd;if(u.rageT>0)s*=1.35;if(u.slowT>0)s*=1-u.slowF;if(u.mudT>0)s*=1-CFG.crater.slow;if(u.charging)s*=2;return s}
+function spdOf(u){let s=SPD[u.c.spd]||30;if(G.rules.spd&&!u.fly)s*=G.rules.spd;if(affOn(u.c))s*=1+CFG.cycle.aff.spd;if(u.rageT>0)s*=1.35;if(u.slowT>0)s*=1-u.slowF;if(u.mudT>0)s*=1-(G.rules.crSlow||CFG.crater.slow);if(u.charging)s*=2;return s}
 function hitOf(u){let h=u.c.hit;if(u.rageT>0)h/=1.35;if(u.slowT>0)h/=1-u.slowF;return h}
 function updUnit(u,dt){if(!alive(u))return;const c=u.c;stepImpulse(u,dt);if(u.dashCd>0)u.dashCd-=dt;if(u.dashing&&(u.frozenT>0||u.stunT>0||!u.tg||!aliveT(u.tg))){u.dashing=0;u.dashCd=.4}
  u.fl=Math.max(0,u.fl-dt);u.sw=Math.max(0,u.sw-dt);u.spawnT=Math.max(0,u.spawnT-dt);
@@ -279,7 +280,7 @@ function areaHit(tm,x,y,r,dmg,tdmg,tg,opt){opt=opt||{};const p={x,y};if(opt.br)b
  for(const o of G.T)if(o.tm!==tm&&o!==opt.skip&&o.hp>0&&dist(o,p)<r+o.r*.6){damage(o,tdmg,tm);if(opt.stun)stunObj(o,opt.stun);if(opt.freeze)o.frozenT=Math.max(o.frozenT,opt.freeze)}}
 /* физика толчков: скорость, которая плавно гаснет (CFG.phys.knockDamp), путь ≈ скорость / затухание */
 /* воронка: наземные обеих сторон в ней медленнее */
-function crater(x,y,r){const C=CFG.crater;G.Z.push({k:'crater',tm:-1,x,y,r:r*C.k,t:C.t,tot:C.t})}
+function crater(x,y,r){const C=CFG.crater,t=G.rules.crT||C.t;G.Z.push({k:'crater',tm:-1,x,y,r:r*C.k,t,tot:t})}
 function impulse(u,nx,ny,v){u.kx=(u.kx||0)+nx*v;u.ky=(u.ky||0)+ny*v}
 function stepImpulse(u,dt){if(!u.kx&&!u.ky)return;u.x+=u.kx*dt;u.y+=u.ky*dt;const f=Math.exp(-CFG.phys.knockDamp*dt);u.kx*=f;u.ky*=f;if(Math.hypot(u.kx,u.ky)<3){u.kx=u.ky=0}}
 function stunObj(o,t){if(o.shield>0)return;o.stunT=Math.max(o.stunT||0,t);if(o.obj==='u'){o.charging=0;o.run=0;o.wu=0;o.beamT=0;o.beamTg=null;o.cd=Math.max(o.cd,hitOf(o)*.5)}else o.cd=Math.max(o.cd||0,(o.hit||1)*.5)}
@@ -398,6 +399,7 @@ function step(dt){if(!G)return;dt=dt||TICK;if(G.over){fxStep(dt);return}
  for(const t of G.T)updTower(t,dt);
  for(const p of G.PR)updProj(p,dt);
  updZones(dt);updBridges(dt);
+ if(G.rules.storm&&G.t>8){G.stormT+=dt;if(G.stormT>=G.rules.storm){G.stormT=0;const x=rnd(40,W-40),y=rnd(RY-90,RY+90);G.FX.push({k:'rain',x,y:y-120,x2:x,y2:y,l:0,m:.25});G.S.push({t:G.t+.3,fn:()=>{areaHit(-1,x,y,1.5*TILE,260,0,'g');ring(x,y,1.5*TILE,'#bfe6ff');puff(x,y,'#e8f4ff',10,70,3);G.shake=Math.max(G.shake,4);AU.sfx('zap')}})}}
  for(const s of G.S)if(!s.done&&G.t>=s.t){s.done=1;s.fn()}
  for(const t of G.T)if(t.hp>0&&t.hp<t.mx*.4&&RNG()<dt*6)G.PT.push({x:t.x+rnd(-8,8),y:t.y-10,vx:rnd(-6,6),vy:-rnd(14,28),l:0,m:rnd(.6,1.1),c:'#6e6a66',s:rnd(2,4)});
  for(let i=0;i<G.U.length;i++){const u=G.U[i];if(u.hp<=0&&!u.gone){u.gone=1;onDeath(u)}}

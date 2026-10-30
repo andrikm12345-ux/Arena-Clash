@@ -20,6 +20,9 @@ const CFG={
  phys:{knockDamp:12,knockMinMass:10,deployPushMass:8,deployPush:90,pullMass:8}, // отбрасывание — скоростью с затуханием; толчок при высадке тяжёлых; вихрь тянет в полную силу юнитов до pullMass
  bridge:{hp:2000,down:20,stun:1},          // прочность моста, сколько секунд он лежит, оглушение упавших
  crater:{t:8,slow:.3,k:.7},                // воронка от больших взрывов: время, замедление, радиус как доля взрыва
+ /* погода арен: правила боя по номеру арены. cyc — длительность дня и ночи; spd — множитель скорости наземных;
+    crT, crSlow — время и замедление воронок; brHp — множитель прочности мостов; storm — молния раз в N секунд бьёт по центру поля */
+ arenaRules:[{},{cyc:[40,50]},{},{spd:.92},{crT:14},{crSlow:.5,crT:12},{storm:22},{brHp:1.6}],
  /* день и ночь: day/night — длительность фаз (с), fade — переход; ночью враг виден, только если в свете или ближе near клеток.
     light — радиусы света (клетки); aff — бонус карт в «своё» время суток */
  cycle:{on:1,day:50,night:40,fade:3,near:2.5,light:{p:5,k:6,bld:2,boom:3,boomT:2},aff:{dmg:.25,spd:.15}},
@@ -437,10 +440,10 @@ function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.rand
    if(kind==='p'){const q=TT[tt[tm]]||TT.archer,t=T[T.length-1];t.hp=t.mx=Math.round(hp*q.hp);t.dmg=Math.round(t.dmg*q.dmg);t.hit*=q.hit;t.pk=q.pk;t.tt=tt[tm];if(q.mag){t.mag=t.ammo=q.mag;t.reload=q.reload}}}}
  G={seed,simR,log:[],replay:o.replay||null,rpi:0,setup:null,mc,tick:0,downs:[],tb:null,t:0,ot:0,otT:0,over:0,res:-1,endAt:0,crowns:[0,0],U:[],B:[],T,PR:[],FX:[],Z:[],D:[],S:[],PT:[],TX:[],DEC:[],EM:[],CF:[],shake:0,
   side:[0,1].map(tm=>mkSide(tm,o.decks[tm],o.lv[tm],o.kl[tm],o.ex&&o.ex[tm],mc.elStart)),mode:o.mode||'normal',bots:[0,1].map(tm=>o.bots[tm]?mkBot(tm,o.bots[tm]):null),
-  names:o.names||['Ты','Соперник'],train:!!o.train,tl:[0],tlEv:[],bridges:BR.map(x=>({x,hp:CFG.bridge.hp,mx:CFG.bridge.hp,down:0})),riv:RIVER.slice(),cyc:CFG.cycle.on&&mc.cycle!==0?1:0,night:0,vis:null,stats:[0,1].map(()=>({lost:0,trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
+  names:o.names||['Ты','Соперник'],train:!!o.train,tl:[0],tlEv:[],rules:Object.assign({},CFG.arenaRules[o.arena||0]),stormT:0,bridges:BR.map(x=>({x,hp:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),mx:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),down:0})),riv:RIVER.slice(),cyc:CFG.cycle.on&&mc.cycle!==0?1:0,night:0,vis:null,stats:[0,1].map(()=>({lost:0,trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
  G.side.forEach((S,tm)=>{S.elMul=o.elMul?o.elMul[tm]:G.bots[tm]?G.bots[tm].s.el:1});
  G.bots.forEach((b,tm)=>{if(b){b.r=mul(seed*31+tm+7);b.think=1.2+b.r()*1.3;b.lane=b.r()<.5?0:1}});
- G.setup={elMul:G.side.map(S=>S.elMul),decks:o.decks,lv:o.lv,kl:o.kl,mode:o.mode||'normal',ex:o.ex||null,tt:o.tt||null,thp:o.thp||null,seed,names:G.names,train:G.train};
+ G.setup={arena:o.arena||0,elMul:G.side.map(S=>S.elMul),decks:o.decks,lv:o.lv,kl:o.kl,mode:o.mode||'normal',ex:o.ex||null,tt:o.tt||null,thp:o.thp||null,seed,names:G.names,train:G.train};
  return G}
 /* стартовая рука — первые карты перемешанной по seed колоды, кроме помеченных noStart */
 function mkSide(tm,deck,lv,kl,ex,el0){const sh=shuffle(deck),n=CFG.hand.size,hand=[];for(const k of sh)if(hand.length<n&&!CARDS[k].noStart)hand.push(k);
@@ -562,7 +565,8 @@ function doAbility(tm){const S=G.side[tm],u=S.champ;if(!alive(u))return false;co
 /* ---------- цели и движение ---------- */
 /* ---------- день и ночь ----------
    nightK — плавная доля ночи 0…1 (для отрисовки), isNight — ночь ли сейчас для правил */
-function nightK(t){if(!G||!G.cyc)return 0;const C=CFG.cycle,per=C.day+C.night,ph=(t??G.t)%per,f=C.fade;
+function cycOf(){const C=CFG.cycle,c=G.rules&&G.rules.cyc;return c?Object.assign({},C,{day:c[0],night:c[1]}):C}
+function nightK(t){if(!G||!G.cyc)return 0;const C=cycOf(),per=C.day+C.night,ph=(t??G.t)%per,f=C.fade;
  if(ph<C.day-f)return 0;if(ph<C.day)return(ph-(C.day-f))/f;if(ph<per-f)return 1;return 1-(ph-(per-f))/f}
 function isNight(){return nightK()>=.5}
 /* источники света: башни, здания, юниты и зоны со светом; в зоне «Сумрака» свет не действует */
@@ -659,7 +663,7 @@ function goalLane(u,t){if(u.c.jump){if(Math.abs(u.y-RY)<RIV+8&&!u.jmp){u.jmp=1;A
  if(u.bx==null)u.bx=bestBridge(u,t);const bx=u.bx;
  if(Math.abs(dy)<=RIV+6){if(Math.abs(u.x-bx)>5&&Math.abs(dy)>RIV-3)return{x:bx,y:u.y};return{x:bx,y:RY+s2*(RIV+16)}}
  return{x:bx,y:RY+s*(RIV+4)}}
-function spdOf(u){let s=SPD[u.c.spd]||30;if(affOn(u.c))s*=1+CFG.cycle.aff.spd;if(u.rageT>0)s*=1.35;if(u.slowT>0)s*=1-u.slowF;if(u.mudT>0)s*=1-CFG.crater.slow;if(u.charging)s*=2;return s}
+function spdOf(u){let s=SPD[u.c.spd]||30;if(G.rules.spd&&!u.fly)s*=G.rules.spd;if(affOn(u.c))s*=1+CFG.cycle.aff.spd;if(u.rageT>0)s*=1.35;if(u.slowT>0)s*=1-u.slowF;if(u.mudT>0)s*=1-(G.rules.crSlow||CFG.crater.slow);if(u.charging)s*=2;return s}
 function hitOf(u){let h=u.c.hit;if(u.rageT>0)h/=1.35;if(u.slowT>0)h/=1-u.slowF;return h}
 function updUnit(u,dt){if(!alive(u))return;const c=u.c;stepImpulse(u,dt);if(u.dashCd>0)u.dashCd-=dt;if(u.dashing&&(u.frozenT>0||u.stunT>0||!u.tg||!aliveT(u.tg))){u.dashing=0;u.dashCd=.4}
  u.fl=Math.max(0,u.fl-dt);u.sw=Math.max(0,u.sw-dt);u.spawnT=Math.max(0,u.spawnT-dt);
@@ -705,7 +709,7 @@ function areaHit(tm,x,y,r,dmg,tdmg,tg,opt){opt=opt||{};const p={x,y};if(opt.br)b
  for(const o of G.T)if(o.tm!==tm&&o!==opt.skip&&o.hp>0&&dist(o,p)<r+o.r*.6){damage(o,tdmg,tm);if(opt.stun)stunObj(o,opt.stun);if(opt.freeze)o.frozenT=Math.max(o.frozenT,opt.freeze)}}
 /* физика толчков: скорость, которая плавно гаснет (CFG.phys.knockDamp), путь ≈ скорость / затухание */
 /* воронка: наземные обеих сторон в ней медленнее */
-function crater(x,y,r){const C=CFG.crater;G.Z.push({k:'crater',tm:-1,x,y,r:r*C.k,t:C.t,tot:C.t})}
+function crater(x,y,r){const C=CFG.crater,t=G.rules.crT||C.t;G.Z.push({k:'crater',tm:-1,x,y,r:r*C.k,t,tot:t})}
 function impulse(u,nx,ny,v){u.kx=(u.kx||0)+nx*v;u.ky=(u.ky||0)+ny*v}
 function stepImpulse(u,dt){if(!u.kx&&!u.ky)return;u.x+=u.kx*dt;u.y+=u.ky*dt;const f=Math.exp(-CFG.phys.knockDamp*dt);u.kx*=f;u.ky*=f;if(Math.hypot(u.kx,u.ky)<3){u.kx=u.ky=0}}
 function stunObj(o,t){if(o.shield>0)return;o.stunT=Math.max(o.stunT||0,t);if(o.obj==='u'){o.charging=0;o.run=0;o.wu=0;o.beamT=0;o.beamTg=null;o.cd=Math.max(o.cd,hitOf(o)*.5)}else o.cd=Math.max(o.cd||0,(o.hit||1)*.5)}
@@ -824,6 +828,7 @@ function step(dt){if(!G)return;dt=dt||TICK;if(G.over){fxStep(dt);return}
  for(const t of G.T)updTower(t,dt);
  for(const p of G.PR)updProj(p,dt);
  updZones(dt);updBridges(dt);
+ if(G.rules.storm&&G.t>8){G.stormT+=dt;if(G.stormT>=G.rules.storm){G.stormT=0;const x=rnd(40,W-40),y=rnd(RY-90,RY+90);G.FX.push({k:'rain',x,y:y-120,x2:x,y2:y,l:0,m:.25});G.S.push({t:G.t+.3,fn:()=>{areaHit(-1,x,y,1.5*TILE,260,0,'g');ring(x,y,1.5*TILE,'#bfe6ff');puff(x,y,'#e8f4ff',10,70,3);G.shake=Math.max(G.shake,4);AU.sfx('zap')}})}}
  for(const s of G.S)if(!s.done&&G.t>=s.t){s.done=1;s.fn()}
  for(const t of G.T)if(t.hp>0&&t.hp<t.mx*.4&&RNG()<dt*6)G.PT.push({x:t.x+rnd(-8,8),y:t.y-10,vx:rnd(-6,6),vy:-rnd(14,28),l:0,m:rnd(.6,1.1),c:'#6e6a66',s:rnd(2,4)});
  for(let i=0;i<G.U.length;i++){const u=G.U[i];if(u.hp<=0&&!u.gone){u.gone=1;onDeath(u)}}
@@ -2103,6 +2108,7 @@ function crowdStep(now){const c=S3.crowd;if(!c)return;const M=new T.Matrix4(),hy
 const ARENAS=[
  {n:'Тренировочный лагерь',tr:0},{n:'Костяной овраг',tr:300},{n:'Кузнечная слобода',tr:650},{n:'Морозный перевал',tr:1000},
  {n:'Драконьи скалы',tr:1400},{n:'Ядовитая топь',tr:1800},{n:'Грозовая цитадель',tr:2250},{n:'Каменный трон',tr:2750}];
+const ARENA_RULE=['','Ночь длиннее дня','Наземные медленнее на 8%','','Воронки держатся дольше','Воронки тормозят сильнее','Молния бьёт по центру','Мосты прочнее в 1,6 раза'];
 const ARENA_OF={sapper:4,torchman:0,lantern:1,flash:2,shade:3,roller:4,shieldman:1,mortar:2,grave:6,guard:0,shooters:0,bones:0,imps:0,slingers:0,bomber:0,cannon:0,volley:0,giant:0,crossbow:0,axe:0,fireball:0,
  lair:1,legion:1,wisp:1,spark:1,hammer:2,militia:2,ram:2,bats:3,freeze:3,frostsage:3,drake:4,airship:4,sorcerer:4,
  poison:5,mole:5,scorch:4,vortex:3,spring:2,raider:5,mend:1,cry:5,thunder:6,knightrider:6,colossus:7,warlord:7};
@@ -2448,6 +2454,7 @@ function openRules(){AU.init();AU.sfx('ui');const sh=$('#sheet');
   <p class="note"><b>Короны.</b> Башня принцессы — одна корона, королевская башня — сразу победа и три короны. Король спит, пока его не ударят или не сломают боковую башню, и просыпается около 4 секунд.</p>
   <p class="note"><b>Карман.</b> Сломал боковую башню — на её дорожке можно ставить войска на 4 клетки за рекой.</p>
   <p class="note"><b>День и ночь.</b> День длится 50 с, ночь — 40 с: 0:50–1:30 и 2:20–3:00, в овертайме цикл продолжается. Ночью враг виден, только если стоит в свете (башни, здания, факелы, вспышки) или ближе 2,5 клетки к твоим. Невидимых нельзя выбрать целью — даже башне. Ночные карты ночью, а дневные днём бьют на 25% сильнее и ходят на 15% быстрее. Над таймером видно, сколько осталось до смены.</p>
+  <p class="note"><b>Погода арен.</b> Овраг: ночь длиннее дня. Перевал: наземные идут медленнее на 8%. Скалы: воронки держатся дольше. Топь: воронки тормозят сильнее. Цитадель: каждые 22 с молния бьёт по центру поля. Трон: мосты прочнее в 1,6 раза.</p>
   <p class="note"><b>Овертайм.</b> Если короны равны — ещё две минуты, эликсир ×2, в последнюю минуту ×3. Первая сломанная башня решает бой; если обе пали одновременно — играем дальше.</p>
   <p class="note"><b>Тайбрейкер.</b> Если и в овертайме ничья: войска исчезают, все башни теряют здоровье, и проигрывает владелец самой слабой башни. Равны — ничья.</p>
   <p class="note"><b>Эволюции и герои.</b> Первый слот колоды — для эволюции: она выходит усиленной сразу и потом через несколько розыгрышей. Второй — для героя со способностью по кнопке (если в колоде нет чемпиона). Открываются за осколки.</p>
@@ -2707,11 +2714,11 @@ function startBattle1(train,opt){AU.sfx('ui');closeSheet();lastOpt=opt;const a=c
  if(TH!==THEMES[a]){TH=THEMES[a];BG=null}
  let decks=[curDeck(),B.deck],lv=[levelsMap(),B.lv],ex=[deckSpecial(),B.ex];
  if(md==='draft'||md==='random'){const eq={};for(const k of CARD_IDS)eq[k]=START_LV[CARDS[k].rar]+ARENA_LV[a];decks=md==='draft'?[opt.deck,opt.bot]:[randomDeck(),randomDeck()];lv=[eq,eq];ex=[{},{}]}
- newMatch({decks,lv,kl:[P.kl,B.kl],bots:[null,B.skill],names:['Ты',nm],train:train||!!opt,mode:em,ex,tt:[P.tt,B.tt],thp:[1,thp]});G.event=opt?md:null;
+ newMatch({arena:a,decks,lv,kl:[P.kl,B.kl],bots:[null,B.skill],names:['Ты',nm],train:train||!!opt,mode:em,ex,tt:[P.tt,B.tt],thp:[1,thp]});G.event=opt?md:null;
  if(md==='tutor')G.tutor={step:P.tutB,pt:{x:BR[0]+10,y:RY+RIV+70}};
  mode='play';sel=null;gx=-1;paused=false;hideOv();$('#emo').hidden=true;$('#tip').hidden=true;
  $('#enname').textContent=train?`Тренировка · ${SKILL[P.train].n}`:md==='tutor'?`Обучение ${P.tutB+1} из ${CFG.tutor.battles}`:opt?`${MODE_N[md]} · ${nm}`:`${nm} · ур. ${B.kl} · ${SKILL[B.skill]?SKILL[B.skill].n:''}`;
- showView('battle');R3.on=false;if(R3.want&&R3.ready&&r3Begin(a))r3Show();else r3Stop();hs={};renderHand();$('#help').hidden=P.tut>0&&md!=='tutor';if(md==='tutor')$('#help span').textContent=['Нажми на карту внизу, затем — на светящийся круг','Ставь защитников на пути врага, пока он у твоих башен','Набери эликсир и атакуй вместе с поддержкой'][Math.min(P.tutB,2)];banner(train?'Тренировка':opt?MODE_N[md]:'В бой!','#ffc83d');MUS.play('battle')}
+ showView('battle');if(ARENA_RULE[a]&&md!=='tutor')setTimeout(()=>{if(G&&!G.over)banner(ARENA_RULE[a],'#9fd8ff')},2600);R3.on=false;if(R3.want&&R3.ready&&r3Begin(a))r3Show();else r3Stop();hs={};renderHand();$('#help').hidden=P.tut>0&&md!=='tutor';if(md==='tutor')$('#help span').textContent=['Нажми на карту внизу, затем — на светящийся круг','Ставь защитников на пути врага, пока он у твоих башен','Набери эликсир и атакуй вместе с поддержкой'][Math.min(P.tutB,2)];banner(train?'Тренировка':opt?MODE_N[md]:'В бой!','#ffc83d');MUS.play('battle')}
 let lpT=0;
 function showCardStats(k){const S=G.side[0],lv=S.lv[k]||START_LV[CARDS[k].rar],c=CARDS[k],e=$('#cstat');
  e.innerHTML=`<b>${c.n}</b><small>${RAR[c.rar].n} · ур. ${lv} · ${c.cost} эликсира${k===S.evo?' · эволюция':k===S.hero?' · герой':''}</small><div>${statRows(k,lv).map(([a,b,suf])=>`<span>${a}<em>${typeof b==='number'?fmtN(b):b}${suf||''}</em></span>`).join('')}</div>`;e.hidden=false}
@@ -2732,7 +2739,7 @@ function hud(){const S=G.side[0],e=S.el,ei=Math.floor(e);
  $('#ef').style.width=(e*10)+'%';if(ei!==hs.el){hs.el=ei;$('#en').textContent=ei;$('#eb').classList.toggle('full',ei>=10)}
  const M=CFG.match,left=G.tb?0:G.ot?M.ot-G.otT:M.len-G.t,tm=fmt(left);if(tm!==hs.tm){if(hs.tm&&left<=10&&left>0&&!G.over)AU.sfx('tick');hs.tm=tm;$('#tm').textContent=tm;$('#tm').classList.toggle('low',left<=10||!!G.ot)}
  tips();if(G.ot&&MUS.theme!=='ot')MUS.play('ot');else if(!G.ot&&!G.over&&(MUS.theme==='battle'||MUS.theme==='night')){const th=G.night?'night':'battle';if(MUS.theme!==th)MUS.play(th)}
- if(G.cyc&&!G.tb){const C=CFG.cycle,per=C.day+C.night,p=G.t%per,n=p>=C.day,left=Math.ceil(n?per-p:C.day-p),tx=(n?'☾ рассвет через ':'☀ ночь через ')+left;if(tx!==hs.dn){hs.dn=tx;const e=$('#dn');e.textContent=tx;e.classList.toggle('n',n)}}
+ if(G.cyc&&!G.tb){const C=cycOf(),per=C.day+C.night,p=G.t%per,n=p>=C.day,left=Math.ceil(n?per-p:C.day-p),tx=(n?'☾ рассвет через ':'☀ ночь через ')+left;if(tx!==hs.dn){hs.dn=tx;const e=$('#dn');e.textContent=tx;e.classList.toggle('n',n)}}
  else if(hs.dn){hs.dn='';$('#dn').textContent=''}
  const er=elRate(),ph=G.tb?'ТАЙБРЕЙКЕР':G.ot?'ОВЕРТАЙМ · ×'+er:er>1?'ЭЛИКСИР ×'+er:'ОСТАЛОСЬ';if(ph!==hs.ph){hs.ph=ph;$('#ph').textContent=ph}
  const cr=G.crowns.join();if(cr!==hs.cr){hs.cr=cr;setPips(0,G.crowns[0]);setPips(1,G.crowns[1])}

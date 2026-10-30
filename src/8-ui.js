@@ -117,6 +117,7 @@ function openRules(){AU.init();AU.sfx('ui');const sh=$('#sheet');
   <p class="note"><b>Короны.</b> Башня принцессы — одна корона, королевская башня — сразу победа и три короны. Король спит, пока его не ударят или не сломают боковую башню, и просыпается около 4 секунд.</p>
   <p class="note"><b>Карман.</b> Сломал боковую башню — на её дорожке можно ставить войска на 4 клетки за рекой.</p>
   <p class="note"><b>День и ночь.</b> День длится 50 с, ночь — 40 с: 0:50–1:30 и 2:20–3:00, в овертайме цикл продолжается. Ночью враг виден, только если стоит в свете (башни, здания, факелы, вспышки) или ближе 2,5 клетки к твоим. Невидимых нельзя выбрать целью — даже башне. Ночные карты ночью, а дневные днём бьют на 25% сильнее и ходят на 15% быстрее. Над таймером видно, сколько осталось до смены.</p>
+  <p class="note"><b>Погода арен.</b> Овраг: ночь длиннее дня. Перевал: наземные идут медленнее на 8%. Скалы: воронки держатся дольше. Топь: воронки тормозят сильнее. Цитадель: каждые 22 с молния бьёт по центру поля. Трон: мосты прочнее в 1,6 раза.</p>
   <p class="note"><b>Овертайм.</b> Если короны равны — ещё две минуты, эликсир ×2, в последнюю минуту ×3. Первая сломанная башня решает бой; если обе пали одновременно — играем дальше.</p>
   <p class="note"><b>Тайбрейкер.</b> Если и в овертайме ничья: войска исчезают, все башни теряют здоровье, и проигрывает владелец самой слабой башни. Равны — ничья.</p>
   <p class="note"><b>Эволюции и герои.</b> Первый слот колоды — для эволюции: она выходит усиленной сразу и потом через несколько розыгрышей. Второй — для героя со способностью по кнопке (если в колоде нет чемпиона). Открываются за осколки.</p>
@@ -376,11 +377,11 @@ function startBattle1(train,opt){AU.sfx('ui');closeSheet();lastOpt=opt;const a=c
  if(TH!==THEMES[a]){TH=THEMES[a];BG=null}
  let decks=[curDeck(),B.deck],lv=[levelsMap(),B.lv],ex=[deckSpecial(),B.ex];
  if(md==='draft'||md==='random'){const eq={};for(const k of CARD_IDS)eq[k]=START_LV[CARDS[k].rar]+ARENA_LV[a];decks=md==='draft'?[opt.deck,opt.bot]:[randomDeck(),randomDeck()];lv=[eq,eq];ex=[{},{}]}
- newMatch({decks,lv,kl:[P.kl,B.kl],bots:[null,B.skill],names:['Ты',nm],train:train||!!opt,mode:em,ex,tt:[P.tt,B.tt],thp:[1,thp]});G.event=opt?md:null;
+ newMatch({arena:a,decks,lv,kl:[P.kl,B.kl],bots:[null,B.skill],names:['Ты',nm],train:train||!!opt,mode:em,ex,tt:[P.tt,B.tt],thp:[1,thp]});G.event=opt?md:null;
  if(md==='tutor')G.tutor={step:P.tutB,pt:{x:BR[0]+10,y:RY+RIV+70}};
  mode='play';sel=null;gx=-1;paused=false;hideOv();$('#emo').hidden=true;$('#tip').hidden=true;
  $('#enname').textContent=train?`Тренировка · ${SKILL[P.train].n}`:md==='tutor'?`Обучение ${P.tutB+1} из ${CFG.tutor.battles}`:opt?`${MODE_N[md]} · ${nm}`:`${nm} · ур. ${B.kl} · ${SKILL[B.skill]?SKILL[B.skill].n:''}`;
- showView('battle');R3.on=false;if(R3.want&&R3.ready&&r3Begin(a))r3Show();else r3Stop();hs={};renderHand();$('#help').hidden=P.tut>0&&md!=='tutor';if(md==='tutor')$('#help span').textContent=['Нажми на карту внизу, затем — на светящийся круг','Ставь защитников на пути врага, пока он у твоих башен','Набери эликсир и атакуй вместе с поддержкой'][Math.min(P.tutB,2)];banner(train?'Тренировка':opt?MODE_N[md]:'В бой!','#ffc83d');MUS.play('battle')}
+ showView('battle');if(ARENA_RULE[a]&&md!=='tutor')setTimeout(()=>{if(G&&!G.over)banner(ARENA_RULE[a],'#9fd8ff')},2600);R3.on=false;if(R3.want&&R3.ready&&r3Begin(a))r3Show();else r3Stop();hs={};renderHand();$('#help').hidden=P.tut>0&&md!=='tutor';if(md==='tutor')$('#help span').textContent=['Нажми на карту внизу, затем — на светящийся круг','Ставь защитников на пути врага, пока он у твоих башен','Набери эликсир и атакуй вместе с поддержкой'][Math.min(P.tutB,2)];banner(train?'Тренировка':opt?MODE_N[md]:'В бой!','#ffc83d');MUS.play('battle')}
 let lpT=0;
 function showCardStats(k){const S=G.side[0],lv=S.lv[k]||START_LV[CARDS[k].rar],c=CARDS[k],e=$('#cstat');
  e.innerHTML=`<b>${c.n}</b><small>${RAR[c.rar].n} · ур. ${lv} · ${c.cost} эликсира${k===S.evo?' · эволюция':k===S.hero?' · герой':''}</small><div>${statRows(k,lv).map(([a,b,suf])=>`<span>${a}<em>${typeof b==='number'?fmtN(b):b}${suf||''}</em></span>`).join('')}</div>`;e.hidden=false}
@@ -401,7 +402,7 @@ function hud(){const S=G.side[0],e=S.el,ei=Math.floor(e);
  $('#ef').style.width=(e*10)+'%';if(ei!==hs.el){hs.el=ei;$('#en').textContent=ei;$('#eb').classList.toggle('full',ei>=10)}
  const M=CFG.match,left=G.tb?0:G.ot?M.ot-G.otT:M.len-G.t,tm=fmt(left);if(tm!==hs.tm){if(hs.tm&&left<=10&&left>0&&!G.over)AU.sfx('tick');hs.tm=tm;$('#tm').textContent=tm;$('#tm').classList.toggle('low',left<=10||!!G.ot)}
  tips();if(G.ot&&MUS.theme!=='ot')MUS.play('ot');else if(!G.ot&&!G.over&&(MUS.theme==='battle'||MUS.theme==='night')){const th=G.night?'night':'battle';if(MUS.theme!==th)MUS.play(th)}
- if(G.cyc&&!G.tb){const C=CFG.cycle,per=C.day+C.night,p=G.t%per,n=p>=C.day,left=Math.ceil(n?per-p:C.day-p),tx=(n?'☾ рассвет через ':'☀ ночь через ')+left;if(tx!==hs.dn){hs.dn=tx;const e=$('#dn');e.textContent=tx;e.classList.toggle('n',n)}}
+ if(G.cyc&&!G.tb){const C=cycOf(),per=C.day+C.night,p=G.t%per,n=p>=C.day,left=Math.ceil(n?per-p:C.day-p),tx=(n?'☾ рассвет через ':'☀ ночь через ')+left;if(tx!==hs.dn){hs.dn=tx;const e=$('#dn');e.textContent=tx;e.classList.toggle('n',n)}}
  else if(hs.dn){hs.dn='';$('#dn').textContent=''}
  const er=elRate(),ph=G.tb?'ТАЙБРЕЙКЕР':G.ot?'ОВЕРТАЙМ · ×'+er:er>1?'ЭЛИКСИР ×'+er:'ОСТАЛОСЬ';if(ph!==hs.ph){hs.ph=ph;$('#ph').textContent=ph}
  const cr=G.crowns.join();if(cr!==hs.cr){hs.cr=cr;setPips(0,G.crowns[0]);setPips(1,G.crowns[1])}

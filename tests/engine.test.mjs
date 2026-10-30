@@ -425,3 +425,13 @@ test('обычный сплэш мост не ломает; огненный ш�
   w.run(`spawn(0,'guard',BR[0],RY+5,11);globalThis.u=G.U[0]`); run(w, 1/30);
   assert.ok(Math.abs(w.run('spdOf(u)') / w.run('SPD[u.c.spd]') - 0.7) < 1e-9);
 });
+
+test('погода арен: Овраг — ночь длиннее, Перевал — медленнее, Трон — мосты прочнее, Цитадель — молния', () => {
+  const o = world({arena: 1}); assert.equal(o.run('nightK(45)'), 1, 'ночь с 40-й секунды'); assert.equal(world().run('nightK(45)'), 0);
+  const p = world({arena: 3}); p.run(`spawn(0,'guard',180,450,11)`);
+  assert.ok(Math.abs(p.run('spdOf(G.U[0])/SPD[G.U[0].c.spd]') - .92) < 1e-9);
+  assert.equal(world({arena: 7}).run('G.bridges[0].mx'), 3200);
+  const c = world({arena: 6}); c.run(`G.T.forEach(t=>t.dmg=0);spawn(1,'giant',180,320,11);G.U[0].frozenT=999;globalThis.h0=G.U[0].hp`); run(c, 40);
+  assert.equal(world().run('G.rules.storm||0'), 0);
+  assert.ok(c.run('G.stormT') >= 0);
+});
