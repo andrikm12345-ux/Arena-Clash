@@ -233,13 +233,13 @@ function edgeAlpha(){const c=document.createElement('canvas');c.width=64;c.heigh
  r.addColorStop(0,'rgba(0,0,0,1)');r.addColorStop(.22,'#fff');r.addColorStop(.78,'#fff');r.addColorStop(1,'rgba(0,0,0,1)');g.fillStyle=r;g.fillRect(0,0,64,4);return new T.CanvasTexture(c)}
 function buildArena(th){if(S3.arena){S3.scene.remove(S3.arena)}const A=new T.Group();S3.arena=A;S3.scene.add(A);const rng=mul(17+th*31);
  // земля и поле
- const TH3=ATH[th]||ATH[0];S3.theme=th;applyLook(TH3);const grass=pbr('grass',20,28),gr=new T.Mesh(new T.PlaneGeometry(88,120),grass);gr.rotation.x=-Math.PI/2;gr.receiveShadow=true;A.add(gr);
+ const TH3=ATH[th]||ATH[0];S3.theme=th;applyLook(TH3);const grass=pbr('grass',20,28),gr=new T.Mesh(new T.PlaneGeometry(88,120),grass);gr.rotation.x=-Math.PI/2;gr.receiveShadow=true;A.add(gr);S3.gmats=[grass];
  const ck=document.createElement('canvas');ck.width=18;ck.height=32;const cg=ck.getContext('2d');
  for(let y=0;y<32;y++)for(let x=0;x<18;x++){cg.fillStyle=(x+y)&1?'rgba(255,255,255,.10)':'rgba(0,40,0,.10)';cg.fillRect(x,y,1,1)}
  const ct=new T.CanvasTexture(ck);ct.magFilter=T.NearestFilter;ct.minFilter=T.NearestFilter;
- const chk=new T.Mesh(new T.PlaneGeometry(18,32),new T.MeshBasicMaterial({map:ct,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}));chk.rotation.x=-Math.PI/2;chk.position.y=.004;A.add(chk);
+ const chk=new T.Mesh(new T.PlaneGeometry(18,32),new T.MeshBasicMaterial({map:ct,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}));chk.rotation.x=-Math.PI/2;chk.position.y=.004;A.add(chk);S3.chk=chk;
  // дорожки
- const pm=pbr('path',1,1,{alphaMap:edgeAlpha(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,color:TH3.path,side:T.DoubleSide});
+ const pm=pbr('path',1,1,{alphaMap:edgeAlpha(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,color:TH3.path,side:T.DoubleSide});S3.gmats.push(pm);for(const m of S3.gmats)m.userData.c0=m.color.clone();
  const pmat=pm.clone();pmat.map=pm.map.clone();pmat.map.repeat.set(1,1);
  for(const s of[1,-1])for(const bx of[-5.5,5.5]){const pts=[];for(let i=0;i<=16;i++){const t=i/16;const x=(1-t)*(1-t)*0+2*(1-t)*t*bx+t*t*bx,z=(1-t)*(1-t)*13+2*(1-t)*t*13+t*t*9.75;pts.push([x,z*s])}
   pts.push([bx,1.25*s]);A.add(ribbon(pts,1.45,pm,.012))}
@@ -411,7 +411,7 @@ function r3Frame(now){const dt=Math.min(.05,(now-S3.last)/1000||0);S3.last=now;c
  if(S3.water){const m=S3.water.material;for(const n of[m.normalMap,m.map])if(n){n.offset.x=(now/1000*.03)%1;n.offset.y=(now/1000*.05)%1}}
  if(S3.foam)for(const t of S3.foam){t.offset.x=(now/1000*.04)%1;t.offset.y=Math.sin(now/900)*.08}if(S3.windU)S3.windU.value=now/1000;
  syncTowers(dt,now);syncUnits(dt,now);syncBuildings(dt,now);syncProj(dt);syncFx(dt,now);syncZones(now);syncPending(now);syncGhost(now);syncParticles(dt);
- stepDebris(dt);stepLights(dt);if(S3.hype>0)S3.hype-=dt;crowdStep(now);if(Math.random()<.5)towerSmoke();weather(dt);autoQ(dt);
+ stepDebris(dt);stepLights(dt);stepNight(now);if(S3.hype>0)S3.hype-=dt;crowdStep(now);if(Math.random()<.5)towerSmoke();weather(dt);autoQ(dt);
  if(S3.comp)S3.comp.render();else S3.R.render(sc,cam);overlay(now)}
 
 /* башни: лучники и король целятся и стреляют, павшие сменяются руинами */
@@ -442,6 +442,7 @@ function syncUnits(dt,now){const seen=new Set();
   if(u.spawnT>0&&!v.rise&&!REDUCE){const p=u.spawnT/.3;y+=p*p*3}
   y+=jumpH(u)/TILE*1.1;
   v.root.position.set(X,y,Z);
+  const hid=!!(G.vis&&u.tm===1&&!G.vis[0].has(u));if(hid!==!!v.hid){v.hid=hid;v.ring.visible=!hid;v.root.traverse(o=>{if(!o.isMesh)return;if(hid){o.userData.m0=o.material;o.material=S3.silMat||o.material}else if(o.userData.m0){o.material=o.userData.m0}})}
   // реакция на удар: короткое «сплющивание» и искры (сильнее на тяжёлых ударах)
   if(u.fl>.07&&!(v.hitT>0)){v.hitT=.12;const hv=u.mx>1500;for(let i=0;i<(hv?7:4);i++)S3.parts.add.emit(X+rndV(-.25,.25),y+.6+(v.h?0:.4)+rndV(0,.5),Z+rndV(-.25,.25),rndV(-1.4,1.4),rndV(.6,2),rndV(-1.4,1.4),i%2?'#ffffff':'#ffd27a',hv?.32:.24,.28)}
   if(v.hitT>0){v.hitT-=dt;const q=Math.max(0,v.hitT)/.12;const sq=1-.12*q;v.root.scale.y=(v.sy||(v.sy=v.root.scale.y))*sq;v.root.scale.x=(v.sx0||(v.sx0=v.root.scale.x))*(1+.08*q);v.root.scale.z=(v.sz0||(v.sz0=v.root.scale.z))*(1+.08*q)}
@@ -536,7 +537,7 @@ function syncZones(now){const seen=new Set();for(const z of G.Z){if(z.k==='glow'
   if(!v){const col={freeze:'#bfe9ff',rage:'#ff4f86',poison:'#7ee05a',aura:'#ffd84d',pull:'#9fd0ff',heal:'#4fdc7c',grave:'#7a55b0',flash:'#fff2b0',shade:'#140a26'}[z.k];
    v=new T.Mesh(new T.CircleGeometry(1,40),new T.MeshBasicMaterial({map:S3.soft,color:col,transparent:true,depthWrite:false,blending:z.k==='poison'||z.k==='heal'||z.k==='grave'||z.k==='shade'?T.NormalBlending:T.AdditiveBlending}));v.rotation.x=-Math.PI/2;S3.dyn.add(v);S3.zones.set(z,v);
    if(z.k==='freeze'){v.userData.ice=iceCrystals(z);S3.dyn.add(v.userData.ice)}
-   if(z.k==='pull'||z.k==='heal'||z.k==='grave'){const sw=new T.Group(),m=new T.MeshBasicMaterial({color:z.k==='pull'?'#e4f3ff':z.k==='grave'?'#9a6ae0':'#2fbf62',transparent:true,opacity:.8,blending:z.k==='pull'?T.AdditiveBlending:T.NormalBlending,depthWrite:false,side:T.DoubleSide});
+   if(z.k==='pull'||z.k==='heal'||z.k==='grave'||z.k==='shade'){const sw=new T.Group(),m=new T.MeshBasicMaterial({color:z.k==='pull'?'#e4f3ff':z.k==='grave'?'#9a6ae0':z.k==='shade'?'#8a6ae8':'#2fbf62',transparent:true,opacity:.8,blending:z.k==='pull'?T.AdditiveBlending:T.NormalBlending,depthWrite:false,side:T.DoubleSide});
     for(let i=0;i<(z.k==='pull'?3:1);i++){const ar=new T.Mesh(z.k==='pull'?new T.RingGeometry(.55+i*.17,.62+i*.17,40,1,i*2.1,3.4):new T.RingGeometry(.93,1,48),m);ar.rotation.x=-Math.PI/2;ar.position.y=.09+i*.01;sw.add(ar)}
     if(z.k==='grave')for(let i=0;i<4;i++){const ts=spellModel('grave',0);const R=z.r/TILE;ts.scale.set(.55/R,.55,.55/R);const a=i*1.7+.4,d=.35+(i%2)*.3;ts.position.set(Math.cos(a)*d,.3,Math.sin(a)*d);ts.rotation.y=rndV(-.4,.4);sw.add(ts)}
     sw.userData.m=m;v.userData.sw=sw;S3.dyn.add(sw)}}
@@ -604,6 +605,7 @@ function overlay(now){const g=X,k=C.width/360;g.setTransform(1,0,0,1,0,0);g.clea
  const bar=(sx,sy,w,p,tm,gold)=>{w*=k;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,gold?'#ffd84d':'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,Math.max(0,w*p),4*k,2*k,tm?'#ff6a5a':'#4cd37a')};
  for(const b of G.B){const[sx,sy]=proj(b.x,b.y,1.9);bar(sx,sy,28,b.hp/b.mx,b.tm)}
  for(const u of G.U){if(u.spawnT>0)continue;const v=S3.units.get(u),hh=(v&&v.inst?(v.inst.V.hh||2.47*v.inst.V.s*US3):1.7)+(HEIGHT[u.key]||0)+.25;
+  if(G.vis&&u.tm===1&&!G.vis[0].has(u))continue;
   if(u.hp<u.mx||u.c.ability||u.shield>0){const[sx,sy]=proj(IX(u),IY(u),hh);const w=Math.max(16,u.r*2.2);bar(sx,sy,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,sx-w*k/2,sy-6*k,w*k*u.shield/u.smx,3*k,1.5*k,'#ffd84d')}
   if(u.stunT>0){const[sx,sy]=proj(IX(u),IY(u),hh+.3);g.save();g.scale(k,k);stars(g,sx/k,sy/k,now);g.restore()}}
  for(const t of G.T){if(t.hp<=0)continue;const[sx,sy]=proj(t.x,t.y,t.kind==='k'?(t.tm?3.9:3.6):(t.tm?3.6:3.3));g.save();g.translate(sx,sy);g.scale(k,k);towerBar(g,Object.assign({},t,{x:0,y:0,tm:t.tm,kind:t.kind,r:0}));g.restore();
@@ -706,6 +708,26 @@ function explosion(x,y,r){const X=W3(x),Z=Z3(y),R=r/TILE,A=S3.parts.add,N=S3.par
  flash(X,1.2,Z,'#ff9a3a',9,.5)}
 function flash(X,Y,Z,col,I,t){if(!S3.lights){S3.lights=[];for(let i=0;i<3;i++){const l=new T.PointLight('#fff',0,9,1.6);S3.scene.add(l);S3.lights.push({l,t:0,m:1,I:0})}}
  const L=S3.lights.sort((a,b)=>a.t-b.t)[0];L.l.color.set(col);L.l.position.set(X,Y,Z);L.t=t;L.m=t;L.I=I}
+/* ночь: сцена синеет и темнеет, у источников света — тёплые пятна и точечные огни, враги вне света — силуэты */
+let NIGHT=null;
+function nightSetup(){if(S3.pools)return;NIGHT={sun:new T.Color('#8ea6ff'),hemi:new T.Color('#4a5c9a'),gnd:new T.Color('#141a2a'),sky:new T.Color('#0b1230'),pool:new T.Color('#ffb35a'),flash:new T.Color('#fff2b0')};const N=48,m=new T.InstancedMesh(new T.CircleGeometry(1,32),new T.MeshBasicMaterial({map:S3.soft,transparent:true,depthWrite:false,blending:T.AdditiveBlending,color:'#ffffff'}),N);
+ m.rotation.x=-Math.PI/2;m.count=0;m.frustumCulled=false;m.renderOrder=2;S3.scene.add(m);S3.pools=m;
+ S3.pl=[];for(let i=0;i<6;i++){const l=new T.PointLight('#ffb060',0,8,1.3);l.position.y=2;S3.scene.add(l);S3.pl.push(l)}
+ S3.silMat=new T.MeshBasicMaterial({color:'#070a18',transparent:true,opacity:.72,depthWrite:false});
+ const moon=new T.DirectionalLight('#a8bcff',0);moon.position.set(9,22,-8);S3.scene.add(moon,moon.target);S3.moon=moon}
+function stepNight(now){nightSetup();const k=nightK(),L=S3.pal,sc=S3.scene;if(!L)return;
+ if(Math.abs(k-S3.nk)>.002){S3.nk=k;const c=new T.Color();
+  S3.sun.intensity=L.sun[1]*(1-.85*k);S3.moon.intensity=1.5*k;S3.sun.color.copy(c.set(L.sun[0]).lerp(NIGHT.sun,k));
+  S3.hemi.color.copy(c.set(L.hemi[0]).lerp(NIGHT.hemi,k));S3.hemi.groundColor.copy(c.set(L.hemi[1]).lerp(NIGHT.gnd,k));S3.hemi.userData.base=L.hemi[2]*.6*(1-.3*k);S3.hemi.intensity=S3.hemi.userData.base;
+  sc.background=c.set(L.sky).lerp(NIGHT.sky,k).clone();if(sc.fog)sc.fog.density=.012*k;sc.environmentIntensity=S3.envI*(1-.5*k);for(const m of S3.gmats||[])if(m.userData.c0)m.color.copy(m.userData.c0).multiply(c.setRGB(1-.66*k,1-.62*k,1-.45*k));if(S3.chk)S3.chk.material.color.setRGB(1-.72*k,1-.68*k,1-.5*k);S3.R.toneMappingExposure=L.exp*.86*(1-.08*k)}
+ // пятна света и огни
+ const P=S3.pools,M=new T.Matrix4(),Q=new T.Quaternion(),V=new T.Vector3(),Sc=new T.Vector3();let n=0;
+ const src=k>0?lightSources():[];
+ if(k>0){src.sort((a,b)=>b.r-a.r);for(const s of src){if(n>=P.instanceMatrix.count)break;if(inShade(s))continue;const r=s.r/TILE*1.05;V.set(W3(s.x),Z3(s.y)*-1,.05);M.compose(V,Q,Sc.set(r,r,1));P.setMatrixAt(n,M);
+   const fl=G.Z.some(z=>z.k==='flash'&&z.x===s.x&&z.y===s.y);P.setColorAt(n,fl?NIGHT.flash:NIGHT.pool);n++}}
+ P.count=n;P.instanceMatrix.needsUpdate=true;if(P.instanceColor)P.instanceColor.needsUpdate=true;P.material.opacity=.2*k;
+ const fl=1+Math.sin(now/110)*.06+Math.sin(now/47)*.04;
+ S3.pl.forEach((l,i)=>{const s=src[i];if(!s||k<=0){l.intensity=0;return}l.position.set(W3(s.x),1.6,Z3(s.y));l.distance=s.r/TILE*1.15;l.intensity=3.2*k*fl})}
 function stepLights(dt){if(S3.lights)for(const L of S3.lights){L.t=Math.max(0,L.t-dt);L.l.intensity=L.I*(L.t/L.m)**1.5}}
 function debris(t){S3.hype=3;const k=t.kind==='k',wall=pbr('wall',1,1,{color:'#d8cfbe'}),X=W3(t.x),Z=Z3(t.y);S3.deb=S3.deb||[];
  for(let i=0;i<(k?26:18);i++){const s=.14+Math.random()*.26,m=new T.Mesh(new T.DodecahedronGeometry(s,0),wall);m.castShadow=true;m.position.set(X+rndV(-.8,.8),1+Math.random()*2.4,Z+rndV(-.8,.8));
@@ -733,7 +755,8 @@ const ATH=[
  {g:'tile',c1:'#8a90a8',c2:'#5a6078',path:'#d0d4e4',stone:'#d8dcea',sky:'#5a6290',sun:['#dfe4ff',2.0],hemi:['#c8d0ff','#3a3e5a',1.1],exp:1.12,trees:0,w:'rain',water:{color:'#6a5ae0'}},
  {g:'sand',c1:'#f0d494',c2:'#c8a860',path:'#fff0d0',stone:'#fff2dc',sky:'#ffe2a8',sun:['#fff8e0',2.8],hemi:['#fffaf0','#a88a50',1.0],exp:1.05,trees:0,w:'sand',water:{color:'#2ad0c8'}}];
 function applyLook(L){const sc=S3.scene;S3.pal=L;sc.background=new T.Color(L.sky);sc.fog=null;S3.sun.color.set(L.sun[0]);S3.sun.intensity=L.sun[1];
- S3.hemi.color.set(L.hemi[0]);S3.hemi.groundColor.set(L.hemi[1]);S3.hemi.intensity=L.hemi[2]*.6;S3.hemi.userData.base=L.hemi[2]*.6;S3.R.toneMappingExposure=L.exp*.86}
+ S3.hemi.color.set(L.hemi[0]);S3.hemi.groundColor.set(L.hemi[1]);S3.hemi.intensity=L.hemi[2]*.6;S3.hemi.userData.base=L.hemi[2]*.6;S3.R.toneMappingExposure=L.exp*.86;
+ sc.fog=new T.FogExp2('#0b1230',0);S3.nk=-1;S3.envI=sc.environmentIntensity??1}
 const r3HasTheme=a=>true;
 function r3LoadTheme(a){return Promise.resolve()}
 function weather(dt){const w=S3.weather;if(!w||REDUCE||SET.fx==='low')return;const A=S3.parts.add,N=S3.parts.norm,rx=()=>rndV(-11,11),rz=()=>rndV(-17,17);

@@ -22,7 +22,7 @@ const CFG={
     light — радиусы света (клетки); aff — бонус карт в «своё» время суток */
  cycle:{on:1,day:50,night:40,fade:3,near:2.5,light:{p:5,k:6,bld:2,boom:3,boomT:2},aff:{dmg:.25,spd:.15}},
  juice:{heavyHit:500,hitStop:.05,kingSlow:.5,slowScale:.25,shakeDecay:60}, // хит-стоп на ударах от heavyHit урона; замедление при падении короля
- music:{battle:{bpm:134,key:0},ot:{bpm:156,key:2},menu:{bpm:104,key:-5}},    // темп и сдвиг тональности (полутоны от ля минора)
+ music:{battle:{bpm:134,key:0},night:{bpm:118,key:-3},ot:{bpm:156,key:2},menu:{bpm:104,key:-5}},    // темп и сдвиг тональности (полутоны от ля минора)
  /* бот: think — пауза между решениями; react — задержка реакции на угрозу; mist — доля ошибок;
     el — множитель эликсира; thp — HP его башен (по просьбе игрока у всех 1 — башни равные); lvOff — сдвиг уровня карт; countEl — считает эликсир соперника;
     acc — разброс позиции (точки); spell — готовность к заклинаниям; push — эликсир для атаки; abil — активность способностей */
@@ -92,7 +92,7 @@ const CARDS={
  giant:{n:'Великан',rar:'rare',type:'troop',cost:5,hp:4120,dmg:259,hit:1.5,rng:1,spd:'slow',tg:'b',r:15,mass:18,tip:'Идёт только на строения и держит всё. Нужна поддержка сзади.'},
  crossbow:{n:'Арбалетчица',rar:'rare',type:'troop',cost:4,hp:700,dmg:200,hit:1.1,rng:6,spd:'med',tg:'ga',r:8,proj:'bolt',tip:'Сильный одиночный стрелок с большой дальностью.'},
  axe:{n:'Секира',rar:'rare',type:'troop',cost:4,hp:1908,dmg:267,hit:1.5,rng:1,spd:'med',tg:'g',r:9,spin:1,splash:2,tip:'Крутит топор вокруг себя: гроза стай на земле.'},
- fireball:{n:'Огненный шар',rar:'rare',type:'spell',cost:4,rad:2.5,dmg:687,tdmg:206,knock:16,tip:'Большой урон по площади и отбрасывание лёгких.'},
+ fireball:{n:'Огненный шар',rar:'rare',type:'spell',cost:4,rad:2.5,dmg:730,tdmg:220,knock:16,tip:'Большой урон по площади и отбрасывание лёгких.'},
  hammer:{n:'Молотобоец',rar:'rare',type:'troop',cost:4,hp:1373,dmg:717,hit:1.6,rng:.8,spd:'fast',tg:'g',r:9,tip:'Огромный урон по одной цели. Ломает танков.'},
  ram:{n:'Тачка-таран',rar:'rare',type:'troop',cost:4,hp:1679,dmg:320,hit:1.6,rng:.8,spd:'vfast',tg:'b',r:11,mass:10,jump:1,tip:'Очень быстро катится к строениям и перепрыгивает реку. Главная угроза для башен.'},
  lair:{n:'Логово',rar:'rare',type:'building',cost:3,hp:794,tg:'g',r:14,life:30,spawn:{id:'bones',every:3.5,n:1},dspawn:{id:'bones',n:3},tip:'Выпускает костяшек, пока стоит, и ещё троих, когда рушится.'},
@@ -104,22 +104,22 @@ const CARDS={
  spring:{n:'Родник',rar:'rare',type:'building',cost:6,hp:1070,tg:'g',r:13,life:70,elx:{every:9.8,n:1},noStart:1,tip:'Добывает эликсир: +1 каждые 9,8 секунды, пока стоит. Окупается, если его не сломают. Не бывает в стартовой руке.'},
  raider:{aff:'night',n:'Налётчица',rar:'legendary',type:'troop',cost:3,hp:906,dmg:193,hit:1,rng:.75,spd:'fast',tg:'g',r:8,dash:{min:3.5,max:6,spd:500,mul:2},tip:'Рывком сокращает дистанцию до цели в 3,5–6 клеток. Во время рывка неуязвима, первый удар — двойной.'},
  mend:{n:'Целебный звон',rar:'rare',type:'spell',cost:2,rad:3,heal:420,healT:2,tip:'Две секунды лечит своих бойцов в круге. Спасает пуш, который вот-вот развалится.'},
- torchman:{n:'Факелоносец',rar:'common',type:'troop',cost:2,hp:420,dmg:90,hit:1.1,rng:.7,spd:'fast',tg:'g',r:7,light:3.5,tip:'Несёт факел: свет 3,5 клетки вокруг себя. Ночью — глаза для твоих стрелков и башен.'},
+ torchman:{n:'Факелоносец',rar:'common',type:'troop',cost:2,hp:560,dmg:110,hit:1.1,rng:.7,spd:'fast',tg:'g',r:7,light:3.5,tip:'Несёт факел: свет 3,5 клетки вокруг себя. Ночью — глаза для твоих стрелков и башен.'},
  lantern:{n:'Фонарь',rar:'common',type:'building',cost:2,hp:420,tg:'g',r:10,life:45,light:6,tip:'Свет 6 клеток на 45 с. Сам не бьёт, но ночью открывает врагов у моста и притягивает «только здания».'},
- flash:{n:'Вспышка',rar:'rare',type:'spell',cost:1,rad:2.5,blind:.6,flash:{light:5,t:6},tip:'Яркий свет на 5 клеток на 6 с; враги в центре (2,5 клетки) ослеплены: 0,6 с не двигаются и не атакуют.'},
+ flash:{n:'Вспышка',rar:'rare',type:'spell',cost:1,rad:2.5,dmg:96,tdmg:29,blind:1,flash:{light:5,t:6},tip:'Яркий свет на 5 клеток на 6 с; враги в центре (2,5 клетки) обожжены и ослеплены: 1 с не двигаются и не атакуют.'},
  shade:{n:'Сумрак',rar:'epic',type:'spell',cost:3,rad:4,shade:8,tip:'8 с внутри круга не действует никакой свет — даже днём. Враг видит там только тех, кто ближе 2,5 клетки. Укрой стрелков у вражеской башни.'},
  roller:{n:'Каток',rar:'legendary',type:'spell',cost:2,rad:2,dmg:268,tdmg:54,roll:{len:10,spd:220},knock:28,tip:'Бревно катится вперёд на 10 клеток: бьёт и отталкивает наземных врагов, задевает башни. Летающих не трогает.'},
  shieldman:{aff:'day',n:'Щитоносец',rar:'rare',type:'troop',cost:3,hp:850,shield:560,dmg:180,hit:1.1,rng:.8,spd:'med',tg:'g',r:9,tip:'Щит принимает урон первым. Пока щит цел, отбрасывание и оглушение ему не страшны.'},
- mortar:{n:'Мортира',rar:'common',type:'building',cost:4,hp:1370,dmg:230,hit:5,rng:11.5,minRng:3.5,splash:1,tg:'g',r:13,life:30,siege:1,tip:'Бьёт навесом на 11,5 клетки по площади, достаёт башни. Вблизи (3,5 клетки) стрелять не может.'},
+ mortar:{n:'Мортира',rar:'common',type:'building',cost:4,hp:1500,dmg:250,hit:4.5,rng:11.5,minRng:3.5,splash:1,tg:'g',r:13,life:30,siege:1,tip:'Бьёт навесом на 11,5 клетки по площади, достаёт башни. Вблизи (3,5 клетки) стрелять не может.'},
  grave:{aff:'night',n:'Погост',rar:'legendary',type:'spell',cost:5,rad:4,grave:{t:9.5,n:15,id:'bones'},tip:'9,5 с поднимает скелетов в круге: всего 15. Против башни, которую некому защищать, — смертельно.'},
  scorch:{n:'Жаровщица',rar:'epic',type:'troop',cost:4,hp:1000,dmg:40,hit:.4,rng:4,spd:'med',tg:'ga',r:8,beam:{dmg:[40,120,400],t:[2,2]},tip:'Луч жара: чем дольше держит цель, тем сильнее жжёт. Оглушение и смена цели сбрасывают разогрев.'},
  poison:{n:'Ядовитое облако',rar:'epic',type:'spell',cost:4,rad:3.5,dmg:580,tdmg:168,poison:8,tip:'Облако на 8 секунд: медленно жжёт и замедляет всё внутри.'},
- legion:{n:'Легион костей',rar:'epic',type:'troop',cost:3,count:14,unit:'bones',hp:84,dmg:84,hit:1,rng:.5,spd:'fast',tg:'g',r:5,tip:'Четырнадцать костяшек. Сносят любого одиночку, если нет урона по площади.'},
+ legion:{n:'Легион костей',rar:'epic',type:'troop',cost:3,count:12,unit:'bones',hp:84,dmg:84,hit:1,rng:.5,spd:'fast',tg:'g',r:5,tip:'Двенадцать костяшек. Сносят любого одиночку, если нет урона по площади.'},
  knightrider:{aff:'day',n:'Витязь',rar:'epic',type:'troop',cost:5,hp:1908,dmg:389,hit:1.4,rng:1,spd:'med',tg:'g',r:12,mass:9,charge:1,tip:'Разгоняется на прямой: вдвое быстрее и первый удар вдвое сильнее.'},
  airship:{n:'Дирижабль',rar:'epic',type:'troop',cost:5,hp:1297,dmg:488,hit:2,rng:.5,spd:'med',fly:1,tg:'b',r:13,mass:8,death:{dmg:275,r:2},tip:'Летит к строениям и сбрасывает бомбы. При падении взрывается.'},
  colossus:{n:'Колосс',rar:'epic',type:'troop',cost:8,hp:5112,dmg:313,hit:2.5,rng:.8,spd:'slow',tg:'b',r:18,mass:30,dep:3,death:{dmg:313,r:2},dspawn:{id:'pebble',n:2},tip:'Каменная гора на строения. Падая, распадается на два камешка.'},
  pebble:{n:'Камешек',token:1,rar:'epic',type:'troop',cost:0,hp:1038,dmg:64,hit:2.5,rng:.8,spd:'med',tg:'b',r:10,mass:8,death:{dmg:107,r:1.5}},
- frostsage:{aff:'day',n:'Морозный мудрец',rar:'legendary',type:'troop',cost:3,hp:916,dmg:137,hit:1.7,rng:5.5,spd:'med',tg:'ga',r:8,proj:'ice',splash:1.5,slow:{f:.35,t:2.5},tip:'Слабый урон, зато замедляет всех, в кого попадает.'},
+ frostsage:{aff:'day',n:'Морозный мудрец',rar:'legendary',type:'troop',cost:3,hp:860,dmg:126,hit:1.7,rng:5.5,spd:'med',tg:'ga',r:8,proj:'ice',splash:1.5,slow:{f:.35,t:2.5},tip:'Слабый урон, зато замедляет всех, в кого попадает.'},
  thunder:{aff:'day',n:'Громовержец',rar:'legendary',type:'troop',cost:4,hp:717,dmg:191,hit:1.8,rng:5,spd:'med',tg:'ga',r:8,chain:2,stun:.5,zap:153,tip:'Бьёт молнией сразу двоих и оглушает. При выходе бьёт разрядом вокруг.'},
  mole:{aff:'night',n:'Крот',rar:'legendary',type:'troop',cost:3,hp:1206,dmg:191,hit:1.2,rng:.8,spd:'fast',tg:'g',r:9,tunnel:1,td:.35,tip:'Роет ход и вылезает где угодно, даже у вражеской башни. По башням бьёт слабо.'},
  warlord:{n:'Вожак',rar:'champion',type:'troop',cost:4,hp:2289,dmg:244,hit:1.2,rng:1,spd:'med',tg:'g',r:11,mass:10,spin:1,splash:1.2,ability:{k:'horn',n:'Боевой рог',cost:2,cd:14,shield:763,rage:4,r:4},tip:'Чемпион. Способность «Боевой рог»: щит и ярость себе и соседям на 4 секунды.'}
@@ -512,7 +512,7 @@ function castSpell0(tm,key,x,y,lvl,tr){const c=CARDS[key],r=c.rad*TILE,dmg=LV(c.
  if(c.stun){areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.stun});G.FX.push({k:'zapring',x,y,r,l:0,m:.35});AU.sfx('zap');return}
  if(c.rage){G.Z.push({k:'rage',tm,x,y,r,t:c.rage,tot:c.rage});AU.sfx('rage');return}
  if(c.pull){G.Z.push({k:'pull',tr,tm,x,y,r,t:c.pull,tot:c.pull,tick:0,dmg:dmg/4,tdmg:tdmg/4,spd:c.pullSpd});AU.sfx('poison');return}
- if(c.flash){G.Z.push({k:'flash',tm,x,y,r,t:c.flash.t,tot:c.flash.t,light:c.flash.light*TILE});for(const v of G.U)if(v.tm!==tm&&alive(v)&&dist(v,{x,y})<r+v.r*.5)stunObj(v,c.blind);AU.sfx('zap');return}
+ if(c.flash){G.Z.push({k:'flash',tm,x,y,r,t:c.flash.t,tot:c.flash.t,light:c.flash.light*TILE});areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.blind});AU.sfx('zap');return}
  if(c.shade){G.Z.push({k:'shade',tm,x,y,r,t:c.shade,tot:c.shade});AU.sfx('freeze');return}
  if(c.roll){const dir=tm?1:-1;G.Z.push({k:'roll',tr,tm,x,y,r,t:99,tot:99,dir,left:c.roll.len*TILE,spd:c.roll.spd,dmg,tdmg,knock:c.knock,hit:new Set(),ang:0});AU.sfx('hit');return}
  if(c.grave){const g=c.grave;G.Z.push({k:'grave',tm,x,y,r,t:g.t,tot:g.t,every:g.t/g.n,tick:.5,id:g.id,lvl});AU.sfx('ability');return}
@@ -1079,7 +1079,8 @@ function towerBar(g,t){const k=t.kind==='k',by=t.tm?t.y+t.r+12:t.y-t.r-(k?20:30)
 /* ---------- бойцы, строения, снаряды ---------- */
 const US=1.15,topOf=u=>((u.c.fly?FLYOFF:0)+24*(u.c.r>=15?u.c.r/11:1))*US;
 function hpBar(g,x,y,w,p,tm,gold){rr(g,x-w/2-1,y-3,w+2,6,3,gold?'#ffd84d':'rgba(5,8,20,.8)');rr(g,x-w/2,y-2,Math.max(0,w*p),4,2,tm?'#ff6a5a':'#4cd37a')}
-function drawUnit(g,u,now){const c=u.c,sp=u.spawnT>0?u.spawnT/.3:0,s=US*(1-sp*.4),fy=u.y+(u.fly?8:2);
+function drawUnit(g,u,now){if(G.vis&&u.tm===1&&!G.vis[0].has(u)){g.save();g.filter='brightness(0.12)';g.globalAlpha=.8;drawUnit0(g,u,now);g.restore();return}drawUnit0(g,u,now)}
+function drawUnit0(g,u,now){const c=u.c,sp=u.spawnT>0?u.spawnT/.3:0,s=US*(1-sp*.4),fy=u.y+(u.fly?8:2);
  if(u.rageT>0){const p=.5+.5*Math.sin(now/110+u.id);g.fillStyle=`rgba(255,70,120,${.2+p*.14})`;g.beginPath();g.ellipse(u.x,fy,u.r+5,(u.r+5)*.5,0,0,7);g.fill()}
  if(u.slowT>0){g.strokeStyle='rgba(150,215,255,.85)';g.lineWidth=1.5;g.beginPath();g.ellipse(u.x,fy,u.r+3,(u.r+3)*.45,0,0,7);g.stroke()}
  if(u.charging){g.strokeStyle='rgba(255,255,255,.55)';g.lineWidth=1.4;for(let i=0;i<3;i++){const yy=u.y-6-i*6,x0=u.x-u.face*(u.r+4+i*2);g.beginPath();g.moveTo(x0,yy);g.lineTo(x0-u.face*(8+((now/40+i*7)%6)),yy);g.stroke()}}
@@ -1200,9 +1201,10 @@ function draw(now){const g=X;g.setTransform(1,0,0,1,0,0);if(!BG||!G)return;
  for(const f of G.FX)drawFX(g,f);
  for(const p of G.PT){const a=1-p.l/p.m;g.globalAlpha=Math.max(0,a);g.fillStyle=p.c;g.beginPath();g.arc(p.x,p.y,p.s*(.6+a*.5),0,7);g.fill()}g.globalAlpha=1;
  for(const b of G.B)hpBar(g,b.x,b.y-30,28,b.hp/b.mx,b.tm);
- for(const u of G.U){if(u.spawnT>0)continue;const y=u.y-topOf(u)-8,w=Math.max(16,u.r*2.2);if(u.hp<u.mx||u.c.ability)hpBar(g,u.x,y,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,u.x-w/2,y-6,w*u.shield/u.smx,3,1.5,'#ffd84d')}
+ for(const u of G.U){if(u.spawnT>0||G.vis&&u.tm===1&&!G.vis[0].has(u))continue;const y=u.y-topOf(u)-8,w=Math.max(16,u.r*2.2);if(u.hp<u.mx||u.c.ability)hpBar(g,u.x,y,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,u.x-w/2,y-6,w*u.shield/u.smx,3,1.5,'#ffd84d')}
  for(const t of G.T)if(t.hp>0)towerBar(g,t);
  for(const f of G.CF){g.save();g.translate(f.x,f.y);g.rotate(f.r);g.globalAlpha=Math.min(1,(f.m-f.l)/.5);g.fillStyle=f.c;g.fillRect(-f.w/2,-f.w/4,f.w,f.w/2);g.restore()}g.globalAlpha=1;
+ drawNight(g);
  drawTexts(g);drawEmotes(g);drawAids(g,(x,y)=>[x,y],1,now);drawGhost(g,now);
  g.setTransform(1,0,0,1,0,0);g.drawImage(BG.v,0,0)}
 
@@ -1216,6 +1218,11 @@ function drawThumb(cv,ar){const k=2,y0=22,h=316;cv.width=W*k;cv.height=h*k;const
  g.setTransform(1,0,0,1,0,0);g.drawImage(L.v,0,-y0*k);TH=keep}
 
 /* подсказка обучения и режим отладки поверх боя. P(x,y) → точка на холсте, k — масштаб линий */
+/* ночь в 2D: темнота поверх поля, в ней вырезаны круги света */
+let NC=null;function drawNight(g){const k=nightK();if(k<=0)return;if(!NC){NC=document.createElement('canvas');NC.width=W;NC.height=H}
+ const n=NC.getContext('2d');n.globalCompositeOperation='source-over';n.clearRect(0,0,W,H);n.fillStyle=`rgba(6,10,32,${.62*k})`;n.fillRect(0,0,W,H);
+ n.globalCompositeOperation='destination-out';for(const s of lightSources()){if(inShade(s))continue;const gr=n.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(.7,'rgba(0,0,0,.8)');gr.addColorStop(1,'rgba(0,0,0,0)');n.fillStyle=gr;n.beginPath();n.arc(s.x,s.y,s.r,0,7);n.fill()}
+ g.drawImage(NC,0,0)}
 function drawAids(g,P,k,now){
  if(G.tutor&&!G.over&&G.t<60&&!G.U.some(u=>u.tm===0)){const[x,y]=P(G.tutor.pt.x,G.tutor.pt.y),r=(16+Math.sin(now/180)*4)*k;
   g.strokeStyle='#ffe066';g.lineWidth=3*k;g.beginPath();g.arc(x,y,r,0,7);g.stroke();g.fillStyle='rgba(255,224,102,.22)';g.beginPath();g.arc(x,y,r,0,7);g.fill()}
@@ -1463,13 +1470,13 @@ function edgeAlpha(){const c=document.createElement('canvas');c.width=64;c.heigh
  r.addColorStop(0,'rgba(0,0,0,1)');r.addColorStop(.22,'#fff');r.addColorStop(.78,'#fff');r.addColorStop(1,'rgba(0,0,0,1)');g.fillStyle=r;g.fillRect(0,0,64,4);return new T.CanvasTexture(c)}
 function buildArena(th){if(S3.arena){S3.scene.remove(S3.arena)}const A=new T.Group();S3.arena=A;S3.scene.add(A);const rng=mul(17+th*31);
  // земля и поле
- const TH3=ATH[th]||ATH[0];S3.theme=th;applyLook(TH3);const grass=pbr('grass',20,28),gr=new T.Mesh(new T.PlaneGeometry(88,120),grass);gr.rotation.x=-Math.PI/2;gr.receiveShadow=true;A.add(gr);
+ const TH3=ATH[th]||ATH[0];S3.theme=th;applyLook(TH3);const grass=pbr('grass',20,28),gr=new T.Mesh(new T.PlaneGeometry(88,120),grass);gr.rotation.x=-Math.PI/2;gr.receiveShadow=true;A.add(gr);S3.gmats=[grass];
  const ck=document.createElement('canvas');ck.width=18;ck.height=32;const cg=ck.getContext('2d');
  for(let y=0;y<32;y++)for(let x=0;x<18;x++){cg.fillStyle=(x+y)&1?'rgba(255,255,255,.10)':'rgba(0,40,0,.10)';cg.fillRect(x,y,1,1)}
  const ct=new T.CanvasTexture(ck);ct.magFilter=T.NearestFilter;ct.minFilter=T.NearestFilter;
- const chk=new T.Mesh(new T.PlaneGeometry(18,32),new T.MeshBasicMaterial({map:ct,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}));chk.rotation.x=-Math.PI/2;chk.position.y=.004;A.add(chk);
+ const chk=new T.Mesh(new T.PlaneGeometry(18,32),new T.MeshBasicMaterial({map:ct,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}));chk.rotation.x=-Math.PI/2;chk.position.y=.004;A.add(chk);S3.chk=chk;
  // дорожки
- const pm=pbr('path',1,1,{alphaMap:edgeAlpha(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,color:TH3.path,side:T.DoubleSide});
+ const pm=pbr('path',1,1,{alphaMap:edgeAlpha(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,color:TH3.path,side:T.DoubleSide});S3.gmats.push(pm);for(const m of S3.gmats)m.userData.c0=m.color.clone();
  const pmat=pm.clone();pmat.map=pm.map.clone();pmat.map.repeat.set(1,1);
  for(const s of[1,-1])for(const bx of[-5.5,5.5]){const pts=[];for(let i=0;i<=16;i++){const t=i/16;const x=(1-t)*(1-t)*0+2*(1-t)*t*bx+t*t*bx,z=(1-t)*(1-t)*13+2*(1-t)*t*13+t*t*9.75;pts.push([x,z*s])}
   pts.push([bx,1.25*s]);A.add(ribbon(pts,1.45,pm,.012))}
@@ -1641,7 +1648,7 @@ function r3Frame(now){const dt=Math.min(.05,(now-S3.last)/1000||0);S3.last=now;c
  if(S3.water){const m=S3.water.material;for(const n of[m.normalMap,m.map])if(n){n.offset.x=(now/1000*.03)%1;n.offset.y=(now/1000*.05)%1}}
  if(S3.foam)for(const t of S3.foam){t.offset.x=(now/1000*.04)%1;t.offset.y=Math.sin(now/900)*.08}if(S3.windU)S3.windU.value=now/1000;
  syncTowers(dt,now);syncUnits(dt,now);syncBuildings(dt,now);syncProj(dt);syncFx(dt,now);syncZones(now);syncPending(now);syncGhost(now);syncParticles(dt);
- stepDebris(dt);stepLights(dt);if(S3.hype>0)S3.hype-=dt;crowdStep(now);if(Math.random()<.5)towerSmoke();weather(dt);autoQ(dt);
+ stepDebris(dt);stepLights(dt);stepNight(now);if(S3.hype>0)S3.hype-=dt;crowdStep(now);if(Math.random()<.5)towerSmoke();weather(dt);autoQ(dt);
  if(S3.comp)S3.comp.render();else S3.R.render(sc,cam);overlay(now)}
 
 /* башни: лучники и король целятся и стреляют, павшие сменяются руинами */
@@ -1672,6 +1679,7 @@ function syncUnits(dt,now){const seen=new Set();
   if(u.spawnT>0&&!v.rise&&!REDUCE){const p=u.spawnT/.3;y+=p*p*3}
   y+=jumpH(u)/TILE*1.1;
   v.root.position.set(X,y,Z);
+  const hid=!!(G.vis&&u.tm===1&&!G.vis[0].has(u));if(hid!==!!v.hid){v.hid=hid;v.ring.visible=!hid;v.root.traverse(o=>{if(!o.isMesh)return;if(hid){o.userData.m0=o.material;o.material=S3.silMat||o.material}else if(o.userData.m0){o.material=o.userData.m0}})}
   // реакция на удар: короткое «сплющивание» и искры (сильнее на тяжёлых ударах)
   if(u.fl>.07&&!(v.hitT>0)){v.hitT=.12;const hv=u.mx>1500;for(let i=0;i<(hv?7:4);i++)S3.parts.add.emit(X+rndV(-.25,.25),y+.6+(v.h?0:.4)+rndV(0,.5),Z+rndV(-.25,.25),rndV(-1.4,1.4),rndV(.6,2),rndV(-1.4,1.4),i%2?'#ffffff':'#ffd27a',hv?.32:.24,.28)}
   if(v.hitT>0){v.hitT-=dt;const q=Math.max(0,v.hitT)/.12;const sq=1-.12*q;v.root.scale.y=(v.sy||(v.sy=v.root.scale.y))*sq;v.root.scale.x=(v.sx0||(v.sx0=v.root.scale.x))*(1+.08*q);v.root.scale.z=(v.sz0||(v.sz0=v.root.scale.z))*(1+.08*q)}
@@ -1766,7 +1774,7 @@ function syncZones(now){const seen=new Set();for(const z of G.Z){if(z.k==='glow'
   if(!v){const col={freeze:'#bfe9ff',rage:'#ff4f86',poison:'#7ee05a',aura:'#ffd84d',pull:'#9fd0ff',heal:'#4fdc7c',grave:'#7a55b0',flash:'#fff2b0',shade:'#140a26'}[z.k];
    v=new T.Mesh(new T.CircleGeometry(1,40),new T.MeshBasicMaterial({map:S3.soft,color:col,transparent:true,depthWrite:false,blending:z.k==='poison'||z.k==='heal'||z.k==='grave'||z.k==='shade'?T.NormalBlending:T.AdditiveBlending}));v.rotation.x=-Math.PI/2;S3.dyn.add(v);S3.zones.set(z,v);
    if(z.k==='freeze'){v.userData.ice=iceCrystals(z);S3.dyn.add(v.userData.ice)}
-   if(z.k==='pull'||z.k==='heal'||z.k==='grave'){const sw=new T.Group(),m=new T.MeshBasicMaterial({color:z.k==='pull'?'#e4f3ff':z.k==='grave'?'#9a6ae0':'#2fbf62',transparent:true,opacity:.8,blending:z.k==='pull'?T.AdditiveBlending:T.NormalBlending,depthWrite:false,side:T.DoubleSide});
+   if(z.k==='pull'||z.k==='heal'||z.k==='grave'||z.k==='shade'){const sw=new T.Group(),m=new T.MeshBasicMaterial({color:z.k==='pull'?'#e4f3ff':z.k==='grave'?'#9a6ae0':z.k==='shade'?'#8a6ae8':'#2fbf62',transparent:true,opacity:.8,blending:z.k==='pull'?T.AdditiveBlending:T.NormalBlending,depthWrite:false,side:T.DoubleSide});
     for(let i=0;i<(z.k==='pull'?3:1);i++){const ar=new T.Mesh(z.k==='pull'?new T.RingGeometry(.55+i*.17,.62+i*.17,40,1,i*2.1,3.4):new T.RingGeometry(.93,1,48),m);ar.rotation.x=-Math.PI/2;ar.position.y=.09+i*.01;sw.add(ar)}
     if(z.k==='grave')for(let i=0;i<4;i++){const ts=spellModel('grave',0);const R=z.r/TILE;ts.scale.set(.55/R,.55,.55/R);const a=i*1.7+.4,d=.35+(i%2)*.3;ts.position.set(Math.cos(a)*d,.3,Math.sin(a)*d);ts.rotation.y=rndV(-.4,.4);sw.add(ts)}
     sw.userData.m=m;v.userData.sw=sw;S3.dyn.add(sw)}}
@@ -1834,6 +1842,7 @@ function overlay(now){const g=X,k=C.width/360;g.setTransform(1,0,0,1,0,0);g.clea
  const bar=(sx,sy,w,p,tm,gold)=>{w*=k;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,gold?'#ffd84d':'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,Math.max(0,w*p),4*k,2*k,tm?'#ff6a5a':'#4cd37a')};
  for(const b of G.B){const[sx,sy]=proj(b.x,b.y,1.9);bar(sx,sy,28,b.hp/b.mx,b.tm)}
  for(const u of G.U){if(u.spawnT>0)continue;const v=S3.units.get(u),hh=(v&&v.inst?(v.inst.V.hh||2.47*v.inst.V.s*US3):1.7)+(HEIGHT[u.key]||0)+.25;
+  if(G.vis&&u.tm===1&&!G.vis[0].has(u))continue;
   if(u.hp<u.mx||u.c.ability||u.shield>0){const[sx,sy]=proj(IX(u),IY(u),hh);const w=Math.max(16,u.r*2.2);bar(sx,sy,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,sx-w*k/2,sy-6*k,w*k*u.shield/u.smx,3*k,1.5*k,'#ffd84d')}
   if(u.stunT>0){const[sx,sy]=proj(IX(u),IY(u),hh+.3);g.save();g.scale(k,k);stars(g,sx/k,sy/k,now);g.restore()}}
  for(const t of G.T){if(t.hp<=0)continue;const[sx,sy]=proj(t.x,t.y,t.kind==='k'?(t.tm?3.9:3.6):(t.tm?3.6:3.3));g.save();g.translate(sx,sy);g.scale(k,k);towerBar(g,Object.assign({},t,{x:0,y:0,tm:t.tm,kind:t.kind,r:0}));g.restore();
@@ -1936,6 +1945,26 @@ function explosion(x,y,r){const X=W3(x),Z=Z3(y),R=r/TILE,A=S3.parts.add,N=S3.par
  flash(X,1.2,Z,'#ff9a3a',9,.5)}
 function flash(X,Y,Z,col,I,t){if(!S3.lights){S3.lights=[];for(let i=0;i<3;i++){const l=new T.PointLight('#fff',0,9,1.6);S3.scene.add(l);S3.lights.push({l,t:0,m:1,I:0})}}
  const L=S3.lights.sort((a,b)=>a.t-b.t)[0];L.l.color.set(col);L.l.position.set(X,Y,Z);L.t=t;L.m=t;L.I=I}
+/* ночь: сцена синеет и темнеет, у источников света — тёплые пятна и точечные огни, враги вне света — силуэты */
+let NIGHT=null;
+function nightSetup(){if(S3.pools)return;NIGHT={sun:new T.Color('#8ea6ff'),hemi:new T.Color('#4a5c9a'),gnd:new T.Color('#141a2a'),sky:new T.Color('#0b1230'),pool:new T.Color('#ffb35a'),flash:new T.Color('#fff2b0')};const N=48,m=new T.InstancedMesh(new T.CircleGeometry(1,32),new T.MeshBasicMaterial({map:S3.soft,transparent:true,depthWrite:false,blending:T.AdditiveBlending,color:'#ffffff'}),N);
+ m.rotation.x=-Math.PI/2;m.count=0;m.frustumCulled=false;m.renderOrder=2;S3.scene.add(m);S3.pools=m;
+ S3.pl=[];for(let i=0;i<6;i++){const l=new T.PointLight('#ffb060',0,8,1.3);l.position.y=2;S3.scene.add(l);S3.pl.push(l)}
+ S3.silMat=new T.MeshBasicMaterial({color:'#070a18',transparent:true,opacity:.72,depthWrite:false});
+ const moon=new T.DirectionalLight('#a8bcff',0);moon.position.set(9,22,-8);S3.scene.add(moon,moon.target);S3.moon=moon}
+function stepNight(now){nightSetup();const k=nightK(),L=S3.pal,sc=S3.scene;if(!L)return;
+ if(Math.abs(k-S3.nk)>.002){S3.nk=k;const c=new T.Color();
+  S3.sun.intensity=L.sun[1]*(1-.85*k);S3.moon.intensity=1.5*k;S3.sun.color.copy(c.set(L.sun[0]).lerp(NIGHT.sun,k));
+  S3.hemi.color.copy(c.set(L.hemi[0]).lerp(NIGHT.hemi,k));S3.hemi.groundColor.copy(c.set(L.hemi[1]).lerp(NIGHT.gnd,k));S3.hemi.userData.base=L.hemi[2]*.6*(1-.3*k);S3.hemi.intensity=S3.hemi.userData.base;
+  sc.background=c.set(L.sky).lerp(NIGHT.sky,k).clone();if(sc.fog)sc.fog.density=.012*k;sc.environmentIntensity=S3.envI*(1-.5*k);for(const m of S3.gmats||[])if(m.userData.c0)m.color.copy(m.userData.c0).multiply(c.setRGB(1-.66*k,1-.62*k,1-.45*k));if(S3.chk)S3.chk.material.color.setRGB(1-.72*k,1-.68*k,1-.5*k);S3.R.toneMappingExposure=L.exp*.86*(1-.08*k)}
+ // пятна света и огни
+ const P=S3.pools,M=new T.Matrix4(),Q=new T.Quaternion(),V=new T.Vector3(),Sc=new T.Vector3();let n=0;
+ const src=k>0?lightSources():[];
+ if(k>0){src.sort((a,b)=>b.r-a.r);for(const s of src){if(n>=P.instanceMatrix.count)break;if(inShade(s))continue;const r=s.r/TILE*1.05;V.set(W3(s.x),Z3(s.y)*-1,.05);M.compose(V,Q,Sc.set(r,r,1));P.setMatrixAt(n,M);
+   const fl=G.Z.some(z=>z.k==='flash'&&z.x===s.x&&z.y===s.y);P.setColorAt(n,fl?NIGHT.flash:NIGHT.pool);n++}}
+ P.count=n;P.instanceMatrix.needsUpdate=true;if(P.instanceColor)P.instanceColor.needsUpdate=true;P.material.opacity=.2*k;
+ const fl=1+Math.sin(now/110)*.06+Math.sin(now/47)*.04;
+ S3.pl.forEach((l,i)=>{const s=src[i];if(!s||k<=0){l.intensity=0;return}l.position.set(W3(s.x),1.6,Z3(s.y));l.distance=s.r/TILE*1.15;l.intensity=3.2*k*fl})}
 function stepLights(dt){if(S3.lights)for(const L of S3.lights){L.t=Math.max(0,L.t-dt);L.l.intensity=L.I*(L.t/L.m)**1.5}}
 function debris(t){S3.hype=3;const k=t.kind==='k',wall=pbr('wall',1,1,{color:'#d8cfbe'}),X=W3(t.x),Z=Z3(t.y);S3.deb=S3.deb||[];
  for(let i=0;i<(k?26:18);i++){const s=.14+Math.random()*.26,m=new T.Mesh(new T.DodecahedronGeometry(s,0),wall);m.castShadow=true;m.position.set(X+rndV(-.8,.8),1+Math.random()*2.4,Z+rndV(-.8,.8));
@@ -1963,7 +1992,8 @@ const ATH=[
  {g:'tile',c1:'#8a90a8',c2:'#5a6078',path:'#d0d4e4',stone:'#d8dcea',sky:'#5a6290',sun:['#dfe4ff',2.0],hemi:['#c8d0ff','#3a3e5a',1.1],exp:1.12,trees:0,w:'rain',water:{color:'#6a5ae0'}},
  {g:'sand',c1:'#f0d494',c2:'#c8a860',path:'#fff0d0',stone:'#fff2dc',sky:'#ffe2a8',sun:['#fff8e0',2.8],hemi:['#fffaf0','#a88a50',1.0],exp:1.05,trees:0,w:'sand',water:{color:'#2ad0c8'}}];
 function applyLook(L){const sc=S3.scene;S3.pal=L;sc.background=new T.Color(L.sky);sc.fog=null;S3.sun.color.set(L.sun[0]);S3.sun.intensity=L.sun[1];
- S3.hemi.color.set(L.hemi[0]);S3.hemi.groundColor.set(L.hemi[1]);S3.hemi.intensity=L.hemi[2]*.6;S3.hemi.userData.base=L.hemi[2]*.6;S3.R.toneMappingExposure=L.exp*.86}
+ S3.hemi.color.set(L.hemi[0]);S3.hemi.groundColor.set(L.hemi[1]);S3.hemi.intensity=L.hemi[2]*.6;S3.hemi.userData.base=L.hemi[2]*.6;S3.R.toneMappingExposure=L.exp*.86;
+ sc.fog=new T.FogExp2('#0b1230',0);S3.nk=-1;S3.envI=sc.environmentIntensity??1}
 const r3HasTheme=a=>true;
 function r3LoadTheme(a){return Promise.resolve()}
 function weather(dt){const w=S3.weather;if(!w||REDUCE||SET.fx==='low')return;const A=S3.parts.add,N=S3.parts.norm,rx=()=>rndV(-11,11),rz=()=>rndV(-17,17);
@@ -2370,6 +2400,7 @@ function openRules(){AU.init();AU.sfx('ui');const sh=$('#sheet');
   <p class="note"><b>Бой.</b> Три минуты. Выбери карту внизу и отпусти её на своей половине. Карта стоит эликсир: он копится сам, до 10, с 2:00 — вдвое быстрее. Новая карта входит в руку через секунду после розыгрыша.</p>
   <p class="note"><b>Короны.</b> Башня принцессы — одна корона, королевская башня — сразу победа и три короны. Король спит, пока его не ударят или не сломают боковую башню, и просыпается около 4 секунд.</p>
   <p class="note"><b>Карман.</b> Сломал боковую башню — на её дорожке можно ставить войска на 4 клетки за рекой.</p>
+  <p class="note"><b>День и ночь.</b> День длится 50 с, ночь — 40 с: 0:50–1:30 и 2:20–3:00, в овертайме цикл продолжается. Ночью враг виден, только если стоит в свете (башни, здания, факелы, вспышки) или ближе 2,5 клетки к твоим. Невидимых нельзя выбрать целью — даже башне. Ночные карты ночью, а дневные днём бьют на 25% сильнее и ходят на 15% быстрее. Над таймером видно, сколько осталось до смены.</p>
   <p class="note"><b>Овертайм.</b> Если короны равны — ещё две минуты, эликсир ×2, в последнюю минуту ×3. Первая сломанная башня решает бой; если обе пали одновременно — играем дальше.</p>
   <p class="note"><b>Тайбрейкер.</b> Если и в овертайме ничья: войска исчезают, все башни теряют здоровье, и проигрывает владелец самой слабой башни. Равны — ничья.</p>
   <p class="note"><b>Эволюции и герои.</b> Первый слот колоды — для эволюции: она выходит усиленной сразу и потом через несколько розыгрышей. Второй — для героя со способностью по кнопке (если в колоде нет чемпиона). Открываются за осколки.</p>
@@ -2653,7 +2684,9 @@ const setPips=(tm,n)=>[...$('#cp'+tm+' .pips').children].forEach((e,i)=>e.classL
 function hud(){const S=G.side[0],e=S.el,ei=Math.floor(e);
  $('#ef').style.width=(e*10)+'%';if(ei!==hs.el){hs.el=ei;$('#en').textContent=ei;$('#eb').classList.toggle('full',ei>=10)}
  const M=CFG.match,left=G.tb?0:G.ot?M.ot-G.otT:M.len-G.t,tm=fmt(left);if(tm!==hs.tm){if(hs.tm&&left<=10&&left>0&&!G.over)AU.sfx('tick');hs.tm=tm;$('#tm').textContent=tm;$('#tm').classList.toggle('low',left<=10||!!G.ot)}
- tips();if(G.ot&&MUS.theme==='battle')MUS.play('ot');
+ tips();if(G.ot&&MUS.theme!=='ot')MUS.play('ot');else if(!G.ot&&!G.over&&(MUS.theme==='battle'||MUS.theme==='night')){const th=G.night?'night':'battle';if(MUS.theme!==th)MUS.play(th)}
+ if(G.cyc&&!G.tb){const C=CFG.cycle,per=C.day+C.night,p=G.t%per,n=p>=C.day,left=Math.ceil(n?per-p:C.day-p),tx=(n?'☾ рассвет через ':'☀ ночь через ')+left;if(tx!==hs.dn){hs.dn=tx;const e=$('#dn');e.textContent=tx;e.classList.toggle('n',n)}}
+ else if(hs.dn){hs.dn='';$('#dn').textContent=''}
  const er=elRate(),ph=G.tb?'ТАЙБРЕЙКЕР':G.ot?'ОВЕРТАЙМ · ×'+er:er>1?'ЭЛИКСИР ×'+er:'ОСТАЛОСЬ';if(ph!==hs.ph){hs.ph=ph;$('#ph').textContent=ph}
  const cr=G.crowns.join();if(cr!==hs.cr){hs.cr=cr;setPips(0,G.crowns[0]);setPips(1,G.crowns[1])}
  if(S.hand.join()+'|'+S.queue[0]+'|'+S.evoN!==hs.sig)renderHand();

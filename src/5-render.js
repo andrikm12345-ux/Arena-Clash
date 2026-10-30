@@ -99,7 +99,8 @@ function towerBar(g,t){const k=t.kind==='k',by=t.tm?t.y+t.r+12:t.y-t.r-(k?20:30)
 /* ---------- бойцы, строения, снаряды ---------- */
 const US=1.15,topOf=u=>((u.c.fly?FLYOFF:0)+24*(u.c.r>=15?u.c.r/11:1))*US;
 function hpBar(g,x,y,w,p,tm,gold){rr(g,x-w/2-1,y-3,w+2,6,3,gold?'#ffd84d':'rgba(5,8,20,.8)');rr(g,x-w/2,y-2,Math.max(0,w*p),4,2,tm?'#ff6a5a':'#4cd37a')}
-function drawUnit(g,u,now){const c=u.c,sp=u.spawnT>0?u.spawnT/.3:0,s=US*(1-sp*.4),fy=u.y+(u.fly?8:2);
+function drawUnit(g,u,now){if(G.vis&&u.tm===1&&!G.vis[0].has(u)){g.save();g.filter='brightness(0.12)';g.globalAlpha=.8;drawUnit0(g,u,now);g.restore();return}drawUnit0(g,u,now)}
+function drawUnit0(g,u,now){const c=u.c,sp=u.spawnT>0?u.spawnT/.3:0,s=US*(1-sp*.4),fy=u.y+(u.fly?8:2);
  if(u.rageT>0){const p=.5+.5*Math.sin(now/110+u.id);g.fillStyle=`rgba(255,70,120,${.2+p*.14})`;g.beginPath();g.ellipse(u.x,fy,u.r+5,(u.r+5)*.5,0,0,7);g.fill()}
  if(u.slowT>0){g.strokeStyle='rgba(150,215,255,.85)';g.lineWidth=1.5;g.beginPath();g.ellipse(u.x,fy,u.r+3,(u.r+3)*.45,0,0,7);g.stroke()}
  if(u.charging){g.strokeStyle='rgba(255,255,255,.55)';g.lineWidth=1.4;for(let i=0;i<3;i++){const yy=u.y-6-i*6,x0=u.x-u.face*(u.r+4+i*2);g.beginPath();g.moveTo(x0,yy);g.lineTo(x0-u.face*(8+((now/40+i*7)%6)),yy);g.stroke()}}
@@ -220,9 +221,10 @@ function draw(now){const g=X;g.setTransform(1,0,0,1,0,0);if(!BG||!G)return;
  for(const f of G.FX)drawFX(g,f);
  for(const p of G.PT){const a=1-p.l/p.m;g.globalAlpha=Math.max(0,a);g.fillStyle=p.c;g.beginPath();g.arc(p.x,p.y,p.s*(.6+a*.5),0,7);g.fill()}g.globalAlpha=1;
  for(const b of G.B)hpBar(g,b.x,b.y-30,28,b.hp/b.mx,b.tm);
- for(const u of G.U){if(u.spawnT>0)continue;const y=u.y-topOf(u)-8,w=Math.max(16,u.r*2.2);if(u.hp<u.mx||u.c.ability)hpBar(g,u.x,y,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,u.x-w/2,y-6,w*u.shield/u.smx,3,1.5,'#ffd84d')}
+ for(const u of G.U){if(u.spawnT>0||G.vis&&u.tm===1&&!G.vis[0].has(u))continue;const y=u.y-topOf(u)-8,w=Math.max(16,u.r*2.2);if(u.hp<u.mx||u.c.ability)hpBar(g,u.x,y,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,u.x-w/2,y-6,w*u.shield/u.smx,3,1.5,'#ffd84d')}
  for(const t of G.T)if(t.hp>0)towerBar(g,t);
  for(const f of G.CF){g.save();g.translate(f.x,f.y);g.rotate(f.r);g.globalAlpha=Math.min(1,(f.m-f.l)/.5);g.fillStyle=f.c;g.fillRect(-f.w/2,-f.w/4,f.w,f.w/2);g.restore()}g.globalAlpha=1;
+ drawNight(g);
  drawTexts(g);drawEmotes(g);drawAids(g,(x,y)=>[x,y],1,now);drawGhost(g,now);
  g.setTransform(1,0,0,1,0,0);g.drawImage(BG.v,0,0)}
 
@@ -236,6 +238,11 @@ function drawThumb(cv,ar){const k=2,y0=22,h=316;cv.width=W*k;cv.height=h*k;const
  g.setTransform(1,0,0,1,0,0);g.drawImage(L.v,0,-y0*k);TH=keep}
 
 /* подсказка обучения и режим отладки поверх боя. P(x,y) → точка на холсте, k — масштаб линий */
+/* ночь в 2D: темнота поверх поля, в ней вырезаны круги света */
+let NC=null;function drawNight(g){const k=nightK();if(k<=0)return;if(!NC){NC=document.createElement('canvas');NC.width=W;NC.height=H}
+ const n=NC.getContext('2d');n.globalCompositeOperation='source-over';n.clearRect(0,0,W,H);n.fillStyle=`rgba(6,10,32,${.62*k})`;n.fillRect(0,0,W,H);
+ n.globalCompositeOperation='destination-out';for(const s of lightSources()){if(inShade(s))continue;const gr=n.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(.7,'rgba(0,0,0,.8)');gr.addColorStop(1,'rgba(0,0,0,0)');n.fillStyle=gr;n.beginPath();n.arc(s.x,s.y,s.r,0,7);n.fill()}
+ g.drawImage(NC,0,0)}
 function drawAids(g,P,k,now){
  if(G.tutor&&!G.over&&G.t<60&&!G.U.some(u=>u.tm===0)){const[x,y]=P(G.tutor.pt.x,G.tutor.pt.y),r=(16+Math.sin(now/180)*4)*k;
   g.strokeStyle='#ffe066';g.lineWidth=3*k;g.beginPath();g.arc(x,y,r,0,7);g.stroke();g.fillStyle='rgba(255,224,102,.22)';g.beginPath();g.arc(x,y,r,0,7);g.fill()}

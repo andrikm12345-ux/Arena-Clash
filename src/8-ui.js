@@ -116,6 +116,7 @@ function openRules(){AU.init();AU.sfx('ui');const sh=$('#sheet');
   <p class="note"><b>Бой.</b> Три минуты. Выбери карту внизу и отпусти её на своей половине. Карта стоит эликсир: он копится сам, до 10, с 2:00 — вдвое быстрее. Новая карта входит в руку через секунду после розыгрыша.</p>
   <p class="note"><b>Короны.</b> Башня принцессы — одна корона, королевская башня — сразу победа и три короны. Король спит, пока его не ударят или не сломают боковую башню, и просыпается около 4 секунд.</p>
   <p class="note"><b>Карман.</b> Сломал боковую башню — на её дорожке можно ставить войска на 4 клетки за рекой.</p>
+  <p class="note"><b>День и ночь.</b> День длится 50 с, ночь — 40 с: 0:50–1:30 и 2:20–3:00, в овертайме цикл продолжается. Ночью враг виден, только если стоит в свете (башни, здания, факелы, вспышки) или ближе 2,5 клетки к твоим. Невидимых нельзя выбрать целью — даже башне. Ночные карты ночью, а дневные днём бьют на 25% сильнее и ходят на 15% быстрее. Над таймером видно, сколько осталось до смены.</p>
   <p class="note"><b>Овертайм.</b> Если короны равны — ещё две минуты, эликсир ×2, в последнюю минуту ×3. Первая сломанная башня решает бой; если обе пали одновременно — играем дальше.</p>
   <p class="note"><b>Тайбрейкер.</b> Если и в овертайме ничья: войска исчезают, все башни теряют здоровье, и проигрывает владелец самой слабой башни. Равны — ничья.</p>
   <p class="note"><b>Эволюции и герои.</b> Первый слот колоды — для эволюции: она выходит усиленной сразу и потом через несколько розыгрышей. Второй — для героя со способностью по кнопке (если в колоде нет чемпиона). Открываются за осколки.</p>
@@ -399,7 +400,9 @@ const setPips=(tm,n)=>[...$('#cp'+tm+' .pips').children].forEach((e,i)=>e.classL
 function hud(){const S=G.side[0],e=S.el,ei=Math.floor(e);
  $('#ef').style.width=(e*10)+'%';if(ei!==hs.el){hs.el=ei;$('#en').textContent=ei;$('#eb').classList.toggle('full',ei>=10)}
  const M=CFG.match,left=G.tb?0:G.ot?M.ot-G.otT:M.len-G.t,tm=fmt(left);if(tm!==hs.tm){if(hs.tm&&left<=10&&left>0&&!G.over)AU.sfx('tick');hs.tm=tm;$('#tm').textContent=tm;$('#tm').classList.toggle('low',left<=10||!!G.ot)}
- tips();if(G.ot&&MUS.theme==='battle')MUS.play('ot');
+ tips();if(G.ot&&MUS.theme!=='ot')MUS.play('ot');else if(!G.ot&&!G.over&&(MUS.theme==='battle'||MUS.theme==='night')){const th=G.night?'night':'battle';if(MUS.theme!==th)MUS.play(th)}
+ if(G.cyc&&!G.tb){const C=CFG.cycle,per=C.day+C.night,p=G.t%per,n=p>=C.day,left=Math.ceil(n?per-p:C.day-p),tx=(n?'☾ рассвет через ':'☀ ночь через ')+left;if(tx!==hs.dn){hs.dn=tx;const e=$('#dn');e.textContent=tx;e.classList.toggle('n',n)}}
+ else if(hs.dn){hs.dn='';$('#dn').textContent=''}
  const er=elRate(),ph=G.tb?'ТАЙБРЕЙКЕР':G.ot?'ОВЕРТАЙМ · ×'+er:er>1?'ЭЛИКСИР ×'+er:'ОСТАЛОСЬ';if(ph!==hs.ph){hs.ph=ph;$('#ph').textContent=ph}
  const cr=G.crowns.join();if(cr!==hs.cr){hs.cr=cr;setPips(0,G.crowns[0]);setPips(1,G.crowns[1])}
  if(S.hand.join()+'|'+S.queue[0]+'|'+S.evoN!==hs.sig)renderHand();

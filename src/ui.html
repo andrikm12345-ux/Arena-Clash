@@ -128,6 +128,7 @@ h2.sec{margin:0;font-size:12px;letter-spacing:.14em;color:var(--mute);font-weigh
 #cp1 .pips svg.on{fill:var(--red)}
 #clock{text-align:center;line-height:1}
 #tm{font-family:var(--display);font-size:30px;font-weight:400;font-variant-numeric:tabular-nums}
+#dn{display:block;font-size:10px;color:#ffd27a;height:12px;white-space:nowrap;margin-top:1px}#dn.n{color:#b8c4ff}
 #ph{display:block;font-size:10.5px;letter-spacing:.08em;color:var(--gold);height:12px;white-space:nowrap}
 #stage{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
 #wrap{position:relative;border-radius:14px;overflow:hidden;box-shadow:0 0 0 3px #0a0f1c,0 0 0 5px var(--line),0 14px 40px #000a}
@@ -457,7 +458,7 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
   <section id="battle" class="view" hidden>
     <div id="top">
       <div class="side" id="cp1"><small id="enname">Соперник</small><div class="pips"></div></div>
-      <div id="clock"><b id="tm">3:00</b><span id="ph"></span></div>
+      <div id="clock"><b id="tm">3:00</b><span id="ph"></span><span id="dn" aria-live="off"></span></div>
       <div class="side r" id="cp0"><small>Ты</small><div class="pips"></div></div>
     </div>
     <div id="stage">
