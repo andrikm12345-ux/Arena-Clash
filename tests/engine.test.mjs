@@ -199,3 +199,15 @@ test('тик 30 Гц и одинаковый seed дают одинаковый 
   assert.equal(snap(5), snap(5));
   assert.notEqual(snap(5), snap(6));
 });
+
+test('повтор: журнал команд и seed без ботов воспроизводят бой точно', () => {
+  const w = world({seed: 9, bots: ['novice', 'expert']});
+  run(w, 75);
+  const snap = 'JSON.stringify([G.tick,G.U.map(u=>[u.key,u.x.toFixed(2),u.y.toFixed(2),u.hp]),G.T.map(t=>t.hp),G.side.map(s=>s.hand.join()+s.el.toFixed(4))])';
+  const a = w.run(snap), log = w.run('JSON.stringify(G.log)'), setup = w.run('JSON.stringify(G.setup)');
+  assert.ok(JSON.parse(log).length > 6, 'в журнале есть розыгрыши');
+  const r = makeWorld();
+  r.run(`newMatch(Object.assign(${setup},{bots:[null,null],replay:${log}}))`);
+  run(r, 75);
+  assert.equal(r.run(snap), a);
+});

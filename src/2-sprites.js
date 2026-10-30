@@ -149,6 +149,7 @@ const CH={
   if(at>0)oc(g,0,-6,4+at*4,`rgba(180,255,180,${.5*at})`)}
 };
 const FLYOFF=15;
+CH.scorch=CH.sorcerer||CH.frostsage;
 function drawChar(g,key,tm,x,y,o){const T=TEAM[tm],c=CARDS[key],s=o.s||1,dir=o.dir||1,ph=o.ph||0,at=o.at||0;
  g.save();g.translate(x,y);
  if(!o.noShadow){g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,c.fly?8:2,c.r*s*1.05,c.r*s*.46,0,0,7);g.fill()}

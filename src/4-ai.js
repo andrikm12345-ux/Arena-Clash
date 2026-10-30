@@ -1,10 +1,7 @@
 /* ================= БОТ ================= */
 /* Бот смотрит на поле «сверху»: своя половина у него всегда вверху (fy<320), поэтому один и тот же код играет за любую сторону */
-const SKILL={
- easy:{n:'Новичок',think:2.6,react:1.3,mist:.38,spell:.35,push:10,el:.75,acc:22,abil:.3},
- normal:{n:'Боец',think:1.2,react:.55,mist:.12,spell:.75,push:9,el:1,acc:10,abil:.7},
- hard:{n:'Легенда',think:.55,react:.22,mist:.03,spell:1,push:8,el:1,acc:4,abil:1}};
-function mkBot(tm,cfg){const s=typeof cfg==='string'?SKILL[cfg]:Object.assign({},SKILL.normal,cfg);return{tm,s,think:rnd(1.2,2.5),seen:{},plan:[],lane:RNG()<.5?0:1,lastPush:-99,cleanT:0}}
+const SKILL=CFG.bot.levels;
+function mkBot(tm,cfg){const s=typeof cfg==='string'?(cfg==='random'?{n:'Случайный',random:1,think:1,el:1,react:1,mist:1,acc:0,spell:0,push:10,abil:0}:SKILL[cfg]):Object.assign({},SKILL.normal,cfg);return{tm,s,oppEl:CFG.elixir.start,oppSpent:0,fullT:0,think:1.5,seen:{},plan:[],lane:0,lastPush:-99,cleanT:0}}
 const fyOf=(b,y)=>b.tm?y:H-y;
 const laneOf=x=>x<W/2?0:1;
 function uval(u){const c=u.c;return(c.token?1.5:c.cost/(c.count||1))*(u.hp/u.mx)}
@@ -65,7 +62,21 @@ function placeWin(b,key,lane){const c=CARDS[key],lx=BR[lane],ins=lane?-1:1,pocke
  if(c.spd==='slow')return[lx+ins*12,70];
  if(c.fly)return[lx,240];
  return[lx,288]}
+/* «эксперт» считает эликсир соперника: копит по тем же фазам и вычитает увиденные розыгрыши */
+function trackOppEl(b,dt){const st=G.stats[1-b.tm],spent=st.spent-b.oppSpent;b.oppSpent=st.spent;b.oppEl=clamp(b.oppEl+dt/CFG.elixir.period*elRate()-spent,0,CFG.elixir.max)}
+/* «случайный» бот для турниров: любая доступная карта в любую разрешённую точку */
+function randomThink(b){const S=G.side[b.tm],ok=S.hand.map((k,i)=>[k,i]).filter(([k])=>k&&S.el>=CARDS[k].cost&&!cardBlocked(b.tm,k));if(!ok.length)return;
+ const[k,i]=pickR(ok);for(let n=0;n<12;n++){const x=rnd(20,W-20),y=CARDS[k].type==='spell'?rnd(40,H-40):fyOf(b,rnd(30,290));if(playCard(b.tm,i,x,y))return}}
+/* на полном эликсире обязательно сыграть: самая дешёвая карта в своём тылу (координаты бота: y от своего края) */
+function dumpElixir(b){const S=G.side[b.tm],ks=S.hand.map((k,i)=>[k,i]).filter(([k])=>k&&S.el>=CARDS[k].cost&&!cardBlocked(b.tm,k)).sort((x,y)=>CARDS[x[0]].cost-CARDS[y[0]].cost);
+ for(const[k,i]of ks){const c=CARDS[k];if(c.type==='spell'){const t=G.T.filter(t=>t.tm!==b.tm&&t.hp>0).sort((x,y)=>x.hp-y.hp)[0];if(t&&playCard(b.tm,i,t.x,t.y))return true;continue}
+  for(const[dx,dy]of[[0,100],[-60,110],[60,110],[0,140],[0,200]]){if(playCard(b.tm,i,W/2+dx,fyOf(b,dy)))return true}}
+ return false}
 function botThink(b,dt){const S=G.side[b.tm],s=b.s;
+ if(s.countEl)trackOppEl(b,dt);
+ b.fullT=S.el>=CFG.bot.leakAt?b.fullT+dt:0;
+ if(b.fullT>1.2&&dumpElixir(b)){b.fullT=0;return}
+ if(s.random){b.think-=dt;if(b.think<=0){b.think=rnd(.5,1.5);randomThink(b)}return}
  // способность чемпиона
  if(S.champ&&alive(S.champ)&&S.abCd<=0&&S.el>=S.champ.c.ability.cost){const u=S.champ;let n=0;for(const v of G.U)if(v.tm!==b.tm&&alive(v)&&dist(u,v)<90)n++;
   const nearT=G.T.some(t=>t.tm!==b.tm&&t.hp>0&&dist(u,t)<t.r+40);
@@ -98,12 +109,12 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
  botOffenseSpells(b,hand);
  // атака
  const dbl=elRate()>1,thr=s.push-(dbl?1.5:0)-(G.ot?.5:0);
- const other=G.side[1-b.tm],ol=other.last,punish=ol&&G.t-ol.t<4&&CARDS[ol.key].cost>=5&&fyOf(b,ol.y)>520;
+ const other=G.side[1-b.tm],ol=other.last,punish=ol&&G.t-ol.t<4&&CARDS[ol.key].cost>=5&&fyOf(b,ol.y)>520||s.countEl&&b.oppEl<2.5&&S.el>=5;
  const wins=hand.filter(k=>ROLE[k].win);
  if(wins.length&&(S.el>=thr||punish&&S.el>=CARDS[wins[0]].cost+1)&&G.t-b.lastPush>4){
-  const lane=punish?1-laneOf(ol.x):pushLane(b);let k=wins[0];
-  if(punish){const f=wins.find(x=>CARDS[x].spd==='vfast'||CARDS[x].tunnel);if(f)k=f}
-  else if(wins.length>1)k=wins.sort((x,y)=>(CARDS[y].spd==='slow')-(CARDS[x].spd==='slow'))[S.el>=9.5?0:wins.length-1];
+  const lane=punish&&ol?1-laneOf(ol.x):pushLane(b);let k=wins[0];
+  if(punish&&ol){const f=wins.find(x=>CARDS[x].spd==='vfast'||CARDS[x].tunnel);if(f)k=f}
+  else if(wins.length>1&&ol)k=wins.sort((x,y)=>(CARDS[y].spd==='slow')-(CARDS[x].spd==='slow'))[S.el>=9.5?0:wins.length-1];
   const[px,py]=placeWin(b,k,lane);
   if(botPlay(b,k,px,py)){b.lane=lane;b.lastPush=G.t;b.plan.push({t:G.t+(CARDS[k].spd==='slow'?rnd(2.5,4):rnd(.6,1.4))*(1+s.mist),lane,k:'sup'});return}}
  // не терять эликсир

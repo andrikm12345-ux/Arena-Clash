@@ -11,9 +11,22 @@ const CFG={
  speed:{slow:45,med:60,fast:90,vfast:120,tile:60}, // классы скорости карт; tile — сколько единиц = 1 тайл/с
  sight:{def:5.5,ranged:.5,building:7.5},   // обзор: по умолчанию; у дальнобойных = дальность + ranged; у «только здания»
  retarget:.15,                             // как часто юнит без цели ищет новую
+ unit:{fh:.35,wind:.3,windMax:.4,          // первый удар после захвата цели = hit×fh; замах = min(hit×wind, windMax), удар отменяется, если цель умерла
+  replan:.5},                              // как часто пересчитывать путь по тайлам
  tower:{baseLevel:11,lvMul:1.1,            // цифры ниже — для уровня 11, +10% за уровень
   p:{hp:3052,dmg:109,hit:.8,rng:7.5,r:24},
   k:{hp:4824,dmg:109,hit:1,rng:7,r:32,wakeAim:3.3,wakeShot:.7}},
+ /* бот: think — пауза между решениями; react — задержка реакции на угрозу; mist — доля ошибок;
+    el — множитель эликсира; thp — HP его башен; lvOff — сдвиг уровня карт; countEl — считает эликсир соперника;
+    acc — разброс позиции (точки); spell — готовность к заклинаниям; push — эликсир для атаки; abil — активность способностей */
+ bot:{levels:{
+  novice:{n:'Новичок',think:1.6,react:1.5,mist:.25,el:.8,thp:.4,lvOff:-2,acc:20,spell:.35,push:10,abil:.3},
+  easy:{n:'Лёгкий',think:1.2,react:1.1,mist:.15,el:.9,thp:.7,lvOff:-1,acc:16,spell:.55,push:9.5,abil:.5},
+  normal:{n:'Средний',think:.9,react:.8,mist:.07,el:1,thp:1,lvOff:0,acc:12,spell:.75,push:9,abil:.7},
+  hard:{n:'Сложный',think:.6,react:.5,mist:.02,el:1,thp:1,lvOff:1,acc:8,spell:.95,push:8.5,abil:.9},
+  expert:{n:'Эксперт',think:.4,react:.4,mist:0,el:1.1,thp:1,lvOff:1,acc:5,spell:1,push:8,abil:1,countEl:1}},
+  byArena:['novice','easy','easy','normal','normal','hard','hard','expert'], // уровень бота по арене игрока
+  leakAt:10},                              // на полном эликсире бот обязан что-то сыграть
  /* режимы: elStart — стартовый эликсир; phases — [с какой секунды, множитель]; ot — то же в овертайме;
     sudden — первая сломанная башня решает весь бой */
  modes:{

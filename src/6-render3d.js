@@ -112,6 +112,7 @@ const VIS={
  sorcerer:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.56,atk:['Spellcast_Shoot']},
  knightrider:{m:'Knight',keep:['Knight_Helmet','Knight_Cape','2H_Sword','Round_Shield'],s:.7,idle:'2H_Melee_Idle',move:'Running_A',atk:['2H_Melee_Attack_Stab','2H_Melee_Attack_Chop']},
  frostsage:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.56,tint:'ice',atk:['Spellcast_Shoot']},
+ scorch:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.56,tint:'storm',atk:['Spellcast_Shoot']},
  thunder:{m:'Mage',keep:['Mage_Hat','Mage_Cape','1H_Wand','Spellbook_open'],s:.56,tint:'storm',atk:['Spellcast_Raise','Spellcast_Shoot']},
  mole:{m:'Barbarian',keep:['1H_Axe','Barbarian_Hat'],s:.46,tint:'tan',move:'Running_A',atk:['1H_Melee_Attack_Chop']},
  warlord:{m:'Knight',keep:['Knight_Helmet','Knight_Cape','2H_Sword'],s:.72,tint:'gold',idle:'2H_Melee_Idle',atk:['2H_Melee_Attack_Spin']},

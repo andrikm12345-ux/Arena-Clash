@@ -2,15 +2,19 @@
 let G=null,uid=0;
 const PSPD={arrow:300,stone:260,bolt:340,orb:220,flame:200,bomb:150,ball:280,ice:230,tower:320,king:300};
 /* o: decks, lv, kl, bots, names, train, mode, ex (эво/герой), tt (башенные бойцы), thp (множитель HP башен), seed */
-function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.random()*2147483647|0);RNG=mul(seed);
+/* случайность: у боя свой поток (G.simR), у каждого бота — свой, чтобы повтор по журналу команд без ботов совпадал точно */
+function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.random()*2147483647|0);const simR=mul(seed);RNG=simR;
  const T=[],tt=o.tt||['archer','archer'],A=CFG.arena,mc=CFG.modes[o.mode]||CFG.modes.normal;
  for(const tm of[0,1]){const kl=o.kl[tm],thp=o.thp?o.thp[tm]:1;
   for(const [kind,x,y] of[['p',A.princess[0]*TILE,A.princess[1]*TILE],['p',W-A.princess[0]*TILE,A.princess[1]*TILE],['k',A.king[0]*TILE,A.king[1]*TILE]]){const d=TOWER[kind],hp=Math.round(LV(d.hp,kl)*thp);
    T.push({id:++uid,obj:'t',kind,tm,x,y:tm?H-y:y,r:d.r,hp,mx:hp,dmg:LV(d.dmg,kl),hit:d.hit,rng:d.rng*TILE,cd:rnd(0,.4),fl:0,act:kind==='p'?1:0,wake:0,ang:tm?Math.PI/2:-Math.PI/2,frozenT:0,stunT:0,lvl:kl,fly:false,tg:null});
    if(kind==='p'){const q=TT[tt[tm]]||TT.archer,t=T[T.length-1];t.hp=t.mx=Math.round(hp*q.hp);t.dmg=Math.round(t.dmg*q.dmg);t.hit*=q.hit;t.pk=q.pk;t.tt=tt[tm];if(q.mag){t.mag=t.ammo=q.mag;t.reload=q.reload}}}}
- G={seed,mc,tick:0,downs:[],tb:null,t:0,ot:0,otT:0,over:0,res:-1,endAt:0,crowns:[0,0],U:[],B:[],T,PR:[],FX:[],Z:[],D:[],S:[],PT:[],TX:[],DEC:[],EM:[],CF:[],shake:0,
+ G={seed,simR,log:[],replay:o.replay||null,rpi:0,setup:null,mc,tick:0,downs:[],tb:null,t:0,ot:0,otT:0,over:0,res:-1,endAt:0,crowns:[0,0],U:[],B:[],T,PR:[],FX:[],Z:[],D:[],S:[],PT:[],TX:[],DEC:[],EM:[],CF:[],shake:0,
   side:[0,1].map(tm=>mkSide(tm,o.decks[tm],o.lv[tm],o.kl[tm],o.ex&&o.ex[tm],mc.elStart)),mode:o.mode||'normal',bots:[0,1].map(tm=>o.bots[tm]?mkBot(tm,o.bots[tm]):null),
-  names:o.names||['Ты','Соперник'],train:!!o.train,stats:[{dmg:0,spent:0,played:0,leak:0},{dmg:0,spent:0,played:0,leak:0}]};
+  names:o.names||['Ты','Соперник'],train:!!o.train,stats:[0,1].map(()=>({dmg:0,spent:0,played:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
+ G.side.forEach((S,tm)=>{S.elMul=o.elMul?o.elMul[tm]:G.bots[tm]?G.bots[tm].s.el:1});
+ G.bots.forEach((b,tm)=>{if(b){b.r=mul(seed*31+tm+7);b.think=1.2+b.r()*1.3;b.lane=b.r()<.5?0:1}});
+ G.setup={elMul:G.side.map(S=>S.elMul),decks:o.decks,lv:o.lv,kl:o.kl,mode:o.mode||'normal',ex:o.ex||null,tt:o.tt||null,thp:o.thp||null,seed,names:G.names,train:G.train};
  return G}
 /* стартовая рука — первые карты перемешанной по seed колоды, кроме помеченных noStart */
 function mkSide(tm,deck,lv,kl,ex,el0){const sh=shuffle(deck),n=CFG.hand.size,hand=[];for(const k of sh)if(hand.length<n&&!CARDS[k].noStart)hand.push(k);
@@ -44,7 +48,9 @@ function canPlace(tm,key,x,y){const c=CARDS[key];if(x<8||x>W-8||y<8||y>H-8)retur
  for(const t of G.T)if(t.hp>0){const h=t.kind==='k'?40:30;if(Math.abs(x-t.x)<h&&Math.abs(y-t.y)<h)return false}
  return true}
 function cardBlocked(tm,key){const S=G.side[tm];if(!key)return true;return!!(isAb(S,key)&&S.champ&&alive(S.champ))}
-function playCard(tm,i,x,y){const S=G.side[tm],key=S.hand[i],c=CARDS[key];if(G.tb||G.over||!key||S.el<c.cost||cardBlocked(tm,key)||!canPlace(tm,key,x,y))return false;
+/* все розыгрыши и способности идут журналом команд: tk — тик, ph — 0 до тика (игрок), 1 — в фазе ботов */
+function playCard(tm,i,x,y){const R0=RNG;RNG=G.simR;let ok;try{ok=doPlay(tm,i,x,y)}finally{RNG=R0}if(ok)G.log.push({k:'p',tk:G.tick,ph:G.inBots?1:0,tm,i,x,y});return ok}
+function doPlay(tm,i,x,y){const S=G.side[tm],key=S.hand[i],c=CARDS[key];if(G.tb||G.over||!key||S.el<c.cost||cardBlocked(tm,key)||!canPlace(tm,key,x,y))return false;
  S.el-=c.cost;G.stats[tm].spent+=c.cost;G.stats[tm].played++;S.hand[i]=null;S.pend.push({i,key:S.queue.shift(),t:CFG.hand.delay[elRate()]||CFG.hand.delay[1]});if(isAb(S,key))S.champCard=key;else S.queue.push(key);S.last={x,y,key,t:G.t};
  let fl=null;if(key===S.evo){if(S.evoN>=EVO[key].cyc){fl={evo:1};S.evoN=0}else S.evoN++}else if(key===S.hero)fl={hero:1};
  deploy(tm,key,x,y,fl);return true}
@@ -85,7 +91,9 @@ function updZones(dt){for(const z of G.Z){z.t-=dt;
    z.tick-=dt;if(z.tick<=0){z.tick+=1;areaHit(z.tm,z.x,z.y,z.r,z.dps,z.tdps,'ga')}}
   else if(z.k==='aura'){if(alive(z.u)){z.x=z.u.x;z.y=z.u.y}for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r)u.rageT=Math.max(u.rageT,.5)}}
  G.Z=G.Z.filter(z=>z.t>0)}
-function useAbility(tm){const S=G.side[tm],u=S.champ;if(!alive(u))return false;const a=u.c.ability;if(S.abCd>0||S.el<a.cost)return false;
+function useAbility(tm){const R0=RNG;RNG=G.simR;let ok;try{ok=doAbility(tm)}finally{RNG=R0}if(ok)G.log.push({k:'a',tk:G.tick,ph:G.inBots?1:0,tm});return ok}
+function applyReplay(ph){const L=G.replay;while(G.rpi<L.length&&L[G.rpi].tk===G.tick&&L[G.rpi].ph===ph){const c=L[G.rpi++];if(c.k==='p')doPlay(c.tm,c.i,c.x,c.y);else doAbility(c.tm)}}
+function doAbility(tm){const S=G.side[tm],u=S.champ;if(!alive(u))return false;const a=u.c.ability;if(S.abCd>0||S.el<a.cost)return false;
  S.el-=a.cost;S.abCd=a.cd;const k=a.k||'horn';
  if(k==='horn'){u.shield=u.smx=LV(a.shield,u.lvl);G.Z.push({k:'aura',tm,u,x:u.x,y:u.y,r:a.r*TILE,t:a.rage,tot:a.rage});ring(u.x,u.y,a.r*TILE,'#ffd84d')}
  else if(k==='taunt'){u.shield=u.smx=LV(a.shield,u.lvl);for(const v of G.U)if(v.tm!==tm&&alive(v)&&canHit(v.c,u)&&dist(u,v)<a.r*TILE){v.tg=u;v.lock=0;v.rt=a.t}ring(u.x,u.y,a.r*TILE,'#ff7a5a');ring(u.x,u.y,a.r*TILE*.6,'#ffd84d')}
@@ -96,7 +104,9 @@ function useAbility(tm){const S=G.side[tm],u=S.champ;if(!alive(u))return false;c
 /* ---------- цели и движение ---------- */
 function canHit(c,o){if(o.fly&&c.tg==='g')return false;if(c.tg==='b'&&o.obj==='u')return false;return true}
 function pathDist(u,o){if(u.fly||u.c.jump)return dist(u,o);if((u.y-RY)*(o.y-RY)>0)return dist(u,o);let m=1e9;for(const bx of BR){const d=Math.hypot(u.x-bx,u.y-RY)+Math.hypot(o.x-bx,o.y-RY);if(d<m)m=d}return m}
-function findTarget(u){const c=u.c,sight=(c.sight||5.5)*TILE;let best=null,bd=1e9;
+/* обзор: явный у карты; у «только здания» — CFG.sight.building; у дальнобойных — дальность + CFG.sight.ranged; иначе по умолчанию */
+function sightOf(c){return c.sight||(c.tg==='b'?CFG.sight.building:c.rng>=2?c.rng+CFG.sight.ranged:CFG.sight.def)}
+function findTarget(u){const c=u.c,sight=sightOf(c)*TILE;let best=null,bd=1e9;
  if(c.tg!=='b'){for(const v of G.U)if(v.tm!==u.tm&&alive(v)&&canHit(c,v)){const d=dist(u,v)-v.r;if(d<sight&&d<bd){bd=d;best=v}}
   for(const o of G.B)if(o.tm!==u.tm&&alive(o)){const d=dist(u,o)-o.r;if(d<sight&&d<bd){bd=d;best=o}}
   for(const o of G.T)if(o.tm!==u.tm&&o.hp>0){const d=dist(u,o)-o.r;if(d<sight&&d<bd){bd=d;best=o}}
@@ -104,8 +114,38 @@ function findTarget(u){const c=u.c,sight=(c.sight||5.5)*TILE;let best=null,bd=1e
  for(const o of G.B)if(o.tm!==u.tm&&alive(o)){const d=pathDist(u,o);if(d<bd){bd=d;best=o}}
  for(const o of G.T)if(o.tm!==u.tm&&o.hp>0){const d=pathDist(u,o);if(d<bd){bd=d;best=o}}
  return best}
+/* ---------- поиск пути по тайлам ----------
+   Непроходимы: река (кроме мостов, для прыгунов — проходима), живые башни и здания, кроме самой цели.
+   8 направлений без срезания углов. Сетка препятствий собирается раз за тик. */
+const GW=CFG.arena.tilesW,GH=CFG.arena.tilesH;
+function obstacleGrid(){if(G.grid&&G.gridTick===G.tick)return G.grid;const g=new Int32Array(GW*GH);
+ for(const o of G.T)if(o.hp>0)markObs(g,o);for(const o of G.B)if(alive(o))markObs(g,o);G.grid=g;G.gridTick=G.tick;return g}
+function markObs(g,o){const r=o.r+6;for(let ty=Math.max(0,Math.floor((o.y-r)/TILE));ty<=Math.min(GH-1,Math.floor((o.y+r)/TILE));ty++)
+ for(let tx=Math.max(0,Math.floor((o.x-r)/TILE));tx<=Math.min(GW-1,Math.floor((o.x+r)/TILE));tx++){const cx=(tx+.5)*TILE,cy=(ty+.5)*TILE;if(Math.abs(cx-o.x)<r&&Math.abs(cy-o.y)<r)g[ty*GW+tx]=o.id}}
+const riverTile=(tx,ty)=>{const cy=(ty+.5)*TILE;if(Math.abs(cy-RY)>=RIV)return false;const cx=(tx+.5)*TILE;return!BR.some(b=>Math.abs(cx-b)<=CFG.arena.bridgeHalf*TILE*.5)};
+function passable(g,u,tx,ty,tid){if(tx<0||ty<0||tx>=GW||ty>=GH)return false;const o=g[ty*GW+tx];if(o&&o!==tid)return false;return u.c.jump||!riverTile(tx,ty)}
+function findPath(u,t){const g=obstacleGrid(),sx=clamp(Math.floor(u.x/TILE),0,GW-1),sy=clamp(Math.floor(u.y/TILE),0,GH-1),ex=clamp(Math.floor(t.x/TILE),0,GW-1),ey=clamp(Math.floor(t.y/TILE),0,GH-1),tid=t.id;
+ const N=GW*GH,gs=new Float32Array(N).fill(1e9),from=new Int32Array(N).fill(-1),done=new Uint8Array(N),open=[sy*GW+sx];gs[sy*GW+sx]=0;
+ const h=i=>{const dx=Math.abs(i%GW-ex),dy=Math.abs((i/GW|0)-ey);return Math.max(dx,dy)+.414*Math.min(dx,dy)};
+ let found=-1,iter=0;
+ while(open.length&&iter++<N*2){let bi=0,bf=1e9;for(let k=0;k<open.length;k++){const f=gs[open[k]]+h(open[k]);if(f<bf){bf=f;bi=k}}
+  const c=open[bi];open[bi]=open[open.length-1];open.pop();if(done[c])continue;done[c]=1;
+  const cx=c%GW,cy=c/GW|0;if(cx===ex&&cy===ey){found=c;break}
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const nx=cx+dx,ny=cy+dy;
+   if(!passable(g,u,nx,ny,tid))continue;if(dx&&dy&&(!passable(g,u,cx+dx,cy,tid)||!passable(g,u,cx,cy+dy,tid)))continue;
+   const ni=ny*GW+nx,ng=gs[c]+(dx&&dy?1.414:1);if(ng<gs[ni]){gs[ni]=ng;from[ni]=c;open.push(ni)}}}
+ if(found<0)return null;const P=[];for(let i=found;i>=0&&i!==sy*GW+sx;i=from[i])P.push({x:(i%GW+.5)*TILE,y:((i/GW|0)+.5)*TILE});P.reverse();return P}
+/* прямая видимость по сетке: можно ли идти по отрезку, не задевая препятствий */
+function clearLine(u,a,b,tid){const g=obstacleGrid(),n=Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/(TILE*.4));
+ for(let i=1;i<=n;i++){const x=a.x+(b.x-a.x)*i/n,y=a.y+(b.y-a.y)*i/n;if(!passable(g,u,Math.floor(x/TILE),Math.floor(y/TILE),tid))return false}return true}
 function bestBridge(u,t){let bx=BR[0],m=1e9;for(const b of BR){const d=Math.hypot(u.x-b,u.y-RY)+Math.hypot(t.x-b,t.y-RY);if(d<m){m=d;bx=b}}return bx}
-function goal(u,t){if(u.fly)return t;if(u.c.jump){if(Math.abs(u.y-RY)<RIV+8&&!u.jmp){u.jmp=1;AU.sfx('charge')}if(Math.abs(u.y-RY)>=RIV+8)u.jmp=0;return t}const dy=u.y-RY,s=Math.sign(dy)||1,s2=Math.sign(t.y-RY)||s;
+/* куда идти сейчас: летуны — прямо; наземные — по пути из тайлов, срезая видимые участки */
+function goal(u,t){if(u.fly)return t;
+ if(clearLine(u,u,t,t.id)){u.path=null;return t}
+ if(!u.path||u.pathTg!==t||G.t-u.pathT>CFG.unit.replan){u.path=findPath(u,t);u.pathTg=t;u.pathT=G.t}
+ const P=u.path;if(P&&P.length){while(P.length>1&&(dist(u,P[0])<6||clearLine(u,u,P[1],t.id)))P.shift();if(dist(u,P[0])<3&&P.length===1)P.shift();if(P.length)return P[0]}
+ return goalLane(u,t)}
+function goalLane(u,t){if(u.c.jump){if(Math.abs(u.y-RY)<RIV+8&&!u.jmp){u.jmp=1;AU.sfx('charge')}if(Math.abs(u.y-RY)>=RIV+8)u.jmp=0;return t}const dy=u.y-RY,s=Math.sign(dy)||1,s2=Math.sign(t.y-RY)||s;
  if(Math.abs(dy)>RIV+6&&s===s2){u.bx=null;return t}
  if(u.bx==null)u.bx=bestBridge(u,t);const bx=u.bx;
  if(Math.abs(dy)<=RIV+6){if(Math.abs(u.x-bx)>5&&Math.abs(dy)>RIV-3)return{x:bx,y:u.y};return{x:bx,y:RY+s2*(RIV+16)}}
@@ -119,18 +159,23 @@ function updUnit(u,dt){if(!alive(u))return;const c=u.c;
  u.cd-=dt;
  if(u.tg&&!aliveT(u.tg)){u.tg=null;u.lock=0}
  u.rt-=dt;
- if(!u.lock&&u.rt<=0){const nt=findTarget(u);if(nt&&nt!==u.tg){u.tg=nt;u.cd=Math.max(u.cd,hitOf(u)*.35)}u.rt=CFG.retarget}
+ if(!u.lock&&u.rt<=0){const nt=findTarget(u);if(nt&&nt!==u.tg){u.tg=nt;u.wu=0;u.beamT=0;u.cd=Math.max(u.cd,c.fh??hitOf(u)*CFG.unit.fh)}u.rt=CFG.retarget}
  const t=u.tg;if(!t)return;
  const d=dist(u,t),reach=c.rng*TILE+t.r+u.r*.6;
  if(Math.abs(t.x-u.x)>1)u.face=t.x<u.x?-1:1;
+ if(u.wu>0){u.wu-=dt;if(u.wu<=0){u.wu=0;if(aliveT(t)&&d<=reach+6){attack(u,t);u.cd=Math.max(0,hitOf(u)-windOf(u))}}return}
  if(d<=reach){u.lock=1;
   if(c.kami){explode(u,t);return}
-  if(u.cd<=0){attack(u,t);u.cd=hitOf(u);u.sw=.28}}
+  if(u.cd<=0){const w=windOf(u);u.sw=.28;if(w>0)u.wu=w;else{attack(u,t);u.cd=hitOf(u)}}}
  else{if(u.lock&&d>reach+12)u.lock=0;
   const g2=goal(u,t),gx=g2.x-u.x,gy=g2.y-u.y,gd=Math.hypot(gx,gy)||1,s=spdOf(u)*dt,m=Math.min(s,gd);
   u.x+=gx/gd*m;u.y+=gy/gd*m;u.ph+=dt*(spdOf(u)/5);
   if(c.charge){u.run+=m;if(!u.charging&&u.run>60){u.charging=1;AU.sfx('charge')}}}}
+/* замах: удар наносится в конце; если цель умерла или ушла — удар пропадает */
+function windOf(u){const c=u.c;if(c.wind!=null)return c.wind;if(c.beam||c.kami||u.obj!=='u')return 0;return Math.min(hitOf(u)*CFG.unit.wind,CFG.unit.windMax)}
 function attack(u,t){const c=u.c;let dmg=u.dmg;
+ if(c.beam){if(u.beamTg!==t){u.beamTg=t;u.beamT=0}const b=c.beam;let st=0,acc=0;for(const x of b.t){acc+=x;if(u.beamT>=acc)st++}u.beamT+=hitOf(u);
+  hitTarget(u,t,LV(b.dmg[Math.min(st,b.dmg.length-1)],u.lvl));u.beamSt=st;G.FX.push({k:'bolt',x:u.x,y:u.y-12,x2:t.x,y2:t.y-8-(t.fly?FLYOFF:0),l:0,m:hitOf(u)*.9,beam:st});return}
  if(u.charging){dmg*=2;u.charging=0;ring(t.x,t.y,18,'#ffe9a8');G.shake=Math.max(G.shake,2)}u.run=0;
  if(c.chain){const ts=[t];for(const v of G.U)if(ts.length<c.chain&&v!==t&&v.tm!==u.tm&&alive(v)&&canHit(c,v)&&dist(u,v)<=c.rng*TILE+v.r+8)ts.push(v);
   for(const x of ts){hitTarget(u,x,dmg);if(c.stun)stunObj(x,c.stun);G.FX.push({k:'bolt',x:u.x,y:u.y-12-(u.fly?FLYOFF:0),x2:x.x,y2:x.y-8-(x.fly?FLYOFF:0),l:0,m:.18})}AU.sfx('zap');return}
@@ -143,11 +188,11 @@ function hitTarget(src,o,dmg){if((o.obj==='t'||o.obj==='b')&&src.c&&src.c.td)dmg
 function explode(u,t){areaHit(u.tm,t.x,t.y,u.c.splash*TILE,u.dmg,u.dmg,'ga');ring(t.x,t.y,u.c.splash*TILE,'#ffb347');puff(t.x,t.y,'#ff8a2a',12,70,3);AU.sfx('boom');u.hp=0;u.nodeath=1}
 function areaHit(tm,x,y,r,dmg,tdmg,tg,opt){opt=opt||{};const p={x,y};
  if(tg!=='b')for(const v of G.U)if(v.tm!==tm&&v!==opt.skip&&alive(v)&&!(v.fly&&tg==='g')&&dist(v,p)<r+v.r*.5){damage(v,dmg,tm);
-  if(opt.stun)stunObj(v,opt.stun);if(opt.slow)slowObj(v,opt.slow);if(opt.freeze)v.frozenT=Math.max(v.frozenT,opt.freeze);
-  if(opt.knock&&v.mass<10&&!v.fly){const d=dist(v,p)||1;v.x+=(v.x-x)/d*opt.knock;v.y+=(v.y-y)/d*opt.knock}}
+  if(opt.stun)stunObj(v,opt.stun);if(opt.slow)slowObj(v,opt.slow);if(opt.freeze){v.frozenT=Math.max(v.frozenT,opt.freeze);v.wu=0;v.beamT=0}
+  if(opt.knock&&v.mass<10&&!v.fly){const d=dist(v,p)||1;v.x+=(v.x-x)/d*opt.knock;v.y+=(v.y-y)/d*opt.knock;v.wu=0;v.lock=0;v.rt=0;v.beamT=0}}
  for(const o of G.B)if(o.tm!==tm&&o!==opt.skip&&alive(o)&&dist(o,p)<r+o.r*.6){damage(o,tdmg,tm);if(opt.stun)stunObj(o,opt.stun);if(opt.freeze)o.frozenT=Math.max(o.frozenT,opt.freeze)}
  for(const o of G.T)if(o.tm!==tm&&o!==opt.skip&&o.hp>0&&dist(o,p)<r+o.r*.6){damage(o,tdmg,tm);if(opt.stun)stunObj(o,opt.stun);if(opt.freeze)o.frozenT=Math.max(o.frozenT,opt.freeze)}}
-function stunObj(o,t){o.stunT=Math.max(o.stunT||0,t);if(o.obj==='u'){o.charging=0;o.run=0;o.cd=Math.max(o.cd,hitOf(o)*.5)}else o.cd=Math.max(o.cd||0,(o.hit||1)*.5)}
+function stunObj(o,t){o.stunT=Math.max(o.stunT||0,t);if(o.obj==='u'){o.charging=0;o.run=0;o.wu=0;o.beamT=0;o.beamTg=null;o.cd=Math.max(o.cd,hitOf(o)*.5)}else o.cd=Math.max(o.cd||0,(o.hit||1)*.5)}
 function slowObj(o,s){if(o.obj!=='u')return;o.slowT=Math.max(o.slowT,s.t);o.slowF=Math.max(o.slowF||0,s.f)}
 function damage(o,d,fromTm){if(G.over||d<=0)return;if(!aliveT(o))return;
  if(o.shield>0){const a=Math.min(o.shield,d);o.shield-=a;d-=a;if(o.shield<=0)puff(o.x,o.y-12,'#ffe9a8',8,40,2);if(d<=0){o.fl=.08;return}}
@@ -161,10 +206,10 @@ function towerDown(t){if(t.dead)return;t.dead=1;t.hp=0;
  G.FX.push({k:'crown',x:t.x,y:t.y-24,tm:1-t.tm,n:t.kind==='k'?3:1,l:0,m:1.6});setTimeout(()=>AU.sfx(t.tm?'crown':'crownLose'),250);
  if(t.kind==='p')for(const k of G.T)if(k.tm===t.tm&&k.kind==='k')wakeKing(k);
  G.crowns=[crownsOf(0),crownsOf(1)];const win=1-t.tm;
- for(const b of G.bots)if(b&&RNG()<.55)emote(b.tm,b.tm===t.tm?2:3);
+ for(const b of G.bots)if(b&&b.r()<.55)emote(b.tm,b.tm===t.tm?2:3);
  G.downs.push({tm:t.tm,kind:t.kind})}
 function finish(res){if(G.over)return;G.over=1;G.res=res;G.endAt=(typeof performance!=='undefined'?performance.now():0)+CFG.match.endDelay*1000;
- if(res===0&&!G.bots[0]&&!REDUCE)for(let i=0;i<110;i++)G.CF.push({x:rnd(0,W),y:rnd(-120,-5),vx:rnd(-25,25),vy:rnd(50,130),r:rnd(0,6.28),vr:rnd(-9,9),w:rnd(3,6),c:pickR(['#ffc83d','#3da5ff','#ff5c4d','#5ef2d0','#c77dff','#ffffff']),l:0,m:rnd(2.2,3.4)});for(const b of G.bots)if(b&&RNG()<.7)emote(b.tm,G.res===b.tm?3:1)}
+ if(res===0&&!G.bots[0]&&!REDUCE)for(let i=0;i<110;i++)G.CF.push({x:rnd(0,W),y:rnd(-120,-5),vx:rnd(-25,25),vy:rnd(50,130),r:rnd(0,6.28),vr:rnd(-9,9),w:rnd(3,6),c:pickR(['#ffc83d','#3da5ff','#ff5c4d','#5ef2d0','#c77dff','#ffffff']),l:0,m:rnd(2.2,3.4)});for(const b of G.bots)if(b&&b.r()<.7)emote(b.tm,G.res===b.tm?3:1)}
 /* исход по упавшим за тик башням: король — сразу победа и 3 короны (оба короля — ничья);
    в овертайме и «внезапной смерти» первая башня решает, но если обе стороны потеряли башню в один тик — бой продолжается */
 function resolveDowns(){if(!G.downs.length||G.over)return;const d=G.downs;G.downs=[];
@@ -234,6 +279,7 @@ function emote(tm,i){if(!G||G.over&&G.endAt<performance.now())return;const last=
 /* один тик симуляции (CFG.sim.hz раз в секунду) */
 const TICK=1/CFG.sim.hz;
 function step(dt){if(!G)return;dt=dt||TICK;if(G.over){fxStep(dt);return}
+ if(G.replay)applyReplay(0);
  G.tick++;
  if(G.tb){stepTiebreak(dt);fxStep(dt);return}
  const M=CFG.match,m0=elRate();G.t+=dt;
@@ -242,9 +288,9 @@ function step(dt){if(!G)return;dt=dt||TICK;if(G.over){fxStep(dt);return}
  if(G.ot){G.otT+=dt;if(G.otT>=M.ot)return startTiebreak()}
  const m=elRate();if(m>m0)banner(m===2?'Двойной эликсир!':'Тройной эликсир!','#e08bff');
  const r=dt/CFG.elixir.period*m,mx=CFG.elixir.max;
- for(const S of G.side){if(S.el>=mx)G.stats[S.tm].leak+=r;const b=G.bots[S.tm];S.el=Math.min(mx,S.el+r*(b?b.s.el:1));S.abCd=Math.max(0,S.abCd-dt);
+ for(const S of G.side){const st=G.stats[S.tm];if(S.el>=mx){st.leak+=r;st.fullCur+=dt;st.fullMax=Math.max(st.fullMax,st.fullCur)}else if(st.fullCur>0){st.fullN++;st.fullSum+=st.fullCur;st.fullCur=0}S.el=Math.min(mx,S.el+r*S.elMul);S.abCd=Math.max(0,S.abCd-dt);
   for(const p of S.pend){p.t-=dt;if(p.t<=0){S.hand[p.i]=p.key;p.done=1}}S.pend=S.pend.filter(p=>!p.done)}
- for(const b of G.bots)if(b)botThink(b,dt);
+ G.inBots=1;for(const b of G.bots)if(b){RNG=b.r;botThink(b,dt);RNG=G.simR}if(G.replay)applyReplay(1);G.inBots=0;
  updDeploys(dt);
  for(const u of G.U)updUnit(u,dt);
  separate();

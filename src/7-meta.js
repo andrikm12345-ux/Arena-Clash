@@ -4,7 +4,7 @@ const ARENAS=[
  {n:'Драконьи скалы',tr:1100},{n:'Ядовитая топь',tr:1500},{n:'Грозовая цитадель',tr:1950},{n:'Каменный трон',tr:2450}];
 const ARENA_OF={guard:0,shooters:0,bones:0,imps:0,slingers:0,bomber:0,cannon:0,volley:0,giant:0,crossbow:0,axe:0,fireball:0,
  lair:1,legion:1,wisp:1,spark:1,hammer:2,militia:2,ram:2,bats:3,freeze:3,frostsage:3,drake:4,airship:4,sorcerer:4,
- poison:5,mole:5,cry:5,thunder:6,knightrider:6,colossus:7,warlord:7};
+ poison:5,mole:5,scorch:4,cry:5,thunder:6,knightrider:6,colossus:7,warlord:7};
 const arenaOf=tr=>{let a=0;ARENAS.forEach((x,i)=>{if(tr>=x.tr)a=i});return a};
 const MAXLV=16,KL_MAX=16;
 /* уровни карт 1–16; редкость задаёт стартовый уровень (START_LV в 1-data.js).
@@ -140,8 +140,8 @@ function buy(o){if(bought(o))return null;const have=o.cur==='gold'?P.gold:P.gems
  saveP();return res}
 
 /* ---------- подбор соперника ---------- */
-function skillFor(a){const mix=(x,y,f)=>{const o={};for(const k in x)o[k]=typeof x[k]==='number'?x[k]+(y[k]-x[k])*f:y[k];return o};
- return a<=3?mix(SKILL.easy,SKILL.normal,a/3):mix(SKILL.normal,SKILL.hard,(a-3)/4)}
+/* уровень бота по арене игрока (CFG.bot.byArena) */
+const skillFor=a=>CFG.bot.byArena[clamp(a,0,CFG.bot.byArena.length-1)];
 function genBotDeck(a){const ok=k=>ARENA_OF[k]<=a,pre=BOT_DECKS.filter(d=>d.every(ok));if(pre.length&&Math.random()<.55)return pickV(pre).slice();
  const pool=CARD_IDS.filter(ok),R=k=>ROLE[k],d=[];
  const put=k=>{if(k&&!d.includes(k)&&d.length<8&&!(CARDS[k].rar==='champion'&&d.some(x=>CARDS[x].rar==='champion')))d.push(k)};
@@ -159,11 +159,13 @@ function botExtras(deck,a){const ex={evo:null,hero:null};
 const botTT=a=>a<1?'archer':pickV(Object.keys(TT));
 /* уровни бота считаются «от старта редкости»: rel 0 = стартовый уровень карты */
 const relLv=k=>lvOf(k)-START_LV[CARDS[k].rar];
-function botSetup(a,train){const deck=genBotDeck(a),avg=curDeck().reduce((s,k)=>s+relLv(k),0)/8,lv={};
- const base=train?avg:(ARENA_LV[a]-1+avg)/2;for(const k of deck){const s0=START_LV[CARDS[k].rar];lv[k]=clamp(s0+Math.round(base+(train?0:rndV(-.6,.6))),s0,MAXLV)}
+function botSetup(a,train){const deck=genBotDeck(a),avg=curDeck().reduce((s,k)=>s+relLv(k),0)/8,lv={},sk=train?P.train:skillFor(a),L=SKILL[sk];
+ const base=(train?avg:(ARENA_LV[a]-1+avg)/2)+L.lvOff;for(const k of deck){const s0=START_LV[CARDS[k].rar];lv[k]=clamp(s0+Math.round(base+(train?0:rndV(-.6,.6))),s0,MAXLV)}
  const kl=train?P.kl:clamp(Math.round((ARENA_LV[a]+P.kl)/2),1,KL_MAX);
- return{deck,lv,kl,skill:train?P.train:skillFor(a),ex:botExtras(deck,a),tt:botTT(a)}}
-function trophyDelta(res){const a=curArena();if(res===0)return 30+(Math.random()*3|0);if(res===1)return a===0?0:-(a<=3?12:a<=5?16:20);return 0}
+ return{deck,lv,kl,skill:sk,thp:L.thp,ex:botExtras(deck,a),tt:botTT(a)}}
+/* трофеи: +30 за победу, −15…−30 за поражение (больше на высоких аренах); первая арена не отнимает */
+const TROPHY={win:30,lose:[0,15,18,21,24,26,28,30]};
+function trophyDelta(res){const a=curArena();if(res===0)return TROPHY.win;if(res===1)return-TROPHY.lose[a];return 0}
 
 /* ---------- клан ---------- */
 const REQ_N={common:10,rare:2},REQ_GAP=60*60*1000,REQ_FILL=5*60*1000;

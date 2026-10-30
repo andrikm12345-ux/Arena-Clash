@@ -323,7 +323,7 @@ function startBattle1(train,opt){AU.sfx('ui');closeSheet();lastOpt=opt;const a=c
  if(TH!==THEMES[a]){TH=THEMES[a];BG=null}
  let decks=[curDeck(),B.deck],lv=[levelsMap(),B.lv],ex=[deckSpecial(),B.ex];
  if(md==='draft'){const eq={};for(const k of CARD_IDS)eq[k]=START_LV[CARDS[k].rar]+ARENA_LV[a];decks=[opt.deck,opt.bot];lv=[eq,eq];ex=[{},{}]}
- newMatch({decks,lv,kl:[P.kl,B.kl],bots:[null,B.skill],names:['Ты',nm],train:train||!!opt,mode:md,ex,tt:[P.tt,B.tt]});G.event=opt?md:null;
+ newMatch({decks,lv,kl:[P.kl,B.kl],bots:[null,B.skill],names:['Ты',nm],train:train||!!opt,mode:md,ex,tt:[P.tt,B.tt],thp:[1,B.thp]});G.event=opt?md:null;
  mode='play';sel=null;gx=-1;paused=false;hideOv();$('#emo').hidden=true;$('#tip').hidden=true;
  $('#enname').textContent=train?`Тренировка · ${SKILL[P.train].n}`:opt?`${MODE_N[md]} · ${nm}`:`${nm} · ур. ${B.kl}`;
  showView('battle');R3.on=false;if(R3.want&&R3.ready&&r3Begin(a))r3Show();else r3Stop();hs={};renderHand();$('#help').hidden=P.tut>0;banner(train?'Тренировка':opt?MODE_N[md]:'В бой!','#ffc83d')}
