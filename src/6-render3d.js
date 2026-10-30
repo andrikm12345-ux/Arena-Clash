@@ -380,20 +380,22 @@ function syncTowers(dt,now){for(const v of S3.towers){const t=v.t;
   if(v.k&&t.act&&u.cur===u.act('Cheer')&&!u.cur.isRunning())u.play('Idle',{fade:.3})}}
 function lerpAng(a,b,k){let d=((b-a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;return a+d*Math.min(1,k)}
 /* бойцы */
-function unitView(u){const key=u.key,v={u,key,proc:!!PROC[key],h:HEIGHT[key]||0,yaw:u.tm?0:Math.PI,lx:u.x,ly:u.y,sw:0,spawn:u.spawnT>0?1:0,t:0};
+function unitView(u){const key=u.key,v={u,key,proc:!!PROC[key],h:HEIGHT[key]||0,yaw:u.tm?0:Math.PI,lx:IX(u),ly:IY(u),sw:0,spawn:u.spawnT>0?1:0,t:0};
  if(v.proc){v.root=procModel(key,u.tm);v.parts=v.root.userData.parts}else{v.inst=r3Inst(key,u.tm);v.root=v.inst.root;
   if(u.spawnT>0){const sp=VIS[key].spawn;if(sp){v.inst.play(sp,{once:true,ts:1.6,fade:0});v.rise=1}}}
  const ring=new T.Mesh(new T.RingGeometry(u.r/TILE*.95,u.r/TILE*1.15,24),new T.MeshBasicMaterial({color:TEAM[u.tm].m,transparent:true,opacity:.55,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.03;v.ring=ring;S3.dyn.add(ring);if(u.evo||u.hero){ring.material.opacity=.9;ring.scale.setScalar(1.25)}
  v.root.rotation.y=v.yaw;S3.dyn.add(v.root);if(!v.h)burst(u.x,u.y,.2,'#c9b99a',8,1.3,.7,0);return v}
 function syncUnits(dt,now){const seen=new Set();
  for(const u of G.U){let v=S3.units.get(u);if(!v){v=unitView(u);S3.units.set(u,v)}seen.add(u);
-  const X=W3(u.x),Z=Z3(u.y),dx=u.x-v.lx,dy=u.y-v.ly,moved=Math.hypot(dx,dy);v.lx=u.x;v.ly=u.y;
+  const ux=IX(u),uy=IY(u),X=W3(ux),Z=Z3(uy),dx=ux-v.lx,dy=uy-v.ly,moved=Math.hypot(dx,dy);v.lx=ux;v.ly=uy;
+  // направление движения сглаживается, чтобы толчки соседей не дёргали поворот
+  v.vx=(v.vx||0)*.85+dx*.15;v.vy=(v.vy||0)*.85+dy*.15;
   let y=v.h?v.h+Math.sin(now/300+u.id)*.12:0;
   if(u.spawnT>0&&!v.rise&&!REDUCE){const p=u.spawnT/.3;y+=p*p*3}
   y+=jumpH(u)/TILE*1.1;
   v.root.position.set(X,y,Z);v.ring.position.set(X,.03,Z);
   // поворот: к цели, если бьёт, иначе по ходу
-  let want=v.yaw;if(u.tg&&u.lock&&(alive(u.tg)||u.tg.obj==='t'))want=Math.atan2(u.tg.x-u.x,u.tg.y-u.y);else if(moved>.05)want=Math.atan2(dx,dy);
+  let want=v.yaw;if(u.tg&&u.lock&&(alive(u.tg)||u.tg.obj==='t'))want=Math.atan2(u.tg.x-u.x,u.tg.y-u.y);else if(Math.hypot(v.vx,v.vy)>.06)want=Math.atan2(v.vx,v.vy);
   v.yaw=lerpAng(v.yaw,want,dt*10);v.root.rotation.y=v.yaw;
   const still=u.frozenT>0||u.stunT>0,rage=u.rageT>0?1.35:1;
   if(v.inst){const I=v.inst,V=I.V;I.mixer.timeScale=still?0:rage*(u.slowT>0?1-u.slowF:1);
@@ -436,7 +438,7 @@ function syncProj(dt){const seen=new Set();
  for(const p of G.PR){let v=S3.proj.get(p);if(!v){const fromT=!!p.tw;v={p,m:projModel(p.pk,p.tm),sx:p.x,sy:p.y,sh:fromT?(p.pk==='king'?3.6:3.4):1.1,
    tot:Math.max(1,Math.hypot(p.lx-p.x,p.ly-p.y)),arc:p.pk==='bomb'||p.pk==='stone'?1.6:p.pk==='ball'||p.pk==='king'||p.pk==='tball'?.4:.6,px:W3(p.x),pz:Z3(p.y),py:0};S3.dyn.add(v.m);S3.proj.set(p,v)}
   seen.add(p);const rem=Math.hypot(p.lx-p.x,p.ly-p.y),k=clamp(1-rem/v.tot,0,1),eh=p.fly?2.3:.75,y=v.sh+(eh-v.sh)*k+Math.sin(k*Math.PI)*v.arc;
-  const X=W3(p.x),Z=Z3(p.y);v.m.position.set(X,y,Z);
+  const X=W3(IX(p)),Z=Z3(IY(p));v.m.position.set(X,y,Z);
   if(v.m.children.length){const d=new T.Vector3(X-v.px,y-v.py,Z-v.pz);if(d.lengthSq()>1e-6)v.m.lookAt(X+d.x,y+d.y,Z+d.z)}
   if(p.pk==='orb'||p.pk==='flame')S3.parts.add.emit(X,y,Z,0,.2,0,'#ff8a2a',.28,.35);
   if(p.pk==='ice')S3.parts.add.emit(X,y,Z,0,.1,0,'#9fe0ff',.2,.3);
@@ -535,8 +537,8 @@ function overlay(now){const g=X,k=C.width/360;g.setTransform(1,0,0,1,0,0);g.clea
  const bar=(sx,sy,w,p,tm,gold)=>{w*=k;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,gold?'#ffd84d':'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,Math.max(0,w*p),4*k,2*k,tm?'#ff6a5a':'#4cd37a')};
  for(const b of G.B){const[sx,sy]=proj(b.x,b.y,1.9);bar(sx,sy,28,b.hp/b.mx,b.tm)}
  for(const u of G.U){if(u.spawnT>0)continue;const v=S3.units.get(u),hh=(v&&v.inst?2.47*v.inst.V.s*US3:1.7)+(HEIGHT[u.key]||0)+.25;
-  if(u.hp<u.mx||u.c.ability){const[sx,sy]=proj(u.x,u.y,hh);const w=Math.max(16,u.r*2.2);bar(sx,sy,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,sx-w*k/2,sy-6*k,w*k*u.shield/u.smx,3*k,1.5*k,'#ffd84d')}
-  if(u.stunT>0){const[sx,sy]=proj(u.x,u.y,hh+.3);g.save();g.scale(k,k);stars(g,sx/k,sy/k,now);g.restore()}}
+  if(u.hp<u.mx||u.c.ability){const[sx,sy]=proj(IX(u),IY(u),hh);const w=Math.max(16,u.r*2.2);bar(sx,sy,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,sx-w*k/2,sy-6*k,w*k*u.shield/u.smx,3*k,1.5*k,'#ffd84d')}
+  if(u.stunT>0){const[sx,sy]=proj(IX(u),IY(u),hh+.3);g.save();g.scale(k,k);stars(g,sx/k,sy/k,now);g.restore()}}
  for(const t of G.T){if(t.hp<=0)continue;const[sx,sy]=proj(t.x,t.y,t.kind==='k'?(t.tm?3.9:3.6):(t.tm?3.6:3.3));g.save();g.translate(sx,sy);g.scale(k,k);towerBar(g,Object.assign({},t,{x:0,y:0,tm:t.tm,kind:t.kind,r:0}));g.restore();
   if(t.kind==='k'&&!t.act){g.save();g.scale(k,k);g.fillStyle='#fff';g.font=`800 11px ${FONT}`;g.textAlign='center';g.fillText('z',sx/k+16,sy/k+26-Math.sin(now/500)*3);g.font=`800 8px ${FONT}`;g.fillText('z',sx/k+22,sy/k+18-Math.sin(now/500+1)*3);g.restore()}}
  for(const d of G.D){const tun=d.tun||0,dep=d.tot-tun;if(d.tot-d.t<tun)continue;const left=Math.max(0,d.t),pr=1-left/dep,[sx,sy]=proj(d.x,d.y,.05);

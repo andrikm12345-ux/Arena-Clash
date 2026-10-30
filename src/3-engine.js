@@ -293,6 +293,7 @@ const TICK=1/CFG.sim.hz;
 function step(dt){if(!G)return;dt=dt||TICK;if(G.over){fxStep(dt);return}
  if(G.replay)applyReplay(0);
  G.tick++;
+ for(const u of G.U){u.px=u.x;u.py=u.y}for(const p of G.PR){p.px=p.x;p.py=p.y}
  if(G.tb){stepTiebreak(dt);fxStep(dt);return}
  const M=CFG.match,m0=elRate();G.t+=dt;
  if(G.mc.sudden&&G.t>=M.len)return startTiebreak();

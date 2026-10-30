@@ -18,7 +18,7 @@ const CFG={
   p:{hp:3052,dmg:109,hit:.8,rng:7.5,r:24},
   k:{hp:4824,dmg:109,hit:1,rng:7,r:32,wakeAim:3.3,wakeShot:.7}},
  juice:{heavyHit:500,hitStop:.05,kingSlow:.5,slowScale:.25,shakeDecay:60}, // хит-стоп на ударах от heavyHit урона; замедление при падении короля
- music:{battle:{bpm:112,key:0},ot:{bpm:140,key:2},menu:{bpm:84,key:-3}},     // темп и сдвиг тональности (полутоны)
+ music:{battle:{bpm:134,key:0},ot:{bpm:156,key:2},menu:{bpm:104,key:-5}},    // темп и сдвиг тональности (полутоны от ля минора)
  /* бот: think — пауза между решениями; react — задержка реакции на угрозу; mist — доля ошибок;
     el — множитель эликсира; thp — HP его башен; lvOff — сдвиг уровня карт; countEl — считает эликсир соперника;
     acc — разброс позиции (точки); spell — готовность к заклинаниям; push — эликсир для атаки; abil — активность способностей */
@@ -57,6 +57,9 @@ const REDUCE=matchMedia('(prefers-reduced-motion:reduce)').matches;
 const SET=Object.assign({sfx:.8,music:.5,shake:'full',fx:'full',debug:false},store.get('ac.set',{}));
 const saveSet=()=>store.set('ac.set',SET);
 const SHAKE_K={full:1,low:.4,off:0};
+/* плавность: бой идёт тиками 30 Гц, а кадры чаще — позиция рисуется между прошлым и текущим тиком */
+let ALPHA=1;
+const IX=o=>o.px==null?o.x:o.px+(o.x-o.px)*ALPHA,IY=o=>o.py==null?o.y:o.py+(o.y-o.py)*ALPHA;
 const TEAM=[{m:'#3da5ff',d:'#1b5ca3',l:'#a6d6ff'},{m:'#ff5c4d',d:'#9e2a20',l:'#ffb8ae'}];
 /* скорость в точках арены в секунду (клетка = 20 точек) */
 const SPD=Object.fromEntries(['slow','med','fast','vfast'].map(k=>[k,CFG.speed[k]/CFG.speed.tile*TILE]));
@@ -177,26 +180,41 @@ const AU={c:null,mute:!!store.get('ac.mute',false),nb:null,last:{},
    case 'crownLose':this.t(180,.5,'sawtooth',.06,-80);this.t(120,.6,'triangle',.08,-40,.1);break;
    case 'pop':this.t(520+Math.random()*200,.07,'sine',.04,-300);break;
    case 'chest':this.n(.25,.12,1200);this.t(150,.25,'triangle',.1,60);break}}};
-/* музыка без файлов: бас, аккорды-арпеджио и ударные по сетке; планировщик на 0,3 с вперёд.
-   Темы: menu — спокойная, battle — бой, ot — быстрее и выше для овертайма */
+/* музыка без файлов, боевая: прямая бочка, хлопки, хэты шестнадцатыми, качающий бас восьмыми,
+   арпеджио и «мощные» аккорды. Гармония ля минор: Am – F – C – G. Овертайм быстрее и выше, меню легче.
+   Планировщик ставит ноты на 0,3 с вперёд */
 const MUS={theme:null,step:0,next:0,timer:null,g:null,
- PROG:[[0,4,7],[-3,0,4],[-7,-3,0],[-5,-1,2]],
+ PROG:[[0,3,7],[-4,0,3],[3,7,10],[-2,2,5]],
+ ARP:[0,1,2,1,2,1,0,2,0,1,2,2,1,2,0,1],
  play(th){if(this.theme===th)return;this.theme=th;AU.init();const c=AU.c;if(!c)return;
-  if(!this.g){this.g=c.createGain();this.g.connect(c.destination)}this.vol();
-  this.step=0;this.next=c.currentTime+.1;if(!this.timer)this.timer=setInterval(()=>this.tick(),100)},
+  if(!this.g){this.g=c.createGain();const comp=c.createDynamicsCompressor();this.g.connect(comp);comp.connect(c.destination)}this.vol();
+  this.step=0;this.next=c.currentTime+.1;if(!this.timer)this.timer=setInterval(()=>this.tick(),90)},
  stop(){this.theme=null;if(this.timer){clearInterval(this.timer);this.timer=null}},
- vol(){if(this.g)this.g.gain.value=AU.mute?0:SET.music*.3},
- note(f,t,d,type,v){const c=AU.c,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(this.g);o.start(t);o.stop(t+d+.02)},
- drum(t,kind){const c=AU.c;if(!AU.nb)AU.n(.001,.0001);const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=AU.nb;f.type=kind==='k'?'lowpass':'highpass';f.frequency.value=kind==='k'?180:kind==='s'?1500:7000;
-  const v=kind==='k'?.5:kind==='s'?.22:.07,d=kind==='h'?.04:.12;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(f);f.connect(g);g.connect(this.g);s.start(t);s.stop(t+d+.02);
-  if(kind==='k')this.note(55,t,.18,'sine',.5)},
- tick(){const c=AU.c,T=CFG.music[this.theme];if(!c||!T)return;const e=60/T.bpm/2,hz=n=>261.63*Math.pow(2,(n+T.key)/12);
-  while(this.next<c.currentTime+.3){const st=this.step++,t=this.next,bar=(st>>3)%4,b=st%8,ch=this.PROG[bar];
-   if(b%4===0)this.note(hz(ch[0]-24),t,e*3.6,'triangle',.32);
-   if(this.theme!=='menu'||b%2===0)this.note(hz(ch[[0,1,2,1][(st>>(this.theme==='menu'?1:0))%4]]+12),t,e*.9,'square',this.theme==='menu'?.04:.05);
-   if(this.theme!=='menu'){if(b%4===0)this.drum(t,'k');if(b%4===2)this.drum(t,'s');if(this.theme==='ot'||b%2===1)this.drum(t,'h')}
-   else if(b===0)this.note(hz(ch[2]),t,e*7,'sine',.06);
-   this.next+=e}}};
+ vol(){if(this.g)this.g.gain.value=AU.mute?0:SET.music*.32},
+ note(f,t,d,type,v,cut){const c=AU.c,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f;let out=o;
+  if(cut){const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.setValueAtTime(cut*2.5,t);fl.frequency.exponentialRampToValueAtTime(cut,t+d*.6);o.connect(fl);out=fl}
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+d);out.connect(g);g.connect(this.g);o.start(t);o.stop(t+d+.02)},
+ noise(t,d,v,type,f){const c=AU.c;if(!AU.nb)AU.nb=(()=>{const b=c.createBuffer(1,c.sampleRate,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1;return b})();
+  const s=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();s.buffer=AU.nb;fl.type=type;fl.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  s.connect(fl);fl.connect(g);g.connect(this.g);s.start(t,Math.random()*.5);s.stop(t+d+.02)},
+ kick(t){const c=AU.c,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(42,t+.12);
+  g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(.0001,t+.28);o.connect(g);g.connect(this.g);o.start(t);o.stop(t+.3)},
+ tick(){const c=AU.c,th=this.theme,T=CFG.music[th];if(!c||!T)return;const s16=60/T.bpm/4,hz=n=>110*Math.pow(2,(n+T.key)/12),menu=th==='menu',ot=th==='ot';
+  while(this.next<c.currentTime+.3){const st=this.step++,t=this.next,b=st%16,bar=(st>>4)%4,ch=this.PROG[bar],root=ch[0],big=(st>>6)%2;
+   // ударные
+   if(menu?b%8===0:b%4===0)this.kick(t);
+   if(!menu&&ot&&b===14)this.kick(t);
+   if(b%8===4){this.noise(t,.16,menu?.18:.32,'bandpass',1800);this.noise(t+.012,.1,menu?.1:.2,'highpass',3000)}
+   if(ot||(!menu&&b%2===0)||(menu&&b%4===2))this.noise(t,b%4===2?.09:.035,b%4===2?.09:.05,'highpass',8000);
+   // бас: восьмые, «качает» октавой
+   if(b%2===0)this.note(hz(root-12+(b%4===2&&!menu?12:0)),t,s16*1.8,'sawtooth',menu?.16:.24,menu?500:700);
+   // мощный аккорд на сильную долю такта и перед сменой
+   if(!menu&&(b===0||b===10))for(const n of[root,root+7,root+12])this.note(hz(n),t,s16*(b===0?6:3),'sawtooth',.05,1800);
+   // арпеджио шестнадцатыми (в меню — восьмыми), во второй половине куплета на октаву выше
+   if(!menu||b%2===0){const n=ch[this.ARP[b]]+24+(big&&!menu?12:0)+(ot?12:0);this.note(hz(n),t,s16*.9,menu?'triangle':'square',menu?.06:.045)}
+   // разгон в конце каждых 4 тактов
+   if(!menu&&bar===3&&b>=12)this.noise(t,s16,.04+.03*(b-12),'highpass',2000+600*(b-12));
+   this.next+=s16}}};
 /* ================= ПЕРСОНАЖИ (свои, без чужих рисунков). Начало координат у ног ================= */
 const oc=(g,x,y,r,f,s,lw)=>{g.beginPath();g.arc(x,y,r,0,7);if(f){g.fillStyle=f;g.fill()}if(s){g.strokeStyle=s;g.lineWidth=lw||1;g.stroke()}};
 const rr=(g,x,y,w,h,r,f)=>{g.beginPath();g.roundRect(x,y,w,h,r);g.fillStyle=f;g.fill()};
@@ -671,6 +689,7 @@ const TICK=1/CFG.sim.hz;
 function step(dt){if(!G)return;dt=dt||TICK;if(G.over){fxStep(dt);return}
  if(G.replay)applyReplay(0);
  G.tick++;
+ for(const u of G.U){u.px=u.x;u.py=u.y}for(const p of G.PR){p.px=p.x;p.py=p.y}
  if(G.tb){stepTiebreak(dt);fxStep(dt);return}
  const M=CFG.match,m0=elRate();G.t+=dt;
  if(G.mc.sudden&&G.t>=M.len)return startTiebreak();
@@ -1473,20 +1492,22 @@ function syncTowers(dt,now){for(const v of S3.towers){const t=v.t;
   if(v.k&&t.act&&u.cur===u.act('Cheer')&&!u.cur.isRunning())u.play('Idle',{fade:.3})}}
 function lerpAng(a,b,k){let d=((b-a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;return a+d*Math.min(1,k)}
 /* бойцы */
-function unitView(u){const key=u.key,v={u,key,proc:!!PROC[key],h:HEIGHT[key]||0,yaw:u.tm?0:Math.PI,lx:u.x,ly:u.y,sw:0,spawn:u.spawnT>0?1:0,t:0};
+function unitView(u){const key=u.key,v={u,key,proc:!!PROC[key],h:HEIGHT[key]||0,yaw:u.tm?0:Math.PI,lx:IX(u),ly:IY(u),sw:0,spawn:u.spawnT>0?1:0,t:0};
  if(v.proc){v.root=procModel(key,u.tm);v.parts=v.root.userData.parts}else{v.inst=r3Inst(key,u.tm);v.root=v.inst.root;
   if(u.spawnT>0){const sp=VIS[key].spawn;if(sp){v.inst.play(sp,{once:true,ts:1.6,fade:0});v.rise=1}}}
  const ring=new T.Mesh(new T.RingGeometry(u.r/TILE*.95,u.r/TILE*1.15,24),new T.MeshBasicMaterial({color:TEAM[u.tm].m,transparent:true,opacity:.55,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.03;v.ring=ring;S3.dyn.add(ring);if(u.evo||u.hero){ring.material.opacity=.9;ring.scale.setScalar(1.25)}
  v.root.rotation.y=v.yaw;S3.dyn.add(v.root);if(!v.h)burst(u.x,u.y,.2,'#c9b99a',8,1.3,.7,0);return v}
 function syncUnits(dt,now){const seen=new Set();
  for(const u of G.U){let v=S3.units.get(u);if(!v){v=unitView(u);S3.units.set(u,v)}seen.add(u);
-  const X=W3(u.x),Z=Z3(u.y),dx=u.x-v.lx,dy=u.y-v.ly,moved=Math.hypot(dx,dy);v.lx=u.x;v.ly=u.y;
+  const ux=IX(u),uy=IY(u),X=W3(ux),Z=Z3(uy),dx=ux-v.lx,dy=uy-v.ly,moved=Math.hypot(dx,dy);v.lx=ux;v.ly=uy;
+  // направление движения сглаживается, чтобы толчки соседей не дёргали поворот
+  v.vx=(v.vx||0)*.85+dx*.15;v.vy=(v.vy||0)*.85+dy*.15;
   let y=v.h?v.h+Math.sin(now/300+u.id)*.12:0;
   if(u.spawnT>0&&!v.rise&&!REDUCE){const p=u.spawnT/.3;y+=p*p*3}
   y+=jumpH(u)/TILE*1.1;
   v.root.position.set(X,y,Z);v.ring.position.set(X,.03,Z);
   // поворот: к цели, если бьёт, иначе по ходу
-  let want=v.yaw;if(u.tg&&u.lock&&(alive(u.tg)||u.tg.obj==='t'))want=Math.atan2(u.tg.x-u.x,u.tg.y-u.y);else if(moved>.05)want=Math.atan2(dx,dy);
+  let want=v.yaw;if(u.tg&&u.lock&&(alive(u.tg)||u.tg.obj==='t'))want=Math.atan2(u.tg.x-u.x,u.tg.y-u.y);else if(Math.hypot(v.vx,v.vy)>.06)want=Math.atan2(v.vx,v.vy);
   v.yaw=lerpAng(v.yaw,want,dt*10);v.root.rotation.y=v.yaw;
   const still=u.frozenT>0||u.stunT>0,rage=u.rageT>0?1.35:1;
   if(v.inst){const I=v.inst,V=I.V;I.mixer.timeScale=still?0:rage*(u.slowT>0?1-u.slowF:1);
@@ -1529,7 +1550,7 @@ function syncProj(dt){const seen=new Set();
  for(const p of G.PR){let v=S3.proj.get(p);if(!v){const fromT=!!p.tw;v={p,m:projModel(p.pk,p.tm),sx:p.x,sy:p.y,sh:fromT?(p.pk==='king'?3.6:3.4):1.1,
    tot:Math.max(1,Math.hypot(p.lx-p.x,p.ly-p.y)),arc:p.pk==='bomb'||p.pk==='stone'?1.6:p.pk==='ball'||p.pk==='king'||p.pk==='tball'?.4:.6,px:W3(p.x),pz:Z3(p.y),py:0};S3.dyn.add(v.m);S3.proj.set(p,v)}
   seen.add(p);const rem=Math.hypot(p.lx-p.x,p.ly-p.y),k=clamp(1-rem/v.tot,0,1),eh=p.fly?2.3:.75,y=v.sh+(eh-v.sh)*k+Math.sin(k*Math.PI)*v.arc;
-  const X=W3(p.x),Z=Z3(p.y);v.m.position.set(X,y,Z);
+  const X=W3(IX(p)),Z=Z3(IY(p));v.m.position.set(X,y,Z);
   if(v.m.children.length){const d=new T.Vector3(X-v.px,y-v.py,Z-v.pz);if(d.lengthSq()>1e-6)v.m.lookAt(X+d.x,y+d.y,Z+d.z)}
   if(p.pk==='orb'||p.pk==='flame')S3.parts.add.emit(X,y,Z,0,.2,0,'#ff8a2a',.28,.35);
   if(p.pk==='ice')S3.parts.add.emit(X,y,Z,0,.1,0,'#9fe0ff',.2,.3);
@@ -1628,8 +1649,8 @@ function overlay(now){const g=X,k=C.width/360;g.setTransform(1,0,0,1,0,0);g.clea
  const bar=(sx,sy,w,p,tm,gold)=>{w*=k;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,gold?'#ffd84d':'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,Math.max(0,w*p),4*k,2*k,tm?'#ff6a5a':'#4cd37a')};
  for(const b of G.B){const[sx,sy]=proj(b.x,b.y,1.9);bar(sx,sy,28,b.hp/b.mx,b.tm)}
  for(const u of G.U){if(u.spawnT>0)continue;const v=S3.units.get(u),hh=(v&&v.inst?2.47*v.inst.V.s*US3:1.7)+(HEIGHT[u.key]||0)+.25;
-  if(u.hp<u.mx||u.c.ability){const[sx,sy]=proj(u.x,u.y,hh);const w=Math.max(16,u.r*2.2);bar(sx,sy,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,sx-w*k/2,sy-6*k,w*k*u.shield/u.smx,3*k,1.5*k,'#ffd84d')}
-  if(u.stunT>0){const[sx,sy]=proj(u.x,u.y,hh+.3);g.save();g.scale(k,k);stars(g,sx/k,sy/k,now);g.restore()}}
+  if(u.hp<u.mx||u.c.ability){const[sx,sy]=proj(IX(u),IY(u),hh);const w=Math.max(16,u.r*2.2);bar(sx,sy,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,sx-w*k/2,sy-6*k,w*k*u.shield/u.smx,3*k,1.5*k,'#ffd84d')}
+  if(u.stunT>0){const[sx,sy]=proj(IX(u),IY(u),hh+.3);g.save();g.scale(k,k);stars(g,sx/k,sy/k,now);g.restore()}}
  for(const t of G.T){if(t.hp<=0)continue;const[sx,sy]=proj(t.x,t.y,t.kind==='k'?(t.tm?3.9:3.6):(t.tm?3.6:3.3));g.save();g.translate(sx,sy);g.scale(k,k);towerBar(g,Object.assign({},t,{x:0,y:0,tm:t.tm,kind:t.kind,r:0}));g.restore();
   if(t.kind==='k'&&!t.act){g.save();g.scale(k,k);g.fillStyle='#fff';g.font=`800 11px ${FONT}`;g.textAlign='center';g.fillText('z',sx/k+16,sy/k+26-Math.sin(now/500)*3);g.font=`800 8px ${FONT}`;g.fillText('z',sx/k+22,sy/k+18-Math.sin(now/500+1)*3);g.restore()}}
  for(const d of G.D){const tun=d.tun||0,dep=d.tot-tun;if(d.tot-d.t<tun)continue;const left=Math.max(0,d.t),pr=1-left/dep,[sx,sy]=proj(d.x,d.y,.05);
@@ -2476,7 +2497,7 @@ function fit(){if($('#battle').hidden)return;const st=$('#stage'),w=st.clientWid
 new ResizeObserver(()=>requestAnimationFrame(fit)).observe($('#stage'));
 let lastT=0,acc=0;
 function loop(ts){const dt=Math.min(.05,(ts-lastT)/1000||0);lastT=ts;
- if(G&&(mode==='play'||mode==='end'||mode==='replay')&&!paused){let sd=dt*(mode==='replay'?rspeed:1);if(G.slowmo>0){G.slowmo-=dt;sd*=CFG.juice.slowScale}if(G.hitstop>0){G.hitstop-=dt;sd=0}acc+=sd;let n=0;while(acc>=TICK&&n<4){step(TICK);acc-=TICK;n++}if(n===4)acc=0;
+ if(G&&(mode==='play'||mode==='end'||mode==='replay')&&!paused){let sd=dt*(mode==='replay'?rspeed:1);if(G.slowmo>0){G.slowmo-=dt;sd*=CFG.juice.slowScale}if(G.hitstop>0){G.hitstop-=dt;sd=0}acc+=sd;let n=0;while(acc>=TICK&&n<4){step(TICK);acc-=TICK;n++}if(n===4)acc=0;ALPHA=clamp(acc/TICK,0,1);
   if(mode==='play'&&G.over&&performance.now()>G.endAt)endScreen();if(mode==='replay'&&G.over&&performance.now()>G.endAt&&!OV.classList.contains('on'))replayDone()}
  if(G&&!$('#battle').hidden&&$('#loot').hidden){if(R3.on)r3Frame(ts);else draw(ts);hud()}
  requestAnimationFrame(loop)}

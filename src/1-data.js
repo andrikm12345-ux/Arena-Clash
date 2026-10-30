@@ -14,6 +14,9 @@ const REDUCE=matchMedia('(prefers-reduced-motion:reduce)').matches;
 const SET=Object.assign({sfx:.8,music:.5,shake:'full',fx:'full',debug:false},store.get('ac.set',{}));
 const saveSet=()=>store.set('ac.set',SET);
 const SHAKE_K={full:1,low:.4,off:0};
+/* плавность: бой идёт тиками 30 Гц, а кадры чаще — позиция рисуется между прошлым и текущим тиком */
+let ALPHA=1;
+const IX=o=>o.px==null?o.x:o.px+(o.x-o.px)*ALPHA,IY=o=>o.py==null?o.y:o.py+(o.y-o.py)*ALPHA;
 const TEAM=[{m:'#3da5ff',d:'#1b5ca3',l:'#a6d6ff'},{m:'#ff5c4d',d:'#9e2a20',l:'#ffb8ae'}];
 /* скорость в точках арены в секунду (клетка = 20 точек) */
 const SPD=Object.fromEntries(['slow','med','fast','vfast'].map(k=>[k,CFG.speed[k]/CFG.speed.tile*TILE]));
@@ -134,23 +137,38 @@ const AU={c:null,mute:!!store.get('ac.mute',false),nb:null,last:{},
    case 'crownLose':this.t(180,.5,'sawtooth',.06,-80);this.t(120,.6,'triangle',.08,-40,.1);break;
    case 'pop':this.t(520+Math.random()*200,.07,'sine',.04,-300);break;
    case 'chest':this.n(.25,.12,1200);this.t(150,.25,'triangle',.1,60);break}}};
-/* музыка без файлов: бас, аккорды-арпеджио и ударные по сетке; планировщик на 0,3 с вперёд.
-   Темы: menu — спокойная, battle — бой, ot — быстрее и выше для овертайма */
+/* музыка без файлов, боевая: прямая бочка, хлопки, хэты шестнадцатыми, качающий бас восьмыми,
+   арпеджио и «мощные» аккорды. Гармония ля минор: Am – F – C – G. Овертайм быстрее и выше, меню легче.
+   Планировщик ставит ноты на 0,3 с вперёд */
 const MUS={theme:null,step:0,next:0,timer:null,g:null,
- PROG:[[0,4,7],[-3,0,4],[-7,-3,0],[-5,-1,2]],
+ PROG:[[0,3,7],[-4,0,3],[3,7,10],[-2,2,5]],
+ ARP:[0,1,2,1,2,1,0,2,0,1,2,2,1,2,0,1],
  play(th){if(this.theme===th)return;this.theme=th;AU.init();const c=AU.c;if(!c)return;
-  if(!this.g){this.g=c.createGain();this.g.connect(c.destination)}this.vol();
-  this.step=0;this.next=c.currentTime+.1;if(!this.timer)this.timer=setInterval(()=>this.tick(),100)},
+  if(!this.g){this.g=c.createGain();const comp=c.createDynamicsCompressor();this.g.connect(comp);comp.connect(c.destination)}this.vol();
+  this.step=0;this.next=c.currentTime+.1;if(!this.timer)this.timer=setInterval(()=>this.tick(),90)},
  stop(){this.theme=null;if(this.timer){clearInterval(this.timer);this.timer=null}},
- vol(){if(this.g)this.g.gain.value=AU.mute?0:SET.music*.3},
- note(f,t,d,type,v){const c=AU.c,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(this.g);o.start(t);o.stop(t+d+.02)},
- drum(t,kind){const c=AU.c;if(!AU.nb)AU.n(.001,.0001);const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=AU.nb;f.type=kind==='k'?'lowpass':'highpass';f.frequency.value=kind==='k'?180:kind==='s'?1500:7000;
-  const v=kind==='k'?.5:kind==='s'?.22:.07,d=kind==='h'?.04:.12;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(f);f.connect(g);g.connect(this.g);s.start(t);s.stop(t+d+.02);
-  if(kind==='k')this.note(55,t,.18,'sine',.5)},
- tick(){const c=AU.c,T=CFG.music[this.theme];if(!c||!T)return;const e=60/T.bpm/2,hz=n=>261.63*Math.pow(2,(n+T.key)/12);
-  while(this.next<c.currentTime+.3){const st=this.step++,t=this.next,bar=(st>>3)%4,b=st%8,ch=this.PROG[bar];
-   if(b%4===0)this.note(hz(ch[0]-24),t,e*3.6,'triangle',.32);
-   if(this.theme!=='menu'||b%2===0)this.note(hz(ch[[0,1,2,1][(st>>(this.theme==='menu'?1:0))%4]]+12),t,e*.9,'square',this.theme==='menu'?.04:.05);
-   if(this.theme!=='menu'){if(b%4===0)this.drum(t,'k');if(b%4===2)this.drum(t,'s');if(this.theme==='ot'||b%2===1)this.drum(t,'h')}
-   else if(b===0)this.note(hz(ch[2]),t,e*7,'sine',.06);
-   this.next+=e}}};
+ vol(){if(this.g)this.g.gain.value=AU.mute?0:SET.music*.32},
+ note(f,t,d,type,v,cut){const c=AU.c,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f;let out=o;
+  if(cut){const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.setValueAtTime(cut*2.5,t);fl.frequency.exponentialRampToValueAtTime(cut,t+d*.6);o.connect(fl);out=fl}
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+d);out.connect(g);g.connect(this.g);o.start(t);o.stop(t+d+.02)},
+ noise(t,d,v,type,f){const c=AU.c;if(!AU.nb)AU.nb=(()=>{const b=c.createBuffer(1,c.sampleRate,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1;return b})();
+  const s=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();s.buffer=AU.nb;fl.type=type;fl.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  s.connect(fl);fl.connect(g);g.connect(this.g);s.start(t,Math.random()*.5);s.stop(t+d+.02)},
+ kick(t){const c=AU.c,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(42,t+.12);
+  g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(.0001,t+.28);o.connect(g);g.connect(this.g);o.start(t);o.stop(t+.3)},
+ tick(){const c=AU.c,th=this.theme,T=CFG.music[th];if(!c||!T)return;const s16=60/T.bpm/4,hz=n=>110*Math.pow(2,(n+T.key)/12),menu=th==='menu',ot=th==='ot';
+  while(this.next<c.currentTime+.3){const st=this.step++,t=this.next,b=st%16,bar=(st>>4)%4,ch=this.PROG[bar],root=ch[0],big=(st>>6)%2;
+   // ударные
+   if(menu?b%8===0:b%4===0)this.kick(t);
+   if(!menu&&ot&&b===14)this.kick(t);
+   if(b%8===4){this.noise(t,.16,menu?.18:.32,'bandpass',1800);this.noise(t+.012,.1,menu?.1:.2,'highpass',3000)}
+   if(ot||(!menu&&b%2===0)||(menu&&b%4===2))this.noise(t,b%4===2?.09:.035,b%4===2?.09:.05,'highpass',8000);
+   // бас: восьмые, «качает» октавой
+   if(b%2===0)this.note(hz(root-12+(b%4===2&&!menu?12:0)),t,s16*1.8,'sawtooth',menu?.16:.24,menu?500:700);
+   // мощный аккорд на сильную долю такта и перед сменой
+   if(!menu&&(b===0||b===10))for(const n of[root,root+7,root+12])this.note(hz(n),t,s16*(b===0?6:3),'sawtooth',.05,1800);
+   // арпеджио шестнадцатыми (в меню — восьмыми), во второй половине куплета на октаву выше
+   if(!menu||b%2===0){const n=ch[this.ARP[b]]+24+(big&&!menu?12:0)+(ot?12:0);this.note(hz(n),t,s16*.9,menu?'triangle':'square',menu?.06:.045)}
+   // разгон в конце каждых 4 тактов
+   if(!menu&&bar===3&&b>=12)this.noise(t,s16,.04+.03*(b-12),'highpass',2000+600*(b-12));
+   this.next+=s16}}};
