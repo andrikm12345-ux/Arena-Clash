@@ -13,5 +13,6 @@
 ## Авторы ресурсов
 
 - 3D-персонажи, оружие и окружение — KayKit, Kay Lousberg (kaylousberg.com), CC0.
+- Монстры — Ultimate Monsters, Quaternius (quaternius.com), CC0. Склеп, знамёна, факелы — KayKit Dungeon Remastered и Halloween Bits, CC0.
 - Небо — Poly Haven (polyhaven.com), CC0.
 - Three.js — MIT, см. `vendor/three/LICENSE`.

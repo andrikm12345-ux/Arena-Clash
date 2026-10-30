@@ -109,7 +109,7 @@ function openRules(){AU.init();AU.sfx('ui');const sh=$('#sheet');
   <p class="note"><b>Эволюции и герои.</b> Первый слот колоды — для эволюции: она выходит усиленной сразу и потом через несколько розыгрышей. Второй — для героя со способностью по кнопке (если в колоде нет чемпиона). Открываются за осколки.</p>
   <p class="note"><b>Башня и режимы.</b> Перед боем выбери, кто стоит на башнях: лучница, пушкарь или метательница кинжалов. Во вкладке «События» — тройной эликсир, внезапная смерть и драфт.</p>
   <p class="note"><b>Прогресс.</b> За победы — кубки и сундук удачи. Карты из сундуков улучшают уровни, улучшения дают опыт короля, а он укрепляет башни. Кубки открывают новые арены и карты.</p>
-  <p class="note" style="font-size:11.5px"><b>Авторы.</b> 3D-персонажи, оружие и окружение — наборы KayKit, Kay Lousberg (kaylousberg.com, CC0). Текстуры и небо — Poly Haven (polyhaven.com, CC0). 3D-движок — Three.js (MIT).</p>
+  <p class="note" style="font-size:11.5px"><b>Авторы.</b> 3D-персонажи, оружие и окружение — наборы KayKit, Kay Lousberg (kaylousberg.com, CC0). Монстры — Ultimate Monsters, Quaternius (quaternius.com, CC0). Склеп, знамёна, факелы — KayKit Dungeon и Halloween (CC0). Небо — Poly Haven (polyhaven.com, CC0). 3D-движок — Three.js (MIT).</p>
   <button class="big blue" id="shx">Понятно</button></div>`;
  sh.hidden=false;sh.onclick=e=>{if(e.target===sh)closeSheet()};$('#shx').onclick=closeSheet;$('#shx').focus()}
 setInterval(()=>{if($('#home').hidden||tab!=='clan')return;const e=$('#reqp');if(e)renderHome()},5000);

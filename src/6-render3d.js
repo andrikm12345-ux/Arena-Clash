@@ -26,14 +26,14 @@ async function r3Load(){if(R3.loading||R3.ready||!T)return;R3.loading=true;R3.fa
   R.shadowMap.enabled=true;R.shadowMap.type=T.PCFSoftShadowMap;S3.R=R;
   const files=['Knight','Barbarian','Mage','Rogue','Rogue_Hooded','Skeleton_Minion','Skeleton_Warrior','Skeleton_Mage','Skeleton_Rogue'];
   const texs=[];
-  const total=files.length+2+texs.length*3+1;let done=0;const tick=()=>{R3.progress=++done/total};
+  const total=files.length+3+texs.length*3+1;let done=0;const tick=()=>{R3.progress=++done/total};
   const L=new T3.GLTFLoader();
   const TL=new T.TextureLoader();
   // на сайте модели лежат обычными файлами, в артефакте — внутри страницы
   const bin=n=>window.AC_SITE?fetch(n==='sky'?'assets/t/sky.hdr':'assets/m/'+n+'.glb').then(r=>{if(!r.ok)throw new Error('файл '+n+' не загрузился ('+r.status+')');return r.arrayBuffer()}):payload(n).then(b64buf);
   const ld=(u)=>bin(u).then(b=>{const k=window.createImageBitmap;try{window.createImageBitmap=undefined}catch(e){}const pr=L.parseAsync(b,'');try{window.createImageBitmap=k}catch(e){}return pr}).then(g=>{tick();return g});
   const lt=(u,srgb)=>payload(u.replace('.jpg','')).then(s=>TL.loadAsync('data:image/jpeg;base64,'+s)).then(t=>{tick();t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=Math.min(8,R.capabilities.getMaxAnisotropy());if(srgb)t.colorSpace=T.SRGBColorSpace;return t});
-  const jobs=[...files.map(f=>ld(f).then(g=>{A3.gl[f]=g})),ld('anims').then(g=>{for(const c of g.animations)A3.clips[c.name]=c}),ld('props').then(g=>{A3.lib=g.scene}),
+  const jobs=[...files.map(f=>ld(f).then(g=>{A3.gl[f]=g})),ld('anims').then(g=>{for(const c of g.animations)A3.clips[c.name]=c}),ld('props').then(g=>{A3.lib=g.scene}),ld('monsters').then(g=>{A3.mon=g.scene;for(const c of g.animations)A3.clips[c.name]=c}),
    bin('sky').then(b=>{tick();const r=new T3.RGBELoader().parse(b),t=new T.DataTexture(r.data,r.width,r.height,T.RGBAFormat,r.type);t.colorSpace=T.LinearSRGBColorSpace;t.minFilter=t.magFilter=T.LinearFilter;t.generateMipmaps=false;t.flipY=true;t.needsUpdate=true;A3.hdr=t})];
   await Promise.all(jobs);
   r3Setup();await r3LoadTheme(curArena());store.set('ac.q3',0);applyQual();R3.ready=true;setTimeout(r3Icons,50);
@@ -105,7 +105,12 @@ const VIS={
  slingers:{m:'Rogue',keep:['Rogue_Cape','Throwable'],s:.46,move:'Running_B',atk:['Throw']},
  bomber:{m:'Skeleton_Rogue',keep:['Skeleton_Rogue_Hood','Skeleton_Rogue_Cape'],add:[['bomb','handslot.r']],s:.5,atk:['Throw'],spawn:'Spawn_Ground_Skeletons'},
  militia:{m:'Barbarian',keep:['Barbarian_Hat','Barbarian_Cape','1H_Axe','Barbarian_Round_Shield'],s:.54,atk:['1H_Melee_Attack_Chop','1H_Melee_Attack_Slice_Diagonal']},
- giant:{m:'Barbarian',keep:['Barbarian_Cape'],s:.98,tint:'tan',idle:'Unarmed_Idle',atk:['Unarmed_Melee_Attack_Punch_A','Unarmed_Melee_Attack_Kick'],walk:.75},
+ giant:{q:'Orc',hh:3.4,wd:2.6,idle:'Idle',move:'Walk',atk:['Punch','Weapon'],death:'Death',walk:.8},
+ colossus:{q:'Yeti',hh:3.9,wd:3.2,col:'#a39c8f',idle:'Idle',move:'Walk',atk:['Punch','Weapon'],death:'Death',walk:.6},
+ pebble:{q:'GreenSpikyBlob',hh:1.3,wd:1.4,col:'#b1a99a',idle:'Idle',move:'Walk',atk:['Bite_Front'],death:'Death'},
+ drake:{q:'Dragon_Evolved',hh:2,wd:2.2,idle:'Flying_Idle',move:'Fast_Flying',atk:['Headbutt','Punch'],death:'Death'},
+ bats:{q:'Dragon',hh:.8,wd:.95,col:'#7a5fa8',idle:'Flying_Idle',move:'Fast_Flying',atk:['Headbutt'],death:'Death'},
+ wisp:{q:'Ghost',hh:1,wd:1,col:'#ffb070',emi:'#ff6a1a',idle:'Flying_Idle',move:'Fast_Flying',atk:['Headbutt'],death:'Death'},
  crossbow:{m:'Rogue_Hooded',keep:['Rogue_Cape','2H_Crossbow'],s:.56,atk:['2H_Ranged_Shoot']},
  axe:{m:'Barbarian',keep:['Barbarian_Hat','Barbarian_Cape','2H_Axe'],s:.64,idle:'2H_Melee_Idle',atk:['2H_Melee_Attack_Spin']},
  hammer:{m:'Knight',keep:['Knight_Helmet','2H_Sword'],s:.64,tint:'dark',idle:'2H_Melee_Idle',move:'Running_A',atk:['2H_Melee_Attack_Chop','2H_Melee_Attack_Slice']},
@@ -119,15 +124,27 @@ const VIS={
  archer:{m:'Rogue_Hooded',keep:['Rogue_Cape','2H_Crossbow'],s:.36,atk:['2H_Ranged_Shoot']},
  dagger:{m:'Rogue',keep:['Rogue_Cape','Knife','Knife_Offhand'],s:.38,tint:'storm',atk:['Throw']},
  king:{m:'Knight',keep:['Knight_Cape'],s:.44,crown:1,idle:'Idle',atk:['Spellcast_Raise']}};
-const PROC={cannon:1,lair:1,ram:1,airship:1,bats:1,drake:1,colossus:1,pebble:1,wisp:1};
+const PROC={cannon:1,lair:1,ram:1,airship:1};
 const US3=1.65;
-const HEIGHT={bats:2.1,drake:2.5,airship:3.1,wisp:.7};
+const HEIGHT={bats:1.9,drake:2.2,airship:3.1,wisp:.5};
 
 /* спаять части персонажа в одну модель на общем скелете: один вызов отрисовки вместо десятка */
 let OUTM=null;
 function outlineMat(){if(OUTM)return OUTM;OUTM=new T.MeshBasicMaterial({color:'#20182a',side:T.BackSide});
  OUTM.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>','vec3 transformed=vec3(position)+normal*.028;')};return OUTM}
-function bake(key,tm){const id=key+tm;if(A3.tpl[id])return A3.tpl[id];const V=VIS[key],gl=A3.gl[V.m],src=gl.scene;src.updateMatrixWorld(true);
+/* монстры Quaternius: своя модель и свои клипы «Модель/Клип»; цвет команды — обводкой, атлас общий */
+const OUTC={};
+function outlineTeam(tm){if(OUTC[tm])return OUTC[tm];const m=new T.MeshBasicMaterial({color:tm?'#7a1e18':'#173f7a',side:T.BackSide});
+ m.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>','vec3 transformed=vec3(position)+normal*.045;')};return OUTC[tm]=m}
+const monNode=n=>A3.mon.children.find(c=>c.name==='M_'+n);
+function bakeMonster(key,tm,V){const src=monNode(V.q),tpl=T3.SkeletonUtils.clone(src);tpl.position.set(0,0,0);tpl.rotation.set(0,0,0);tpl.scale.set(1,1,1);
+ tpl.updateMatrixWorld(true);const box=new T.Box3().setFromObject(tpl),h=Math.max(.01,box.max.y-box.min.y),wd=Math.max(.01,box.max.x-box.min.x,box.max.z-box.min.z),k=Math.min(V.hh/h,(V.wd||9)/wd);
+ const add=[];tpl.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.frustumCulled=false;
+  const m=o.material.clone();m.metalness=0;m.roughness=.75;if(V.col)m.color=new T.Color(V.col);if(V.emi){m.emissive=new T.Color(V.emi);m.emissiveIntensity=.6}o.material=m;
+  if(o.isSkinnedMesh&&SET.fx!=='low')add.push(o)});
+ for(const o of add){const om=new T.SkinnedMesh(o.geometry,outlineTeam(tm));om.frustumCulled=false;om.userData.outline=1;o.parent.add(om);om.bind(o.skeleton,o.bindMatrix)}
+ const w=new T.Group();w.add(tpl);tpl.scale.setScalar(k);tpl.position.y=-box.min.y*k;w.userData.V=Object.assign({},V,{hh:h*k,s:h*k/2.47/US3});return w}
+function bake(key,tm){const id=key+tm;if(A3.tpl[id])return A3.tpl[id];if(VIS[key].q)return A3.tpl[id]=bakeMonster(key,tm,VIS[key]);const V=VIS[key],gl=A3.gl[V.m],src=gl.scene;src.updateMatrixWorld(true);
  let skin=null;const parts=[],glow=[];
  src.traverse(o=>{if(!o.isMesh)return;if(o.isSkinnedMesh){(o.material.name==='Glow'?glow:parts).push(o);if(!skin)skin=o}else if(V.keep.includes(o.name))parts.push(o)});
  const bones=skin.skeleton.bones;
@@ -297,7 +314,7 @@ function cannonModel(tm,s){const g=new T.Group(),wood=pbr('planks',.6,.6,{color:
 /* ---------- экземпляры персонажей ---------- */
 function r3Inst(key,tm){const tpl=bake(key,tm),root=T3.SkeletonUtils.clone(tpl);root.scale.copy(tpl.scale);
  const mixer=new T.AnimationMixer(root),V=tpl.userData.V,acts={};
- const act=n=>{if(!acts[n]){const c=A3.clips[n];if(!c)return null;acts[n]=mixer.clipAction(c)}return acts[n]};
+ const act=n=>{if(!acts[n]){const c=(V.q&&A3.clips[V.q+'/'+n])||A3.clips[n];if(!c)return null;acts[n]=mixer.clipAction(c)}return acts[n]};
  const u={root,mixer,V,act,cur:null,play(n,o){o=o||{};const a=act(n);if(!a)return;if(this.cur===a&&!o.restart)return;
    a.reset();a.setLoop(o.once?T.LoopOnce:T.LoopRepeat,Infinity);a.clampWhenFinished=!!o.once;a.timeScale=o.ts||1;a.enabled=true;a.setEffectiveWeight(1);
    if(this.cur&&this.cur!==a)a.crossFadeFrom(this.cur,o.fade??.15,false);a.play();this.cur=a}};
@@ -307,8 +324,8 @@ function r3Inst(key,tm){const tpl=bake(key,tm),root=T3.SkeletonUtils.clone(tpl);
 function procModel(key,tm){const g=new T.Group(),T0=TEAM[tm],team=new T.MeshStandardMaterial({color:T0.m,roughness:.6}),wood=pbr('planks',.6,.6,{color:'#8a5d36'});
  const iron=new T.MeshStandardMaterial({color:'#4a4e57',metalness:.85,roughness:.4}),parts={};
  if(key==='cannon')return cannonModel(tm,1.15);
- if(key==='lair'){const st=pbr('wall',1,1,{color:'#a49c8c'});const b=new T.Mesh(new T.BoxGeometry(1.7,1.2,1.5),st);b.position.y=.6;g.add(b);
-  const r=new T.Mesh(new T.ConeGeometry(1.32,1,4),pbr('roof',1,1,{color:'#7d7a74'}));r.rotation.y=Math.PI/4;r.position.y=1.7;g.add(r);
+ if(key==='lair'){const cr=A3.mon&&monNode('crypt');if(cr){const c=cr.clone(true);c.position.set(0,0,0);const bx=new T.Box3().setFromObject(c);c.scale.setScalar(1.9/Math.max(.01,bx.max.x-bx.min.x,bx.max.z-bx.min.z));c.rotation.y=Math.PI;g.add(c)}
+  else{const st=pbr('wall',1,1,{color:'#a49c8c'});const b=new T.Mesh(new T.BoxGeometry(1.7,1.2,1.5),st);b.position.y=.6;g.add(b)}
   const door=new T.Mesh(new T.BoxGeometry(.7,.85,.06),new T.MeshStandardMaterial({color:'#0e0b08',emissive:'#4cff7a',emissiveIntensity:0}));door.position.set(0,.45,.76);g.add(door);parts.door=door;
   const sk=new T.Mesh(new T.SphereGeometry(.2,12,10),new T.MeshStandardMaterial({color:'#efe6cf',roughness:.6}));sk.position.set(0,1.08,.77);g.add(sk);
   const fl=new T.Mesh(new T.BoxGeometry(.06,.9,.06),wood);fl.position.set(.7,1.6,.6);g.add(fl);const cl=new T.Mesh(new T.PlaneGeometry(.45,.3),new T.MeshStandardMaterial({color:T0.m,side:T.DoubleSide}));cl.position.set(.93,1.9,.6);g.add(cl)}
@@ -412,7 +429,7 @@ function syncUnits(dt,now){const seen=new Set();
  for(const[u,v]of S3.units)if(!seen.has(u)){S3.units.delete(u);dieView(v)}
  for(const v of S3.dying){v.d+=dt;if(v.inst)v.inst.mixer.update(dt);if(v.d>1.1)v.root.position.y-=dt*.8;if(v.d>2.4){S3.dyn.remove(v.root);v.dead=1}}
  S3.dying=S3.dying.filter(v=>!v.dead)}
-function dieView(v){S3.dyn.remove(v.ring);v.d=0;burst(v.u.x,v.u.y,.6+v.h,'#cfc5b0',8,1,.6,v.h);if(v.inst&&!v.u.nodeath){v.inst.mixer.timeScale=1;v.inst.play(Math.random()<.5?'Death_A':'Death_B',{once:true,ts:1.4,fade:.05});S3.dying.push(v)}
+function dieView(v){S3.dyn.remove(v.ring);v.d=0;burst(v.u.x,v.u.y,.6+v.h,'#cfc5b0',8,1,.6,v.h);if(v.inst&&!v.u.nodeath){v.inst.mixer.timeScale=1;v.inst.play(v.inst.V.death||(Math.random()<.5?'Death_A':'Death_B'),{once:true,ts:1.4,fade:.05});S3.dying.push(v)}
  else{S3.dyn.remove(v.root);burst(v.u.x,v.u.y,.6+v.h,'#cfc5b0',10,1.2,.9,v.h)}}
 function procAnim(v,u,dt,now,moved,still){const p=v.parts,t=still?0:now/1000;
  if(p.wings)for(let i=0;i<2;i++)p.wings[i].rotation.z=(i?-1:1)*Math.sin(t*(u.key==='bats'?22:9))*.7;
@@ -536,7 +553,7 @@ function proj(x,y,h){if(!PV)PV=new T.Vector3();PV.set(W3(x),h,Z3(y)).project(S3.
 function overlay(now){const g=X,k=C.width/360;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,C.width,C.height);
  const bar=(sx,sy,w,p,tm,gold)=>{w*=k;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,gold?'#ffd84d':'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,Math.max(0,w*p),4*k,2*k,tm?'#ff6a5a':'#4cd37a')};
  for(const b of G.B){const[sx,sy]=proj(b.x,b.y,1.9);bar(sx,sy,28,b.hp/b.mx,b.tm)}
- for(const u of G.U){if(u.spawnT>0)continue;const v=S3.units.get(u),hh=(v&&v.inst?2.47*v.inst.V.s*US3:1.7)+(HEIGHT[u.key]||0)+.25;
+ for(const u of G.U){if(u.spawnT>0)continue;const v=S3.units.get(u),hh=(v&&v.inst?(v.inst.V.hh||2.47*v.inst.V.s*US3):1.7)+(HEIGHT[u.key]||0)+.25;
   if(u.hp<u.mx||u.c.ability){const[sx,sy]=proj(IX(u),IY(u),hh);const w=Math.max(16,u.r*2.2);bar(sx,sy,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,sx-w*k/2,sy-6*k,w*k*u.shield/u.smx,3*k,1.5*k,'#ffd84d')}
   if(u.stunT>0){const[sx,sy]=proj(IX(u),IY(u),hh+.3);g.save();g.scale(k,k);stars(g,sx/k,sy/k,now);g.restore()}}
  for(const t of G.T){if(t.hp<=0)continue;const[sx,sy]=proj(t.x,t.y,t.kind==='k'?(t.tm?3.9:3.6):(t.tm?3.6:3.3));g.save();g.translate(sx,sy);g.scale(k,k);towerBar(g,Object.assign({},t,{x:0,y:0,tm:t.tm,kind:t.kind,r:0}));g.restore();
