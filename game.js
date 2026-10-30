@@ -388,6 +388,7 @@ function drawChar(g,key,tm,x,y,o){const T=TEAM[tm],c=CARDS[key],s=o.s||1,dir=o.d
 /* иконки карт */
 const IC={};
 function icon(key){if(IC[key])return IC[key];const cv=document.createElement('canvas');cv.width=cv.height=120;const g=cv.getContext('2d');g.scale(2,2);
+ if(!CARDS[key]){g.fillStyle='#2b4f9a';g.beginPath();g.arc(30,30,22,0,7);g.fill();g.fillStyle='#fff';g.font='900 22px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(key==='tt_king'?'♔':'⚑',30,31);return cv}
  const c=CARDS[key],rc=RAR[c.rar].c;
  const bgc=g.createRadialGradient(30,24,4,30,30,44);bgc.addColorStop(0,c.rar==='common'?'#4a5d96':c.rar==='rare'?'#7a5a3a':c.rar==='epic'?'#5d3f8a':c.rar==='legendary'?'#2c6e6a':'#7a6420');bgc.addColorStop(1,'#141c38');g.fillStyle=bgc;g.fillRect(0,0,60,60);
  g.fillStyle='rgba(255,255,255,.07)';g.beginPath();g.ellipse(30,50,22,6,0,0,7);g.fill();
@@ -1766,6 +1767,12 @@ async function r3Icons(){if(A3.iconsDone||!R3.ready)return;A3.iconsDone=1;
    g.drawImage(cv,0,0);g.strokeStyle=RAR[c.rar].c;g.lineWidth=8;g.strokeRect(4,4,S-8,S-8);IC[k]=out}
   catch(e){console.warn('иконка',k,e&&e.message)}
   sc.remove(obj);await new Promise(r=>setTimeout(r,0))}
+ // портреты для витрины башни: король и башенные бойцы
+ for(const[ik,mk]of[['tt_king',()=>{const I=r3Inst('king',0);I.play('Idle');I.mixer.update(.4);return I.root}],['tt_archer',()=>{const I=r3Inst('archer',0);I.play(I.V.idle||'Idle');I.mixer.update(.4);return I.root}],
+   ['tt_dagger',()=>{const I=r3Inst('dagger',0);I.play(I.V.idle||'Idle');I.mixer.update(.4);return I.root}],['tt_cannoneer',()=>{const g=new T.Group(),c=cannonModel(0,1);g.add(c);const I=r3Inst('archer',0);I.play('Idle');I.mixer.update(.4);I.root.position.set(-.55,0,-.35);g.add(I.root);return g}]]){
+  try{const obj=mk();sc.add(obj);obj.updateMatrixWorld(true);const box=new T.Box3().setFromObject(obj),ctr=box.getCenter(new T.Vector3()),sz=box.getSize(new T.Vector3()),R=Math.max(sz.x,sz.y*1.05,sz.z*.6)*.6+.05;
+   const dist=R/Math.tan(cam.fov*Math.PI/360);cam.position.set(ctr.x+dist*.18,ctr.y+dist*.28,ctr.z+dist*.94);cam.lookAt(ctr);IR.setClearColor(0,0);IR.render(sc,cam);
+   const out=document.createElement('canvas');out.width=out.height=S;out.getContext('2d').drawImage(cv,0,0);IC[ik]=out;sc.remove(obj)}catch(e){console.warn('портрет',ik,e&&e.message)}}
  pm.dispose();IR.dispose();A3.iconsReady=1;
  if(!$('#home').hidden)renderHome();if(G&&!$('#battle').hidden){hs.sig='';renderHand()}}
 
@@ -2094,6 +2101,12 @@ function importCode(code){const m=/^AC3-([0-9a-z]+)-([A-Za-z0-9+/=]+)$/.exec((co
  let o;try{const bin=atob(m[2]),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);o=JSON.parse(new TextDecoder().decode(u))}catch(e){return'Не удалось прочитать код'}
  P=sanitize(o);saveP();return null}
 /* ================= ИНТЕРФЕЙС ================= */
+const NAVI={
+ shop:'<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M7 20h34v19a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3z" fill="#b8692c" stroke="#5a2e0e" stroke-width="2.4"/><path d="M7 20c0-8 7-13 17-13s17 5 17 13z" fill="#d98a3a" stroke="#5a2e0e" stroke-width="2.4"/><path d="M7 24h34" stroke="#ffc83d" stroke-width="4"/><rect x="19" y="21" width="10" height="11" rx="2" fill="#ffe08a" stroke="#8a5a00" stroke-width="2"/><path d="M14 9l2 4M34 9l-2 4" stroke="#5ef2d0" stroke-width="3" stroke-linecap="round"/></svg>',
+ cards:'<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="16" y="6" width="22" height="30" rx="4" transform="rotate(14 27 21)" fill="#9b5de5" stroke="#3b1a66" stroke-width="2.4"/><rect x="9" y="11" width="22" height="30" rx="4" fill="#3da5ff" stroke="#123a75" stroke-width="2.4"/><path d="M13 16h14v11H13z" fill="#a6d6ff" opacity=".7"/></svg>',
+ play:'<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M9 7l23 23-4 4L5 11V7z" fill="#dfe6f1" stroke="#3a4560" stroke-width="2.2"/><path d="M39 7L16 30l4 4L43 11V7z" fill="#dfe6f1" stroke="#3a4560" stroke-width="2.2"/><path d="M12 32l4 4-5 5-4-4zM36 32l-4 4 5 5 4-4z" fill="#ffc83d" stroke="#8a5a00" stroke-width="2"/><path d="M10 29l9 9M38 29l-9 9" stroke="#d98a3a" stroke-width="4" stroke-linecap="round"/></svg>',
+ clan:'<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4l17 6v13c0 10-7 17-17 21C14 40 7 33 7 23V10z" fill="#2f6fd6" stroke="#0e2a5c" stroke-width="2.4"/><circle cx="24" cy="19" r="5" fill="#fff"/><circle cx="15" cy="22" r="3.6" fill="#cfe3ff"/><circle cx="33" cy="22" r="3.6" fill="#cfe3ff"/><path d="M15 33c1-6 17-6 18 0" fill="#fff"/></svg>',
+ events:'<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5l5.8 11.8 13 1.9-9.4 9.2 2.2 12.9L24 34.7l-11.6 6.1 2.2-12.9-9.4-9.2 13-1.9z" fill="#ffc83d" stroke="#8a5a00" stroke-width="2.4" stroke-linejoin="round"/><circle cx="24" cy="24" r="5" fill="#fff3c0"/></svg>'};
 const ICO={
  swords:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l11.5 11.5M20 4L8.5 15.5M6 13.5l4.5 4.5M18 13.5L13.5 18M5 19l-1.5 1.5M19 19l1.5 1.5"/></svg>',
  cards:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="11" height="14" rx="2"/><path d="M8 3.5h10.5a2 2 0 0 1 2 2V18"/></svg>',
@@ -2137,15 +2150,21 @@ function drawChest(g,t,open,w,h){const C=CHESTS[t].col,s=Math.min(w/120,h/100);g
 
 /* ---------- шапка и вкладки ---------- */
 let tab='play',repl=null;
-const TABS=[['shop','Магазин',ICO.shop],['cards','Карты',ICO.cards],['play','Бой',ICO.swords],['clan','Клан',ICO.clan],['events','События',ICO.events]];
+const TABS=[['shop','Магазин',NAVI.shop],['cards','Колоды',NAVI.cards],['play','Бой',NAVI.play],['clan','Клан',NAVI.clan],['events','События',NAVI.events]];
 function renderHeader(){const nx=P.kl<KL_MAX?KL_XP[P.kl]:1,pv=P.kl>1?KL_XP[P.kl-1]:0,x=P.kl<KL_MAX?clamp((P.xp-pv)/(nx-pv),0,1):1;
- $('#hh').innerHTML=`<div class="prof"><button class="kb" id="kb" aria-label="Уровень короля ${P.kl}${P.kl<KL_MAX?`, опыт ${P.xp} из ${nx}`:''}"><b>${P.kl}</b><i style="--x:${x.toFixed(3)}"></i></button><div class="who"><b>${esc(P.name)}</b><small>${ICO.trophy.replace('<svg','<svg style="width:12px;height:12px;vertical-align:-2px"')} ${fmtN(P.tr)} · ${ARENAS[curArena()].n}</small></div></div>
-  <div class="res"><span class="pill" title="Золото">${ICO.gold}<b>${fmtN(P.gold)}</b></span><span class="pill" title="Кристаллы">${ICO.gem}<b>${fmtN(P.gems)}</b></span><span class="pill" title="Осколки эволюции">${ICO.shard}<b>${P.shards}</b></span><button class="gear" id="gear" aria-label="Настройки и сохранение">${ICO.gear}</button></div>`;
+ const pill=(id,ic,v,plus,lab)=>`<button class="rp" id="${id}" aria-label="${lab}: ${v}"><span class="ri">${ic}</span><b>${v}</b>${plus?'<i class="plus" aria-hidden="true">+</i>':''}</button>`;
+ $('#hh').innerHTML=`${pill('rtr',ICO.trophy,fmtN(P.tr),0,'Кубки')}${pill('rgo',ICO.gold,fmtN(P.gold),1,'Золото')}${pill('rge',ICO.gem,fmtN(P.gems),1,'Кристаллы')}
+  <button class="gear" id="gear" aria-label="Настройки и сохранение">${ICO.gear}</button>`;
  $('#gear').onclick=()=>{AU.init();AU.sfx('ui');openSettings()};
- $('#kb').onclick=()=>{AU.init();toast(P.kl<KL_MAX?`Уровень короля ${P.kl}: опыт ${P.xp} из ${nx}. Опыт дают улучшения карт`:'Уровень короля максимальный')}}
-function renderNav(){const n=$('#nav');n.style.setProperty('--tabs',TABS.length);
- const rs=reqState(),dots={play:ROAD.some((_,i)=>roadReady(i))||P.luck.length>0||P.chests.some(c=>c),clan:!!rs&&rs.got>rs.q.taken||canRequest(),events:questReady()||EVENTS.some(e=>!evDay().won.includes(e.id)&&e.id!=='train'),cards:CARD_IDS.some(k=>canUp(k)&&P.gold>=upCost(k))||P.fresh.length>0,shop:!!(P.shop&&P.shop.day===dayKey()?!P.shop.bought.includes(0):true)};
- n.innerHTML=TABS.map(([id,t,ic])=>`<button data-t="${id}"${(tab==='road'?'play':tab)===id?' aria-current="page"':''}>${ic}<span>${t}</span>${dots[id]?'<i class="dot" aria-hidden="true"></i>':''}</button>`).join('');
+ $('#rtr').onclick=()=>{AU.init();AU.sfx('ui');tab='road';renderHome()};
+ $('#rgo').onclick=$('#rge').onclick=()=>{AU.init();AU.sfx('ui');tab='shop';renderHome()};
+}
+/* счётчики на вкладках, как красные кружки с числом */
+function navCounts(){const rs=reqState();return{play:ROAD.filter((_,i)=>roadReady(i)).length+P.luck.length+P.chests.filter(c=>c).length,
+ clan:(rs&&rs.got>rs.q.taken?1:0)+(canRequest()?1:0),events:questsToday().filter(x=>!x.got&&x.p>=questOf(x).goal).length+EVENTS.filter(e=>e.id!=='train'&&!evDay().won.includes(e.id)).length,
+ cards:CARD_IDS.filter(k=>canUp(k)&&P.gold>=upCost(k)).length+P.fresh.length,shop:P.shop&&P.shop.day===dayKey()&&P.shop.bought.includes(0)?0:1}}
+function renderNav(){const n=$('#nav'),cnt=navCounts(),cur=tab==='road'?'play':tab;
+ n.innerHTML=TABS.map(([id,t,ic])=>`<button data-t="${id}"${cur===id?' aria-current="page"':''} aria-label="${t}">${ic}<span>${t}</span>${cnt[id]?`<i class="dot" aria-hidden="true">${cnt[id]>9?'9+':cnt[id]}</i>`:''}</button>`).join('');
  n.querySelectorAll('button').forEach(b=>b.onclick=()=>{AU.init();if(!G)MUS.play('menu');AU.sfx('ui');tab=b.dataset.t;repl=null;renderHome()})}
 let shownTab='';
 function renderHome(){renderHeader();renderNav();const m=$('#hm'),y=m.scrollTop,same=shownTab===tab;shownTab=tab;({play:renderPlay,cards:renderCards,shop:renderShop,road:renderRoad,clan:renderClan,events:renderEvents})[tab](m);if(tab!=='road')m.scrollTop=same?y:0}
@@ -2216,25 +2235,49 @@ function cc(k,src,cls,lab){const c=CARDS[k],o=P.cards[k],lock=ARENA_OF[k]>curAre
  return`<button class="cc ${cls||''}${o?'':' no'}${P.fresh.includes(k)?' new':''}" data-k="${k}" data-src="${src}" data-r="${c.rar}" aria-label="${c.n}, ${c.cost} эликсира${o?', уровень '+o.lv:', не найдена'}"><canvas width="120" height="120" data-ic="${k}"></canvas><i class="gem">${c.cost}</i>${lab?`<span class="slab">${lab}</span>`:P.evo.includes(k)?'<span class="mini evo">ЭВО</span>':P.heroes.includes(k)?'<span class="mini hero">ГЕРОЙ</span>':''}<span class="nm">${c.n}</span>${foot}</button>`}
 let cfil='all',csort='rar';
 const CSORT={rar:(a,b)=>RAR_ORDER.indexOf(CARDS[a].rar)-RAR_ORDER.indexOf(CARDS[b].rar)||CARDS[a].cost-CARDS[b].cost,cost:(a,b)=>CARDS[a].cost-CARDS[b].cost||CSORT.rar(a,b),lv:(a,b)=>lvOf(b)*!!P.cards[b]-lvOf(a)*!!P.cards[a]||CSORT.rar(a,b)};
-function renderCards(m){const d=curDeck(),found=CARD_IDS.filter(k=>P.cards[k]).length,sp=deckSpecial(d),champ=d.some(k=>CARDS[k].ability);
- const list=CARD_IDS.filter(k=>cfil==='all'||cfil==='evo'?(cfil!=='evo'||EVO[k]||HERO[k]):CARDS[k].type===cfil).sort(CSORT[csort]);
- m.innerHTML=`<div class="decktop"><span>Средняя цена <b>${avgCost(d)}</b></span><div class="dslots" role="group" aria-label="Колоды">${[...Array(NDECKS).keys()].map(i=>`<button aria-pressed="${P.slot===i}" data-s="${i}" aria-label="Колода ${i+1}">${i+1}</button>`).join('')}</div></div>
- ${repl?`<p class="note hl">Нажми на карту в колоде, вместо которой встанет «${CARDS[repl].n}». <button class="link" id="rc">Отмена</button></p>`:''}
- <div class="cardgrid deck">${d.map((k,i)=>cc(k,'d',(repl?'pick ':'')+(i===0?'slot-evo'+(sp.evo?' on':''):i===1&&!champ?'slot-hero'+(sp.hero?' on':''):''),i===0?(sp.evo?'ЭВО':'слот эво'):i===1&&!champ?(sp.hero?'ГЕРОЙ':'слот героя'):'')).join('')}</div>
- <p class="note small">Первый слот — для эволюции, второй — для героя. Открой их в карточке карты за осколки ${ICO.shard.replace('<svg','<svg style="width:14px;height:14px;vertical-align:-2px"')} (у тебя ${P.shards}).</p>
- <button class="ghost" id="ttb">Башенный боец: ${TT[P.tt].n}</button>
- <h2 class="sec">КОЛЛЕКЦИЯ · ${found} ИЗ ${CARD_IDS.length} · УРОВЕНЬ КОЛЛЕКЦИИ ${collLevel()}</h2>
- <div class="filt"><div class="chips" role="group" aria-label="Фильтр">${[['all','Все'],['troop','Бойцы'],['spell','Заклинания'],['building','Строения'],['evo','Эво и герои']].map(([v,t])=>`<button data-f="${v}" aria-pressed="${cfil===v}">${t}</button>`).join('')}</div>
-  <label class="sortl">Порядок <select id="cso"><option value="rar"${csort==='rar'?' selected':''}>по редкости</option><option value="cost"${csort==='cost'?' selected':''}>по цене</option><option value="lv"${csort==='lv'?' selected':''}>по уровню</option></select></label></div>
- <div class="cardgrid">${list.map(k=>cc(k,'c',d.includes(k)?'indeck':'')).join('')}</div>`;
+let ctab='deck';
+/* большая карта колоды: стоимость, ромб эво/героя, лента уровня и прогресс копий или «Макс.» */
+function dk(k,i,sp,cls){const c=CARDS[k],o=P.cards[k],lv=o?o.lv:START_LV[c.rar],nd=o?needOf(k):0,mx=!o||lv>=MAXLV,up=o&&canUp(k);
+ const slot=i===0&&sp.evo===k?'s-evo':i===1&&sp.hero===k?'s-hero':'',dia=EVO[k]?(P.evo.includes(k)?'evo on':'evo'):HERO[k]?(P.heroes.includes(k)?'hero on':'hero'):'';
+ return`<button class="dk ${slot} ${cls||''}${o?'':' no'}${P.fresh.includes(k)?' new':''}" data-k="${k}" data-src="${cls&&cls.includes('coll')?'c':'d'}" data-r="${c.rar}" aria-label="${c.n}, ${c.cost} эликсира, уровень ${lv}">
+  <span class="art"><canvas width="120" height="120" data-ic="${k}"></canvas></span><i class="gem">${c.cost}</i>${dia?`<i class="dia ${dia}" aria-hidden="true"></i>`:''}
+  <span class="lvr">${o?lv+'-й уровень':ARENA_OF[k]>curArena()?'Арена '+(ARENA_OF[k]+1):'Не найдена'}</span>
+  ${o?mx?'<span class="mxr">Макс.</span>':`<span class="pgr${up?' up':''}"><i style="width:${Math.min(100,o.n/nd*100).toFixed(0)}%"></i>${up?'<b class="arr" aria-hidden="true">▲</b>':''}<em>${fmtN(o.n)}/${fmtN(nd)}</em></span>`:'<span class="mxr no">—</span>'}</button>`}
+function renderCards(m){const d=curDeck(),sp=deckSpecial(d),found=CARD_IDS.filter(k=>P.cards[k]).length,ncoll=CARD_IDS.filter(k=>canUp(k)).length+P.fresh.length;
+ const top=`<div class="ctabs" role="tablist"><button role="tab" aria-selected="${ctab==='deck'}" data-ct="deck">Колоды</button><button role="tab" aria-selected="${ctab==='coll'}" data-ct="coll">Коллекция${ncoll?`<i class="dot">${ncoll>9?'9+':ncoll}</i>`:''}</button></div>`;
+ if(ctab==='deck'){
+  m.innerHTML=top+`<div class="dsel"><button class="dbtn menu" id="dmenu" aria-label="Действия с колодой">☰</button>${[...Array(NDECKS).keys()].map(i=>`<button class="dbtn${P.slot===i?' on':''}" data-s="${i}" aria-label="Колода ${i+1}">${i+1}</button>`).join('')}<button class="dbtn menu" id="dcoll" aria-label="Коллекция">${NAVI.cards}</button></div>
+   ${repl?`<p class="note hl">Нажми на карту в колоде, вместо которой встанет «${CARDS[repl].n}». <button class="link" id="rc">Отмена</button></p>`:''}
+   <div class="dgrid">${d.map((k,i)=>dk(k,i,sp,repl?'pick':'')).join('')}</div>
+   <div class="drow"><span class="avg"><i class="drop" aria-hidden="true"></i><b>${avgCost(d)}</b></span><span class="shards" title="Осколки эволюции">${ICO.shard}<b>${P.shards}</b></span><span class="dhint">1-й слот — эволюция, 2-й — герой</span></div>
+   <div class="tshow"><div class="tstage"><canvas width="240" height="240" data-ic="tt_king" class="tk"></canvas><button class="lvl11" id="kb" aria-label="Уровень короля ${P.kl}">${P.kl}</button></div>
+    <button class="tcard" id="ttb" aria-label="Башенный боец: ${TT[P.tt].n}"><canvas width="240" height="240" data-ic="tt_${P.tt}"></canvas><span class="lvr">${TT[P.tt].n}</span><span class="mxr">Сменить</span></button></div>`}
+ else{const list=CARD_IDS.filter(k=>cfil==='all'||cfil==='evo'?(cfil!=='evo'||EVO[k]||HERO[k]):CARDS[k].type===cfil).sort(CSORT[csort]);
+  m.innerHTML=top+`<div class="cinfo"><b>Найдено ${found} из ${CARD_IDS.length}</b><span>Уровень коллекции <b>${collLevel()}</b></span></div>
+   <div class="filt"><div class="chips" role="group" aria-label="Фильтр">${[['all','Все'],['troop','Бойцы'],['spell','Заклинания'],['building','Строения'],['evo','Эво и герои']].map(([v,t])=>`<button data-f="${v}" aria-pressed="${cfil===v}">${t}</button>`).join('')}</div>
+    <label class="sortl">Порядок <select id="cso"><option value="rar"${csort==='rar'?' selected':''}>по редкости</option><option value="cost"${csort==='cost'?' selected':''}>по цене</option><option value="lv"${csort==='lv'?' selected':''}>по уровню</option></select></label></div>
+   <div class="dgrid coll">${list.map(k=>dk(k,-1,sp,'coll'+(d.includes(k)?' indeck':''))).join('')}</div>`}
  paintIcons(m);
+ m.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{AU.sfx('ui');ctab=b.dataset.ct;renderHome()});
  m.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{AU.sfx('ui');P.slot=+b.dataset.s;repl=null;saveP();renderHome()});
  m.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{AU.sfx('ui');cfil=b.dataset.f;renderHome()});
- $('#cso').onchange=()=>{csort=$('#cso').value;renderHome()};$('#ttb').onclick=openTT;
- if(repl)$('#rc').onclick=()=>{repl=null;renderHome()};
- m.querySelectorAll('.cc').forEach(b=>b.onclick=()=>{AU.init();const k=b.dataset.k;
+ if($('#cso'))$('#cso').onchange=()=>{csort=$('#cso').value;renderHome()};
+ if($('#ttb'))$('#ttb').onclick=openTT;if($('#dcoll'))$('#dcoll').onclick=()=>{AU.sfx('ui');ctab='coll';renderHome()};
+ if($('#dmenu'))$('#dmenu').onclick=openDeckMenu;
+ if($('#kb'))$('#kb').onclick=()=>{AU.init();const nx=P.kl<KL_MAX?KL_XP[P.kl]:0;toast(P.kl<KL_MAX?`Уровень короля ${P.kl}: опыт ${P.xp} из ${nx}. Опыт дают улучшения карт`:'Уровень короля максимальный')};
+ if(repl&&$('#rc'))$('#rc').onclick=()=>{repl=null;renderHome()};
+ m.querySelectorAll('.dk').forEach(b=>b.onclick=()=>{AU.init();const k=b.dataset.k;
   if(repl&&b.dataset.src==='d'){const nd=d.slice();nd[nd.indexOf(k)]=repl;if(!okDeck(nd)){AU.sfx('deny');return}P.decks[P.slot]=nd;repl=null;saveP();AU.sfx('dep');renderHome();return}
   AU.sfx('ui');openSheet(k)})}
+/* действия с колодой: случайная колода из найденных карт или копия другой колоды */
+function openDeckMenu(){AU.init();AU.sfx('ui');const sh=$('#sheet');
+ sh.innerHTML=`<div class="sh" role="dialog" aria-modal="true" aria-labelledby="shn"><h3 class="t" id="shn">Колода ${P.slot+1}</h3>
+  <button class="ghost" id="drnd">Собрать случайно из моих карт</button>
+  ${[...Array(NDECKS).keys()].filter(i=>i!==P.slot).map(i=>`<button class="ghost" data-cp="${i}">Скопировать колоду ${i+1}</button>`).join('')}
+  <button class="big blue" id="shx">Закрыть</button></div>`;
+ sh.hidden=false;sh.onclick=e=>{if(e.target===sh)closeSheet()};$('#shx').onclick=closeSheet;
+ $('#drnd').onclick=()=>{const own=shuffleV(CARD_IDS.filter(k=>P.cards[k])),d=[];for(const k of own)if(d.length<8&&!(CARDS[k].ability&&d.some(x=>CARDS[x].ability)))d.push(k);if(d.length<8||!okDeck(d)){AU.sfx('deny');return}P.decks[P.slot]=d;saveP();AU.sfx('dep');closeSheet();renderHome()};
+ sh.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{P.decks[P.slot]=P.decks[+b.dataset.cp].slice();saveP();AU.sfx('dep');closeSheet();renderHome()})}
 function statRows(k,lv){const c=CARDS[k],n=c.count||1,R=[];
  if(c.type==='spell'){if(c.dmg)R.push(['Урон',LV(c.dmg,lv)]);if(c.tdmg)R.push(['Урон по башням',LV(c.tdmg,lv)]);R.push(['Радиус',c.rad+' кл.']);
   if(c.freeze)R.push(['Заморозка',c.freeze+' с']);if(c.rage)R.push(['Ярость',c.rage+' с, +35%']);if(c.poison)R.push(['Длится',c.poison+' с']);if(c.stun)R.push(['Оглушение',c.stun+' с']);if(c.waves)R.push(['Волн',c.waves]);return R}

@@ -642,6 +642,12 @@ async function r3Icons(){if(A3.iconsDone||!R3.ready)return;A3.iconsDone=1;
    g.drawImage(cv,0,0);g.strokeStyle=RAR[c.rar].c;g.lineWidth=8;g.strokeRect(4,4,S-8,S-8);IC[k]=out}
   catch(e){console.warn('иконка',k,e&&e.message)}
   sc.remove(obj);await new Promise(r=>setTimeout(r,0))}
+ // портреты для витрины башни: король и башенные бойцы
+ for(const[ik,mk]of[['tt_king',()=>{const I=r3Inst('king',0);I.play('Idle');I.mixer.update(.4);return I.root}],['tt_archer',()=>{const I=r3Inst('archer',0);I.play(I.V.idle||'Idle');I.mixer.update(.4);return I.root}],
+   ['tt_dagger',()=>{const I=r3Inst('dagger',0);I.play(I.V.idle||'Idle');I.mixer.update(.4);return I.root}],['tt_cannoneer',()=>{const g=new T.Group(),c=cannonModel(0,1);g.add(c);const I=r3Inst('archer',0);I.play('Idle');I.mixer.update(.4);I.root.position.set(-.55,0,-.35);g.add(I.root);return g}]]){
+  try{const obj=mk();sc.add(obj);obj.updateMatrixWorld(true);const box=new T.Box3().setFromObject(obj),ctr=box.getCenter(new T.Vector3()),sz=box.getSize(new T.Vector3()),R=Math.max(sz.x,sz.y*1.05,sz.z*.6)*.6+.05;
+   const dist=R/Math.tan(cam.fov*Math.PI/360);cam.position.set(ctr.x+dist*.18,ctr.y+dist*.28,ctr.z+dist*.94);cam.lookAt(ctr);IR.setClearColor(0,0);IR.render(sc,cam);
+   const out=document.createElement('canvas');out.width=out.height=S;out.getContext('2d').drawImage(cv,0,0);IC[ik]=out;sc.remove(obj)}catch(e){console.warn('портрет',ik,e&&e.message)}}
  pm.dispose();IR.dispose();A3.iconsReady=1;
  if(!$('#home').hidden)renderHome();if(G&&!$('#battle').hidden){hs.sig='';renderHand()}}
 

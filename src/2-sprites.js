@@ -161,6 +161,7 @@ function drawChar(g,key,tm,x,y,o){const T=TEAM[tm],c=CARDS[key],s=o.s||1,dir=o.d
 /* иконки карт */
 const IC={};
 function icon(key){if(IC[key])return IC[key];const cv=document.createElement('canvas');cv.width=cv.height=120;const g=cv.getContext('2d');g.scale(2,2);
+ if(!CARDS[key]){g.fillStyle='#2b4f9a';g.beginPath();g.arc(30,30,22,0,7);g.fill();g.fillStyle='#fff';g.font='900 22px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(key==='tt_king'?'♔':'⚑',30,31);return cv}
  const c=CARDS[key],rc=RAR[c.rar].c;
  const bgc=g.createRadialGradient(30,24,4,30,30,44);bgc.addColorStop(0,c.rar==='common'?'#4a5d96':c.rar==='rare'?'#7a5a3a':c.rar==='epic'?'#5d3f8a':c.rar==='legendary'?'#2c6e6a':'#7a6420');bgc.addColorStop(1,'#141c38');g.fillStyle=bgc;g.fillRect(0,0,60,60);
  g.fillStyle='rgba(255,255,255,.07)';g.beginPath();g.ellipse(30,50,22,6,0,0,7);g.fill();
