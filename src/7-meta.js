@@ -2,7 +2,7 @@
 const ARENAS=[
  {n:'Тренировочный лагерь',tr:0},{n:'Костяной овраг',tr:300},{n:'Кузнечная слобода',tr:650},{n:'Морозный перевал',tr:1000},
  {n:'Драконьи скалы',tr:1400},{n:'Ядовитая топь',tr:1800},{n:'Грозовая цитадель',tr:2250},{n:'Каменный трон',tr:2750}];
-const ARENA_OF={guard:0,shooters:0,bones:0,imps:0,slingers:0,bomber:0,cannon:0,volley:0,giant:0,crossbow:0,axe:0,fireball:0,
+const ARENA_OF={roller:4,shieldman:1,mortar:2,grave:6,guard:0,shooters:0,bones:0,imps:0,slingers:0,bomber:0,cannon:0,volley:0,giant:0,crossbow:0,axe:0,fireball:0,
  lair:1,legion:1,wisp:1,spark:1,hammer:2,militia:2,ram:2,bats:3,freeze:3,frostsage:3,drake:4,airship:4,sorcerer:4,
  poison:5,mole:5,scorch:4,vortex:3,spring:2,raider:5,mend:1,cry:5,thunder:6,knightrider:6,colossus:7,warlord:7};
 const arenaOf=tr=>{let a=0;ARENAS.forEach((x,i)=>{if(tr>=x.tr)a=i});return a};

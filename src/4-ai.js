@@ -38,7 +38,7 @@ function counterScore(key,T){const c=CARDS[key],R=ROLE[key];if(c.type==='spell')
  if(c.tunnel)s-=2;
  s-=Math.max(0,c.cost-T.v-1)*1.3+c.cost*.35;
  return s}
-function spellTarget(b,key,units){const c=CARDS[key],lvl=G.side[b.tm].lv[key]||1;if(!c.dmg||c.freeze)return null;
+function spellTarget(b,key,units){const c=CARDS[key],lvl=G.side[b.tm].lv[key]||1;if(!c.dmg||c.freeze)return null;units=c.roll?units.filter(u=>!u.fly):units;
  const r=c.rad*TILE,dm=LV(c.dmg,lvl)*(c.poison?.75:1);let best=null;
  for(const u of units){let val=0,n=0,sx=0,sy=0;for(const v of units)if(Math.hypot(v.x-u.x,v.y-u.y)<r*.8){n++;sx+=v.x;sy+=v.y;val+=v.hp<=dm?uval(v):uval(v)*dm/v.hp*.5}
   if(!best||val>best.val)best={x:sx/n,y:sy/n,val,n}}
@@ -96,7 +96,7 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
  if(need&&RNG()>s.mist*.5){const T=need.T;
   // заклинание по скоплению, если размен выгоден
   if(RNG()<s.spell){let best=null;for(const k of hand){const c=CARDS[k];if(c.type!=='spell')continue;const p=spellTarget(b,k,T.units);if(p&&p.val>=c.cost+.4&&(!best||p.val-c.cost>best.gain))best={k,p,gain:p.val-c.cost}}
-   if(best&&T.small>=2){const lead=CARDS[best.k].poison?0:-10;if(botPlay(b,best.k,best.p.x,fyOf(b,best.p.y)+lead,true))return}}
+   if(best&&T.small>=2){const lead=CARDS[best.k].poison?0:CARDS[best.k].roll?-55:-10;if(botPlay(b,best.k,best.p.x,fyOf(b,best.p.y)+lead,true))return}}
   // клич в обороне, когда свои уже дерутся
   const rg=hand.find(k=>CARDS[k].rage);
   if(rg&&T.v>=4){const own=G.U.filter(u=>u.tm===b.tm&&alive(u)&&laneOf(u.x)===need.lane&&fyOf(b,u.y)<360);const ov=own.reduce((a,u)=>a+uval(u),0);
@@ -117,7 +117,10 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
  // атака
  const dbl=elRate()>1,thr=s.push-(dbl?1.5:0)-(G.ot?.5:0);
  const other=G.side[1-b.tm],ol=other.last,punish=ol&&G.t-ol.t<4&&CARDS[ol.key].cost>=5&&fyOf(b,ol.y)>520||s.countEl&&b.oppEl<2.5&&S.el>=5;
- const wins=hand.filter(k=>ROLE[k].win);
+ const gv=hand.find(k=>CARDS[k].grave);
+ if(gv&&S.el>=thr&&G.t-b.lastPush>4){const lane=pushLane(b),t=enemyTowerIn(b,lane),tt=t.hp>0?t:G.T.find(t=>t.tm!==b.tm&&t.kind==='k');
+  if(botPlay(b,gv,tt.x+(lane?-1:1)*10,fyOf(b,tt.y)-30,true)){b.lane=lane;b.lastPush=G.t;b.plan.push({t:G.t+rnd(.5,1.2),lane,k:'sup'});return}}
+ const wins=hand.filter(k=>ROLE[k].win&&!ROLE[k].spell);
  if(wins.length&&(S.el>=thr||punish&&S.el>=CARDS[wins[0]].cost+1)&&G.t-b.lastPush>4){
   const lane=punish&&ol?1-laneOf(ol.x):pushLane(b);let k=wins[0];
   if(punish&&ol){const f=wins.find(x=>CARDS[x].spd==='vfast'||CARDS[x].tunnel);if(f)k=f}

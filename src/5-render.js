@@ -126,7 +126,7 @@ function drawProj(g,p){const a=Math.atan2(p.ly-p.y,p.lx-p.x);
   case 'flame':for(let i=0;i<3;i++)oc(g,p.x-Math.cos(a)*i*4,p.y-Math.sin(a)*i*4,5-i*1.3,['#ffe27a','#ff9a2a','#ff5a1a'][i]);break;
   case 'ice':oc(g,p.x,p.y,7,'rgba(160,220,255,.35)');g.save();g.translate(p.x,p.y);g.rotate(a);poly(g,[[-6,0],[0,-3],[6,0],[0,3]],'#dff4ff','#8fd0ff');g.restore();break;
   case 'ball':case 'king':case 'tball':oc(g,p.x,p.y,p.pk==='king'||p.pk==='tball'?4.4:3.6,'#2c3040','#8b93a8');break;
-  case 'bomb':{const f=p.from,tot=Math.hypot(p.lx-f.x,p.ly-f.y)||1,done=clamp(1-Math.hypot(p.lx-p.x,p.ly-p.y)/tot,0,1),h=Math.sin(done*Math.PI)*24;
+  case 'bomb':{const f=p.from,tot=Math.hypot(p.lx-f.x,p.ly-f.y)||1,done=clamp(1-Math.hypot(p.lx-p.x,p.ly-p.y)/tot,0,1),h=Math.sin(done*Math.PI)*(p.hi?70:24);
    g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(p.x,p.y+4,4,2,0,0,7);g.fill();oc(g,p.x,p.y-h,4.4,'#23262e','#697088');oc(g,p.x+3,p.y-h-4,1.3,'#ffcf5a');break}}}
 function zig(g,x1,y1,x2,y2,n,amp){g.beginPath();g.moveTo(x1,y1);for(let i=1;i<n;i++){const t=i/n;g.lineTo(x1+(x2-x1)*t+rndV(-amp,amp),y1+(y2-y1)*t+rndV(-amp,amp))}g.lineTo(x2,y2);g.stroke()}
 function drawFX(g,f){const t=clamp(f.l/f.m,0,1);
@@ -157,6 +157,9 @@ function drawZone(g,z,now){const a=Math.min(1,z.t/.4,(z.tot-z.t)/.2+.2);g.global
  else if(z.k==='poison'){g.fillStyle='rgba(110,210,80,.22)';g.strokeStyle='rgba(150,240,110,.7)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke();
   for(let i=0;i<10;i++){const an=i*2.4+now/1600,d=z.r*(.2+((i*37)%70)/100),ph=(now/900+i*.37)%1;oc(g,z.x+Math.cos(an)*d,z.y+Math.sin(an)*d*.78-ph*8,2+ph*2.5,`rgba(170,255,130,${.6*(1-ph)})`)}}
  else if(z.k==='pull'){g.strokeStyle='rgba(180,220,255,.8)';g.lineWidth=2;for(let i=0;i<3;i++){g.beginPath();g.ellipse(z.x,z.y,z.r*(.35+i*.3),z.r*(.35+i*.3)*.78,now/300+i,0,4.5);g.stroke()}}
+ else if(z.k==='roll'){g.fillStyle='#8a5a32';g.strokeStyle='#4a2e18';g.lineWidth=2;rr(g,z.x-z.r,z.y-9,z.r*2,18,8,'#8a5a32');g.stroke();g.fillStyle='#e2b77a';for(const s of[-1,1]){g.beginPath();g.ellipse(z.x+s*z.r,z.y,4,9,0,0,7);g.fill()}
+  g.strokeStyle='#5c3a1e';for(let i=0;i<4;i++){const yy=z.y-9+((z.ang*6+i*4.5)%18);g.beginPath();g.moveTo(z.x-z.r+4,yy);g.lineTo(z.x+z.r-4,yy);g.stroke()}}
+ else if(z.k==='grave'){g.fillStyle='rgba(70,40,100,.28)';g.strokeStyle='rgba(180,140,255,.7)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke()}
  else if(z.k==='heal'){g.fillStyle='rgba(120,255,160,.2)';g.strokeStyle='rgba(150,255,180,.8)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke()}
  else if(z.k==='aura'){const p=.5+.5*Math.sin(now/120);g.strokeStyle=`rgba(255,216,77,${.5+p*.4})`;g.lineWidth=2.5;g.setLineDash([6,5]);g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.stroke();g.setLineDash([])}
  g.globalAlpha=1}
@@ -179,6 +182,7 @@ function drawDeployZones(g,key,now){const c=CARDS[key];if(c.type==='spell')retur
  g.setLineDash([])}
 function drawGhost(g,now){if(!G||G.over||sel==null||gx<0||mode!=='play')return;const S=G.side[0],key=S.hand[sel];if(!key)return;
  const c=CARDS[key],ok=canPlace(0,key,gx,gy)&&!cardBlocked(0,key)&&S.el>=c.cost,p=.5+.5*Math.sin(now/200);
+ if(c.type==='spell'&&c.roll){const r=c.rad*TILE,L=c.roll.len*TILE;g.fillStyle=`rgba(255,240,200,${.14+p*.08})`;g.strokeStyle='#ffe9a8';g.lineWidth=2;g.setLineDash([6,5]);g.beginPath();g.rect(gx-r,gy-L,r*2,L);g.fill();g.stroke();g.setLineDash([]);return}
  if(c.type==='spell'){const r=c.rad*TILE;g.fillStyle=`rgba(255,240,200,${.14+p*.08})`;g.strokeStyle='#ffe9a8';g.lineWidth=2;g.setLineDash([6,5]);g.beginPath();g.arc(gx,gy,r,0,7);g.fill();g.stroke();g.setLineDash([]);return}
  g.globalAlpha=ok?.62:.3;
  if(c.type==='building')drawChar(g,key,0,gx,gy,{s:1.1});

@@ -43,7 +43,7 @@ const CARDS={
  militia:{n:'Дружина',rar:'common',type:'troop',cost:5,count:4,hp:717,dmg:198,hit:1.4,rng:.8,spd:'med',tg:'g',r:8,tip:'Четверо крепких бойцов. Перемалывают танков, боятся урона по площади.'},
  wisp:{n:'Огонёк',rar:'common',type:'troop',cost:1,hp:229,dmg:214,hit:1,rng:2,spd:'vfast',tg:'ga',r:6,kami:1,splash:2.3,tip:'Прыгает на врага и взрывается по площади. Один эликсир.'},
  giant:{n:'Великан',rar:'rare',type:'troop',cost:5,hp:4120,dmg:259,hit:1.5,rng:1,spd:'slow',tg:'b',r:15,mass:18,tip:'Идёт только на строения и держит всё. Нужна поддержка сзади.'},
- crossbow:{n:'Арбалетчица',rar:'rare',type:'troop',cost:4,hp:732,dmg:221,hit:1,rng:6,spd:'med',tg:'ga',r:8,proj:'bolt',tip:'Сильный одиночный стрелок с большой дальностью.'},
+ crossbow:{n:'Арбалетчица',rar:'rare',type:'troop',cost:4,hp:700,dmg:200,hit:1.1,rng:6,spd:'med',tg:'ga',r:8,proj:'bolt',tip:'Сильный одиночный стрелок с большой дальностью.'},
  axe:{n:'Секира',rar:'rare',type:'troop',cost:4,hp:1908,dmg:267,hit:1.5,rng:1,spd:'med',tg:'g',r:9,spin:1,splash:2,tip:'Крутит топор вокруг себя: гроза стай на земле.'},
  fireball:{n:'Огненный шар',rar:'rare',type:'spell',cost:4,rad:2.5,dmg:687,tdmg:206,knock:16,tip:'Большой урон по площади и отбрасывание лёгких.'},
  hammer:{n:'Молотобоец',rar:'rare',type:'troop',cost:4,hp:1373,dmg:717,hit:1.6,rng:.8,spd:'fast',tg:'g',r:9,tip:'Огромный урон по одной цели. Ломает танков.'},
@@ -57,6 +57,10 @@ const CARDS={
  spring:{n:'Родник',rar:'rare',type:'building',cost:6,hp:1070,tg:'g',r:13,life:70,elx:{every:9.8,n:1},noStart:1,tip:'Добывает эликсир: +1 каждые 9,8 секунды, пока стоит. Окупается, если его не сломают. Не бывает в стартовой руке.'},
  raider:{n:'Налётчица',rar:'legendary',type:'troop',cost:3,hp:906,dmg:193,hit:1,rng:.75,spd:'fast',tg:'g',r:8,dash:{min:3.5,max:6,spd:500,mul:2},tip:'Рывком сокращает дистанцию до цели в 3,5–6 клеток. Во время рывка неуязвима, первый удар — двойной.'},
  mend:{n:'Целебный звон',rar:'rare',type:'spell',cost:2,rad:3,heal:420,healT:2,tip:'Две секунды лечит своих бойцов в круге. Спасает пуш, который вот-вот развалится.'},
+ roller:{n:'Каток',rar:'legendary',type:'spell',cost:2,rad:2,dmg:268,tdmg:54,roll:{len:10,spd:220},knock:28,tip:'Бревно катится вперёд на 10 клеток: бьёт и отталкивает наземных врагов, задевает башни. Летающих не трогает.'},
+ shieldman:{n:'Щитоносец',rar:'rare',type:'troop',cost:3,hp:850,shield:560,dmg:180,hit:1.1,rng:.8,spd:'med',tg:'g',r:9,tip:'Щит принимает урон первым. Пока щит цел, отбрасывание и оглушение ему не страшны.'},
+ mortar:{n:'Мортира',rar:'common',type:'building',cost:4,hp:1370,dmg:230,hit:5,rng:11.5,minRng:3.5,splash:1,tg:'g',r:13,life:30,siege:1,tip:'Бьёт навесом на 11,5 клетки по площади, достаёт башни. Вблизи (3,5 клетки) стрелять не может.'},
+ grave:{n:'Погост',rar:'legendary',type:'spell',cost:5,rad:4,grave:{t:9.5,n:15,id:'bones'},tip:'9,5 с поднимает скелетов в круге: всего 15. Против башни, которую некому защищать, — смертельно.'},
  scorch:{n:'Жаровщица',rar:'epic',type:'troop',cost:4,hp:1000,dmg:40,hit:.4,rng:4,spd:'med',tg:'ga',r:8,beam:{dmg:[40,120,400],t:[2,2]},tip:'Луч жара: чем дольше держит цель, тем сильнее жжёт. Оглушение и смена цели сбрасывают разогрев.'},
  poison:{n:'Ядовитое облако',rar:'epic',type:'spell',cost:4,rad:3.5,dmg:580,tdmg:168,poison:8,tip:'Облако на 8 секунд: медленно жжёт и замедляет всё внутри.'},
  legion:{n:'Легион костей',rar:'epic',type:'troop',cost:3,count:14,unit:'bones',hp:84,dmg:84,hit:1,rng:.5,spd:'fast',tg:'g',r:5,tip:'Четырнадцать костяшек. Сносят любого одиночку, если нет урона по площади.'},
@@ -93,7 +97,7 @@ function heroCard(k){return Object.assign({},CARDS[k],{hp:Math.round(CARDS[k].hp
 /* роли карт для бота и подсказок */
 const ROLE={};
 for(const k of Object.keys(CARDS)){const c=CARDS[k];ROLE[k]={
- spell:c.type==='spell',bld:c.type==='building',win:c.tg==='b'||c.tunnel===1,tank:(c.hp||0)*(c.count||1)>=1100&&c.type==='troop',
+ spell:c.type==='spell',bld:c.type==='building',win:c.tg==='b'||c.tunnel===1||!!c.grave,tank:(c.hp||0)*(c.count||1)>=1100&&c.type==='troop',
  swarm:(c.count||1)>=3,splash:!!(c.splash||c.spin),aa:c.tg==='ga'||(c.type==='building'&&c.tg==='ga'),air:!!c.fly,ranged:(c.rng||0)>=3,eco:!!c.elx,heal:!!c.heal,
  dps:c.type==='troop'&&c.dmg?c.dmg*(c.count||1)/c.hit:0}}
 

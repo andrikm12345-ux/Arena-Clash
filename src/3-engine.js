@@ -1,6 +1,6 @@
 /* ================= БОЙ: ДВИЖОК ================= */
 let G=null,uid=0;
-const PSPD={arrow:300,stone:260,bolt:340,orb:220,flame:200,bomb:150,ball:280,ice:230,tower:320,king:300};
+const PSPD={shell:170,arrow:300,stone:260,bolt:340,orb:220,flame:200,bomb:150,ball:280,ice:230,tower:320,king:300};
 /* o: decks, lv, kl, bots, names, train, mode, ex (эво/герой), tt (башенные бойцы), thp (множитель HP башен), seed */
 /* случайность: у боя свой поток (G.simR), у каждого бота — свой, чтобы повтор по журналу команд без ботов совпадал точно */
 function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.random()*2147483647|0);const simR=mul(seed);RNG=simR;
@@ -11,7 +11,7 @@ function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.rand
    if(kind==='p'){const q=TT[tt[tm]]||TT.archer,t=T[T.length-1];t.hp=t.mx=Math.round(hp*q.hp);t.dmg=Math.round(t.dmg*q.dmg);t.hit*=q.hit;t.pk=q.pk;t.tt=tt[tm];if(q.mag){t.mag=t.ammo=q.mag;t.reload=q.reload}}}}
  G={seed,simR,log:[],replay:o.replay||null,rpi:0,setup:null,mc,tick:0,downs:[],tb:null,t:0,ot:0,otT:0,over:0,res:-1,endAt:0,crowns:[0,0],U:[],B:[],T,PR:[],FX:[],Z:[],D:[],S:[],PT:[],TX:[],DEC:[],EM:[],CF:[],shake:0,
   side:[0,1].map(tm=>mkSide(tm,o.decks[tm],o.lv[tm],o.kl[tm],o.ex&&o.ex[tm],mc.elStart)),mode:o.mode||'normal',bots:[0,1].map(tm=>o.bots[tm]?mkBot(tm,o.bots[tm]):null),
-  names:o.names||['Ты','Соперник'],train:!!o.train,stats:[0,1].map(()=>({dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
+  names:o.names||['Ты','Соперник'],train:!!o.train,stats:[0,1].map(()=>({trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
  G.side.forEach((S,tm)=>{S.elMul=o.elMul?o.elMul[tm]:G.bots[tm]?G.bots[tm].s.el:1});
  G.bots.forEach((b,tm)=>{if(b){b.r=mul(seed*31+tm+7);b.think=1.2+b.r()*1.3;b.lane=b.r()<.5?0:1}});
  G.setup={elMul:G.side.map(S=>S.elMul),decks:o.decks,lv:o.lv,kl:o.kl,mode:o.mode||'normal',ex:o.ex||null,tt:o.tt||null,thp:o.thp||null,seed,names:G.names,train:G.train};
@@ -71,32 +71,47 @@ function spawn(tm,key,x,y,lvl,fl){const c=fl&&fl.evo&&EVO[key]?evoCard(key):fl&&
  for(const[fx,fy]of formation(key,x,y,c)){
   let ux=clamp(fx+rnd(-1.5,1.5),10,W-10),uy=clamp(fy+rnd(-1.5,1.5),10,H-10);
   if(!uc.fly&&Math.abs(uy-RY)<RIV+4)uy=RY+(uy<RY?-(RIV+5):RIV+5);
-  const u=mkUnit(tm,uk,ux,uy,lvl,uc);if(u.mass>=CFG.phys.deployPushMass&&!u.fly)for(const v of G.U)if(alive(v)&&!v.fly&&v.mass<u.mass){const d=dist(u,v);if(d<u.r+v.r+12&&d>.1)impulse(v,(v.x-u.x)/d,(v.y-u.y)/d,CFG.phys.deployPush*Math.min(1,u.mass/(v.mass*3)))}if(c.evo){u.evo=1;if(EVO[key].shield){u.shield=u.smx=LV(EVO[key].shield,lvl)}}if(c.hero)u.hero=1;G.U.push(u);if(uc.ability)G.side[tm].champ=u}
+  const u=mkUnit(tm,uk,ux,uy,lvl,uc);if(uc.shield){u.shield=u.smx=LV(uc.shield,lvl)}if(u.mass>=CFG.phys.deployPushMass&&!u.fly)for(const v of G.U)if(alive(v)&&!v.fly&&v.mass<u.mass){const d=dist(u,v);if(d<u.r+v.r+12&&d>.1)impulse(v,(v.x-u.x)/d,(v.y-u.y)/d,CFG.phys.deployPush*Math.min(1,u.mass/(v.mass*3)))}if(c.evo){u.evo=1;if(EVO[key].shield){u.shield=u.smx=LV(EVO[key].shield,lvl)}}if(c.hero)u.hero=1;G.U.push(u);if(uc.ability)G.side[tm].champ=u}
  if(c.zap){const z=LV(c.zap,lvl);areaHit(tm,x,y,2*TILE,z,z,'ga',{stun:.5});G.FX.push({k:'zapring',x,y,r:2*TILE,l:0,m:.35});AU.sfx('zap')}
  puff(x,y,'#d9cfb4',6,40,2.4);ring(x,y,22,TEAM[tm].m)}
 
 /* ---------- заклинания ---------- */
-function castSpell(tm,key,x,y,lvl){const c=CARDS[key],r=c.rad*TILE,dmg=LV(c.dmg||0,lvl),tdmg=LV(c.tdmg||0,lvl);
+/* размен: сколько эликсира врага убило заклинание; выгода от +1 всплывает над полем и копится в статистике */
+function withTrade(tr,fn){const p=G.tr;G.tr=tr;try{fn()}finally{G.tr=p}}
+function tradeReport(tr,x,y){if(!tr||tr.done)return;tr.done=1;const g=Math.floor(tr.val-tr.cost+.2);if(g>=1){floatText(x,y-30,`+${g} эликсира`,tr.tm?'#ff9a8a':'#ffd84d',13);G.stats[tr.tm].trade+=g}}
+function castSpell(tm,key,x,y,lvl){const c=CARDS[key],tr={tm,cost:c.cost,val:0};withTrade(tr,()=>castSpell0(tm,key,x,y,lvl,tr));if(!G.Z.some(z=>z.tr===tr)&&!G.S.some(s=>s.tr===tr))tradeReport(tr,x,y)}
+function castSpell0(tm,key,x,y,lvl,tr){const c=CARDS[key],r=c.rad*TILE,dmg=LV(c.dmg||0,lvl),tdmg=LV(c.tdmg||0,lvl);
  if(key==='fireball'){const k=G.T.find(t=>t.tm===tm&&t.kind==='k'),tt=Math.max(.35,Math.hypot(x-k.x,y-k.y)/300);
-  G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,fn:()=>{areaHit(tm,x,y,r,dmg,tdmg,'ga',{knock:c.knock});boomFx(x,y,r)}});AU.sfx('shot');return}
- if(c.waves){for(let w=0;w<c.waves;w++)G.S.push({t:G.t+.45+w*.3,fn:()=>{areaHit(tm,x,y,r,dmg/c.waves,tdmg/c.waves,'ga');ring(x,y,r,'#ffffff');AU.sfx('hit');for(let i=0;i<8;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;puff(x+Math.cos(a)*d,y+Math.sin(a)*d,'#e9eef7',2,20,1.6)}}});
+  G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg,tdmg,'ga',{knock:c.knock}));boomFx(x,y,r);tradeReport(tr,x,y)}});AU.sfx('shot');return}
+ if(c.waves){for(let w=0;w<c.waves;w++)G.S.push({t:G.t+.45+w*.3,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg/c.waves,tdmg/c.waves,'ga'));if(w===c.waves-1)tradeReport(tr,x,y);ring(x,y,r,'#ffffff');AU.sfx('hit');for(let i=0;i<8;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;puff(x+Math.cos(a)*d,y+Math.sin(a)*d,'#e9eef7',2,20,1.6)}}});
   for(let i=0;i<28;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;G.FX.push({k:'rain',x:x+Math.cos(a)*d+16,y:y+Math.sin(a)*d-80,x2:x+Math.cos(a)*d,y2:y+Math.sin(a)*d,l:-rnd(0,.95),m:.3})}AU.sfx('shot');return}
  if(c.freeze){areaHit(tm,x,y,r,dmg,tdmg,'ga',{freeze:c.freeze});G.Z.push({k:'freeze',tm,x,y,r,t:c.freeze,tot:c.freeze});AU.sfx('freeze');return}
  if(c.stun){areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.stun});G.FX.push({k:'zapring',x,y,r,l:0,m:.35});AU.sfx('zap');return}
  if(c.rage){G.Z.push({k:'rage',tm,x,y,r,t:c.rage,tot:c.rage});AU.sfx('rage');return}
- if(c.pull){G.Z.push({k:'pull',tm,x,y,r,t:c.pull,tot:c.pull,tick:0,dmg:dmg/4,tdmg:tdmg/4,spd:c.pullSpd});AU.sfx('poison');return}
+ if(c.pull){G.Z.push({k:'pull',tr,tm,x,y,r,t:c.pull,tot:c.pull,tick:0,dmg:dmg/4,tdmg:tdmg/4,spd:c.pullSpd});AU.sfx('poison');return}
+ if(c.roll){const dir=tm?1:-1;G.Z.push({k:'roll',tr,tm,x,y,r,t:99,tot:99,dir,left:c.roll.len*TILE,spd:c.roll.spd,dmg,tdmg,knock:c.knock,hit:new Set(),ang:0});AU.sfx('hit');return}
+ if(c.grave){const g=c.grave;G.Z.push({k:'grave',tm,x,y,r,t:g.t,tot:g.t,every:g.t/g.n,tick:.5,id:g.id,lvl});AU.sfx('ability');return}
  if(c.heal){G.Z.push({k:'heal',tm,x,y,r,t:c.healT,tot:c.healT,hps:LV(c.heal,lvl)/c.healT});AU.sfx('ability');return}
- if(c.poison){G.Z.push({k:'poison',tm,x,y,r,t:c.poison,tot:c.poison,tick:.5,dps:dmg/c.poison,tdps:tdmg/c.poison});AU.sfx('poison')}}
-function updZones(dt){for(const z of G.Z){z.t-=dt;
+ if(c.poison){G.Z.push({k:'poison',tr,tm,x,y,r,t:c.poison,tot:c.poison,tick:.5,dps:dmg/c.poison,tdps:tdmg/c.poison});AU.sfx('poison')}}
+function updZones(dt){for(const z of G.Z){const p0=G.tr;if(z.tr)G.tr=z.tr;try{updZone(z,dt)}finally{G.tr=p0}if(z.t<=0&&z.tr)tradeReport(z.tr,z.x,z.y)}
+ G.Z=G.Z.filter(z=>z.t>0)}
+function updZone(z,dt){z.t-=dt;
   if(z.k==='rage'){for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r+u.r)u.rageT=Math.max(u.rageT,.6)}
   else if(z.k==='poison'){for(const u of G.U)if(u.tm!==z.tm&&alive(u)&&dist(u,z)<z.r+u.r*.5){u.slowT=Math.max(u.slowT,.3);u.slowF=Math.max(u.slowF,.15)}
    z.tick-=dt;if(z.tick<=0){z.tick+=1;areaHit(z.tm,z.x,z.y,z.r,z.dps,z.tdps,'ga')}}
  else if(z.k==='pull'){ // вихрь тянет к центру; чем тяжелее юнит, тем медленнее
    for(const u of G.U)if(u.tm!==z.tm&&alive(u)&&!u.dashing){const d=dist(u,z);if(d<z.r+u.r&&d>1){const s=Math.min(d,z.spd*Math.min(1,(CFG.phys.pullMass/u.mass)**1.2)*dt);u.x+=(z.x-u.x)/d*s;u.y+=(z.y-u.y)/d*s;u.lock=0;u.wu=0}}
    z.tick-=dt;if(z.tick<=0){z.tick+=z.tot/4;areaHit(z.tm,z.x,z.y,z.r,z.dmg,z.tdmg,'ga')}}
+ else if(z.k==='roll'){ // каток: катится по полю, каждого бьёт один раз и толкает вперёд по ходу
+   const s=Math.min(z.left,z.spd*dt);z.y+=z.dir*s;z.left-=s;z.ang+=s/12;if(z.left<=0||z.y<8||z.y>H-8)z.t=0;
+   for(const v of G.U)if(v.tm!==z.tm&&alive(v)&&!v.fly&&!z.hit.has(v)&&Math.abs(v.x-z.x)<z.r+v.r*.5&&Math.abs(v.y-z.y)<10+v.r){z.hit.add(v);damage(v,z.dmg,z.tm);
+    if(v.mass<CFG.phys.knockMinMass&&!v.dashing&&!(v.shield>0)){impulse(v,0,z.dir,z.knock*CFG.phys.knockDamp);v.wu=0;v.lock=0;v.rt=0;v.beamT=0}}
+   for(const o of[...G.B,...G.T])if(o.tm!==z.tm&&!z.hit.has(o)&&(o.obj==='t'?o.hp>0:alive(o))&&Math.abs(o.x-z.x)<z.r+o.r*.6&&Math.abs(o.y-z.y)<10+o.r*.6){z.hit.add(o);damage(o,o.obj==='t'?z.tdmg:z.dmg,z.tm)}
+   if(G.tick%3===0)puff(z.x+rnd(-z.r,z.r),z.y,'#c9b99a',1,30,2)}
+  else if(z.k==='grave'){z.tick-=dt;if(z.tick<=0&&z.t>.3){z.tick+=z.every;for(let n=0;n<8;n++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*z.r*.9,px=clamp(z.x+Math.cos(a)*d,10,W-10),py=z.y+Math.sin(a)*d;
+     if(Math.abs(py-RY)<RIV+4||G.T.some(t=>t.hp>0&&dist(t,{x:px,y:py})<t.r+4))continue;const u=mkUnit(z.tm,z.id,px,py,z.lvl);G.U.push(u);puff(px,py,'#6b5a7a',6,30,2.2);break}}}
   else if(z.k==='heal'){for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r+u.r*.5)u.hp=Math.min(u.mx,u.hp+z.hps*dt)}
   else if(z.k==='aura'){if(alive(z.u)){z.x=z.u.x;z.y=z.u.y}for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r)u.rageT=Math.max(u.rageT,.5)}}
- G.Z=G.Z.filter(z=>z.t>0)}
 function useAbility(tm){const R0=RNG;RNG=G.simR;let ok;try{ok=doAbility(tm)}finally{RNG=R0}if(ok)G.log.push({k:'a',tk:G.tick,ph:G.inBots?1:0,tm});return ok}
 function applyReplay(ph){const L=G.replay;while(G.rpi<L.length&&L[G.rpi].tk===G.tick&&L[G.rpi].ph===ph){const c=L[G.rpi++];if(c.k==='p')doPlay(c.tm,c.i,c.x,c.y);else doAbility(c.tm)}}
 function doAbility(tm){const S=G.side[tm],u=S.champ;if(!alive(u))return false;const a=u.c.ability;if(S.abCd>0||S.el<a.cost)return false;
@@ -212,18 +227,18 @@ function explode(u,t){areaHit(u.tm,t.x,t.y,u.c.splash*TILE,u.dmg,u.dmg,'ga');rin
 function areaHit(tm,x,y,r,dmg,tdmg,tg,opt){opt=opt||{};const p={x,y};
  if(tg!=='b')for(const v of G.U)if(v.tm!==tm&&v!==opt.skip&&alive(v)&&!(v.fly&&tg==='g')&&dist(v,p)<r+v.r*.5){damage(v,dmg,tm);
   if(opt.stun)stunObj(v,opt.stun);if(opt.slow)slowObj(v,opt.slow);if(opt.freeze){v.frozenT=Math.max(v.frozenT,opt.freeze);v.wu=0;v.beamT=0}
-  if(opt.knock&&v.mass<CFG.phys.knockMinMass&&!v.fly&&!v.dashing){const d=dist(v,p)||1;impulse(v,(v.x-x)/d,(v.y-y)/d,opt.knock*CFG.phys.knockDamp);v.wu=0;v.lock=0;v.rt=0;v.beamT=0}}
+  if(opt.knock&&v.mass<CFG.phys.knockMinMass&&!v.fly&&!v.dashing&&!(v.shield>0)){const d=dist(v,p)||1;impulse(v,(v.x-x)/d,(v.y-y)/d,opt.knock*CFG.phys.knockDamp);v.wu=0;v.lock=0;v.rt=0;v.beamT=0}}
  for(const o of G.B)if(o.tm!==tm&&o!==opt.skip&&alive(o)&&dist(o,p)<r+o.r*.6){damage(o,tdmg,tm);if(opt.stun)stunObj(o,opt.stun);if(opt.freeze)o.frozenT=Math.max(o.frozenT,opt.freeze)}
  for(const o of G.T)if(o.tm!==tm&&o!==opt.skip&&o.hp>0&&dist(o,p)<r+o.r*.6){damage(o,tdmg,tm);if(opt.stun)stunObj(o,opt.stun);if(opt.freeze)o.frozenT=Math.max(o.frozenT,opt.freeze)}}
 /* физика толчков: скорость, которая плавно гаснет (CFG.phys.knockDamp), путь ≈ скорость / затухание */
 function impulse(u,nx,ny,v){u.kx=(u.kx||0)+nx*v;u.ky=(u.ky||0)+ny*v}
 function stepImpulse(u,dt){if(!u.kx&&!u.ky)return;u.x+=u.kx*dt;u.y+=u.ky*dt;const f=Math.exp(-CFG.phys.knockDamp*dt);u.kx*=f;u.ky*=f;if(Math.hypot(u.kx,u.ky)<3){u.kx=u.ky=0}}
-function stunObj(o,t){o.stunT=Math.max(o.stunT||0,t);if(o.obj==='u'){o.charging=0;o.run=0;o.wu=0;o.beamT=0;o.beamTg=null;o.cd=Math.max(o.cd,hitOf(o)*.5)}else o.cd=Math.max(o.cd||0,(o.hit||1)*.5)}
+function stunObj(o,t){if(o.shield>0)return;o.stunT=Math.max(o.stunT||0,t);if(o.obj==='u'){o.charging=0;o.run=0;o.wu=0;o.beamT=0;o.beamTg=null;o.cd=Math.max(o.cd,hitOf(o)*.5)}else o.cd=Math.max(o.cd||0,(o.hit||1)*.5)}
 function slowObj(o,s){if(o.obj!=='u')return;o.slowT=Math.max(o.slowT,s.t);o.slowF=Math.max(o.slowF||0,s.f)}
 function damage(o,d,fromTm){if(G.over||d<=0)return;if(!aliveT(o))return;if(o.dashing)return;
  if(o.shield>0){const a=Math.min(o.shield,d);o.shield-=a;d-=a;if(o.shield<=0)puff(o.x,o.y-12,'#ffe9a8',8,40,2);if(d<=0){o.fl=.08;return}}
  if(o.obj==='t')G.stats[fromTm].dmg+=Math.min(d,o.hp);
- o.hp-=d;o.fl=.1;if(d>=CFG.juice.heavyHit&&o.obj!=='b')G.hitstop=CFG.juice.hitStop;
+ o.hp-=d;o.fl=.1;if(G.tr&&o.obj==='u'&&o.hp<=0&&!o.counted){o.counted=1;const c=CARDS[o.key]||o.c;G.tr.val+=c.token?.5:(c.cost||0)/(c.count||1)}if(d>=CFG.juice.heavyHit&&o.obj!=='b')G.hitstop=CFG.juice.hitStop;
  if(o.obj==='t'){if(d>=25)floatText(o.x+rnd(-8,8),o.y-o.r-8,Math.round(d),o.tm?'#fff':'#ffd2cc');if(o.kind==='k')wakeKing(o);if(o.hp<=0){o.hp=0;towerDown(o)}}}
 function wakeKing(k){if(k.act)return;k.act=1;k.wake=CFG.tower.k.wakeAim;AU.sfx('wake');floatText(k.x,k.y+(k.tm?k.r+16:-k.r-16),'Король проснулся!','#ffd27a',12)}
 function crownsOf(tm){let c=0;for(const t of G.T)if(t.tm!==tm&&t.hp<=0)c+=t.kind==='k'?3:1;return Math.min(3,c)}
@@ -271,8 +286,12 @@ function updBuilding(b,dt){b.fl=Math.max(0,b.fl-dt);b.spawnT=Math.max(0,b.spawnT
  b.at=Math.max(0,b.at-dt*3);
  if(b.c.elx){b.ex=(b.ex??b.c.elx.every)-dt;if(b.ex<=0){b.ex+=b.c.elx.every;const S=G.side[b.tm];S.el=Math.min(CFG.elixir.max,S.el+b.c.elx.n);b.at=1;floatText(b.x,b.y-24,'+'+b.c.elx.n,'#e08bff',13)}}
  if(b.c.spawn){b.spT-=dt;if(b.spT<=0){b.spT=b.c.spawn.every;b.at=1;for(let i=0;i<b.c.spawn.n;i++)G.U.push(mkUnit(b.tm,b.c.spawn.id,b.x+rnd(-8,8),b.y+(b.tm?16:-16)+rnd(-3,3),b.lvl));puff(b.x,b.y-6,'#cfe8c0',5,30,2)}}
- if(b.c.dmg){b.cd-=dt;let best=null,bd=b.c.rng*TILE;for(const u of G.U)if(u.tm!==b.tm&&alive(u)&&canHit(b.c,u)){const d=dist(b,u)-u.r;if(d<bd){bd=d;best=u}}
-  if(best){b.ang=Math.atan2(best.y-(b.y-10),best.x-b.x);if(b.cd<=0){b.cd=b.c.hit;b.at=1;G.PR.push({pk:'ball',x:b.x,y:b.y-12,tg:best,lx:best.x,ly:best.y,dmg:b.dmg,tm:b.tm,spl:0,sp:PSPD.ball,fly:best.fly,l:0});AU.sfx('shot')}}}}
+ if(b.c.dmg){b.cd-=dt;const mn=(b.c.minRng||0)*TILE;let best=null,bd=b.c.rng*TILE;const ok=(o,d)=>d<bd&&dist(b,o)>=mn;
+  if(b.tg&&(b.tg.obj==='t'?b.tg.hp>0:alive(b.tg))){const d=dist(b,b.tg)-b.tg.r;if(ok(b.tg,d+.01))best=b.tg}
+  if(!best){for(const u of G.U)if(u.tm!==b.tm&&alive(u)&&canHit(b.c,u)){const d=dist(b,u)-u.r;if(ok(u,d)){bd=d;best=u}}
+   if(b.c.siege){for(const o of G.B)if(o.tm!==b.tm&&alive(o)){const d=dist(b,o)-o.r;if(ok(o,d)){bd=d;best=o}}for(const t of G.T)if(t.tm!==b.tm&&t.hp>0){const d=dist(b,t)-t.r;if(ok(t,d)){bd=d;best=t}}}}
+  b.tg=best;
+  if(best){b.ang=Math.atan2(best.y-(b.y-10),best.x-b.x);if(b.cd<=0){b.cd=b.c.hit;b.at=1;const sh=!!b.c.splash;G.PR.push({pk:sh?'bomb':'ball',hi:sh?1:0,x:b.x,y:b.y-12,tg:best,lx:best.x,ly:best.y,dmg:b.dmg,tm:b.tm,spl:(b.c.splash||0)*TILE,tgf:b.c.tg,sp:sh?PSPD.shell:PSPD.ball,from:{x:b.x,y:b.y},fly:best.fly,l:0});AU.sfx(sh?'boom':'shot')}}}}
 function updProj(p,dt){p.l+=dt;
  if(p.pk!=='bomb'&&p.tg&&aliveT(p.tg)){p.lx=p.tg.x;p.ly=p.tg.y}
  const dx=p.lx-p.x,dy=p.ly-p.y,d=Math.hypot(dx,dy),s=p.sp*dt;

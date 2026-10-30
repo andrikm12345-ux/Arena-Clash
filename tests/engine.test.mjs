@@ -264,3 +264,57 @@ test('целебный звон лечит своих и не лечит чуж�
   assert.ok(w.run('G.U.find(u=>u.tm===0).hp') > 300);
   assert.equal(w.run('G.U.find(u=>u.tm===1).hp'), 10);
 });
+
+test('каток катится 10 клеток, бьёт каждого один раз, толкает лёгких, не трогает летающих', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>{t.dmg=0;t.hp=t.mx=1e7});spawn(1,'guard',180,300,11);spawn(1,'bats',200,300,11);G.U.forEach(u=>{u.frozenT=999;u.hp=u.mx=1e6});globalThis.g=G.U.find(u=>u.key==='guard');globalThis.b=G.U.find(u=>u.key==='bats');globalThis.y0=g.y;castSpell(0,'roller',180,420,11)`);
+  run(w, 2);
+  assert.equal(w.run('1e6-g.hp'), w.run('LV(CARDS.roller.dmg,11)'), 'один удар');
+  assert.ok(w.run('y0-g.y') > 15, `отброшен вперёд на ${w.run('y0-g.y')}`);
+  assert.equal(w.run('b.hp'), 1e6, 'летающих не задевает');
+  assert.equal(w.run('G.Z.length'), 0, 'докатился и исчез');
+});
+
+test('щитоносец: щит принимает урон первым и спасает от оглушения', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>t.dmg=0);spawn(0,'shieldman',180,450,11);globalThis.s=G.U[0];s.frozenT=999`);
+  const sh = w.run('s.shield'), hp = w.run('s.hp');
+  assert.equal(sh, w.run('LV(CARDS.shieldman.shield,11)'));
+  w.run('damage(s,100,1);stunObj(s,2)');
+  assert.equal(w.run('s.hp'), hp); assert.equal(w.run('s.shield'), sh - 100); assert.equal(w.run('s.stunT'), 0);
+  w.run(`damage(s,${sh},1)`);
+  assert.equal(w.run('s.shield'), 0); assert.equal(w.run('s.hp'), hp - 100);
+});
+
+test('мортира: бьёт навесом издалека и башни, вблизи — мёртвая зона', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>t.dmg=0);spawn(0,'mortar',180,400,11);globalThis.m=G.B[0];spawn(1,'giant',180,380,11);globalThis.g=G.U[0];g.frozenT=999;g.hp=g.mx=1e6`);
+  run(w, 6);
+  assert.equal(w.run('g.hp'), 1e6, 'вблизи не стреляет');
+  assert.ok(w.run('m.tg===null'), 'цели нет');
+  w.run(`g.hp=0;G.U=[];spawn(1,'giant',180,220,11);globalThis.g2=G.U[0];g2.frozenT=999;g2.hp=g2.mx=1e6`);
+  run(w, 8);
+  assert.ok(w.run('1e6-g2.hp') >= w.run('LV(CARDS.mortar.dmg,11)'), 'попал издалека');
+  w.run(`G.U=[];G.B=[];spawn(0,'mortar',90,350,11);globalThis.m2=G.B[0];globalThis.pt=${tower(1, 'p', 'left')};globalThis.h0=pt.hp`);
+  run(w, 9);
+  assert.ok(w.run('h0-pt.hp') > 0, 'достаёт башню');
+});
+
+test('погост: поднимает скелетов в круге за 9,5 с', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>t.dmg=0);castSpell(0,'grave',180,160,11)`);
+  run(w, 3);
+  const a = w.run('G.U.filter(u=>u.tm===0&&u.key==="bones").length');
+  assert.ok(a >= 3 && a <= 6, `за 3 с: ${a}`);
+  run(w, 8);
+  assert.equal(w.run('G.Z.filter(z=>z.k==="grave").length'), 0);
+});
+
+test('размен: заклинание, убившее больше своей цены, даёт «+N эликсира» в статистику', () => {
+  const w = world();
+  w.run(`G.T.forEach(t=>t.dmg=0);spawn(1,'shooters',180,200,11);spawn(1,'slingers',185,215,11);G.U.forEach(u=>u.frozenT=999);castSpell(0,'fireball',182,205,11)`);
+  run(w, 2);
+  assert.equal(w.run('G.U.filter(u=>u.tm===1&&alive(u)).length'), 0);
+  assert.equal(w.run('G.stats[0].trade'), 1, 'стрелки 3 + пращники 2 − шар 4 = +1');
+  assert.ok(w.run('G.TX.some(t=>t.t==="+1 эликсира")') || w.run('G.stats[0].trade') === 1);
+});

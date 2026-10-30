@@ -87,7 +87,7 @@ const CARDS={
  militia:{n:'Дружина',rar:'common',type:'troop',cost:5,count:4,hp:717,dmg:198,hit:1.4,rng:.8,spd:'med',tg:'g',r:8,tip:'Четверо крепких бойцов. Перемалывают танков, боятся урона по площади.'},
  wisp:{n:'Огонёк',rar:'common',type:'troop',cost:1,hp:229,dmg:214,hit:1,rng:2,spd:'vfast',tg:'ga',r:6,kami:1,splash:2.3,tip:'Прыгает на врага и взрывается по площади. Один эликсир.'},
  giant:{n:'Великан',rar:'rare',type:'troop',cost:5,hp:4120,dmg:259,hit:1.5,rng:1,spd:'slow',tg:'b',r:15,mass:18,tip:'Идёт только на строения и держит всё. Нужна поддержка сзади.'},
- crossbow:{n:'Арбалетчица',rar:'rare',type:'troop',cost:4,hp:732,dmg:221,hit:1,rng:6,spd:'med',tg:'ga',r:8,proj:'bolt',tip:'Сильный одиночный стрелок с большой дальностью.'},
+ crossbow:{n:'Арбалетчица',rar:'rare',type:'troop',cost:4,hp:700,dmg:200,hit:1.1,rng:6,spd:'med',tg:'ga',r:8,proj:'bolt',tip:'Сильный одиночный стрелок с большой дальностью.'},
  axe:{n:'Секира',rar:'rare',type:'troop',cost:4,hp:1908,dmg:267,hit:1.5,rng:1,spd:'med',tg:'g',r:9,spin:1,splash:2,tip:'Крутит топор вокруг себя: гроза стай на земле.'},
  fireball:{n:'Огненный шар',rar:'rare',type:'spell',cost:4,rad:2.5,dmg:687,tdmg:206,knock:16,tip:'Большой урон по площади и отбрасывание лёгких.'},
  hammer:{n:'Молотобоец',rar:'rare',type:'troop',cost:4,hp:1373,dmg:717,hit:1.6,rng:.8,spd:'fast',tg:'g',r:9,tip:'Огромный урон по одной цели. Ломает танков.'},
@@ -101,6 +101,10 @@ const CARDS={
  spring:{n:'Родник',rar:'rare',type:'building',cost:6,hp:1070,tg:'g',r:13,life:70,elx:{every:9.8,n:1},noStart:1,tip:'Добывает эликсир: +1 каждые 9,8 секунды, пока стоит. Окупается, если его не сломают. Не бывает в стартовой руке.'},
  raider:{n:'Налётчица',rar:'legendary',type:'troop',cost:3,hp:906,dmg:193,hit:1,rng:.75,spd:'fast',tg:'g',r:8,dash:{min:3.5,max:6,spd:500,mul:2},tip:'Рывком сокращает дистанцию до цели в 3,5–6 клеток. Во время рывка неуязвима, первый удар — двойной.'},
  mend:{n:'Целебный звон',rar:'rare',type:'spell',cost:2,rad:3,heal:420,healT:2,tip:'Две секунды лечит своих бойцов в круге. Спасает пуш, который вот-вот развалится.'},
+ roller:{n:'Каток',rar:'legendary',type:'spell',cost:2,rad:2,dmg:268,tdmg:54,roll:{len:10,spd:220},knock:28,tip:'Бревно катится вперёд на 10 клеток: бьёт и отталкивает наземных врагов, задевает башни. Летающих не трогает.'},
+ shieldman:{n:'Щитоносец',rar:'rare',type:'troop',cost:3,hp:850,shield:560,dmg:180,hit:1.1,rng:.8,spd:'med',tg:'g',r:9,tip:'Щит принимает урон первым. Пока щит цел, отбрасывание и оглушение ему не страшны.'},
+ mortar:{n:'Мортира',rar:'common',type:'building',cost:4,hp:1370,dmg:230,hit:5,rng:11.5,minRng:3.5,splash:1,tg:'g',r:13,life:30,siege:1,tip:'Бьёт навесом на 11,5 клетки по площади, достаёт башни. Вблизи (3,5 клетки) стрелять не может.'},
+ grave:{n:'Погост',rar:'legendary',type:'spell',cost:5,rad:4,grave:{t:9.5,n:15,id:'bones'},tip:'9,5 с поднимает скелетов в круге: всего 15. Против башни, которую некому защищать, — смертельно.'},
  scorch:{n:'Жаровщица',rar:'epic',type:'troop',cost:4,hp:1000,dmg:40,hit:.4,rng:4,spd:'med',tg:'ga',r:8,beam:{dmg:[40,120,400],t:[2,2]},tip:'Луч жара: чем дольше держит цель, тем сильнее жжёт. Оглушение и смена цели сбрасывают разогрев.'},
  poison:{n:'Ядовитое облако',rar:'epic',type:'spell',cost:4,rad:3.5,dmg:580,tdmg:168,poison:8,tip:'Облако на 8 секунд: медленно жжёт и замедляет всё внутри.'},
  legion:{n:'Легион костей',rar:'epic',type:'troop',cost:3,count:14,unit:'bones',hp:84,dmg:84,hit:1,rng:.5,spd:'fast',tg:'g',r:5,tip:'Четырнадцать костяшек. Сносят любого одиночку, если нет урона по площади.'},
@@ -137,7 +141,7 @@ function heroCard(k){return Object.assign({},CARDS[k],{hp:Math.round(CARDS[k].hp
 /* роли карт для бота и подсказок */
 const ROLE={};
 for(const k of Object.keys(CARDS)){const c=CARDS[k];ROLE[k]={
- spell:c.type==='spell',bld:c.type==='building',win:c.tg==='b'||c.tunnel===1,tank:(c.hp||0)*(c.count||1)>=1100&&c.type==='troop',
+ spell:c.type==='spell',bld:c.type==='building',win:c.tg==='b'||c.tunnel===1||!!c.grave,tank:(c.hp||0)*(c.count||1)>=1100&&c.type==='troop',
  swarm:(c.count||1)>=3,splash:!!(c.splash||c.spin),aa:c.tg==='ga'||(c.type==='building'&&c.tg==='ga'),air:!!c.fly,ranged:(c.rng||0)>=3,eco:!!c.elx,heal:!!c.heal,
  dps:c.type==='troop'&&c.dmg?c.dmg*(c.count||1)/c.hit:0}}
 
@@ -381,7 +385,7 @@ const CH={
   if(at>0)oc(g,0,-6,4+at*4,`rgba(180,255,180,${.5*at})`)}
 };
 const FLYOFF=15;
-CH.scorch=CH.sorcerer||CH.frostsage;CH.raider=CH.imps||CH.guard;CH.spring=CH.lair||CH.cannon;
+CH.scorch=CH.sorcerer||CH.frostsage;CH.raider=CH.imps||CH.guard;CH.spring=CH.lair||CH.cannon;CH.shieldman=CH.guard;CH.mortar=CH.cannon;
 function drawChar(g,key,tm,x,y,o){const T=TEAM[tm],c=CARDS[key],s=o.s||1,dir=o.dir||1,ph=o.ph||0,at=o.at||0;
  g.save();g.translate(x,y);
  if(!o.noShadow){g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,c.fly?8:2,c.r*s*1.05,c.r*s*.46,0,0,7);g.fill()}
@@ -412,7 +416,7 @@ function icon(key){if(IC[key])return IC[key];const cv=document.createElement('ca
  return IC[key]=cv}
 /* ================= БОЙ: ДВИЖОК ================= */
 let G=null,uid=0;
-const PSPD={arrow:300,stone:260,bolt:340,orb:220,flame:200,bomb:150,ball:280,ice:230,tower:320,king:300};
+const PSPD={shell:170,arrow:300,stone:260,bolt:340,orb:220,flame:200,bomb:150,ball:280,ice:230,tower:320,king:300};
 /* o: decks, lv, kl, bots, names, train, mode, ex (эво/герой), tt (башенные бойцы), thp (множитель HP башен), seed */
 /* случайность: у боя свой поток (G.simR), у каждого бота — свой, чтобы повтор по журналу команд без ботов совпадал точно */
 function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.random()*2147483647|0);const simR=mul(seed);RNG=simR;
@@ -423,7 +427,7 @@ function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.rand
    if(kind==='p'){const q=TT[tt[tm]]||TT.archer,t=T[T.length-1];t.hp=t.mx=Math.round(hp*q.hp);t.dmg=Math.round(t.dmg*q.dmg);t.hit*=q.hit;t.pk=q.pk;t.tt=tt[tm];if(q.mag){t.mag=t.ammo=q.mag;t.reload=q.reload}}}}
  G={seed,simR,log:[],replay:o.replay||null,rpi:0,setup:null,mc,tick:0,downs:[],tb:null,t:0,ot:0,otT:0,over:0,res:-1,endAt:0,crowns:[0,0],U:[],B:[],T,PR:[],FX:[],Z:[],D:[],S:[],PT:[],TX:[],DEC:[],EM:[],CF:[],shake:0,
   side:[0,1].map(tm=>mkSide(tm,o.decks[tm],o.lv[tm],o.kl[tm],o.ex&&o.ex[tm],mc.elStart)),mode:o.mode||'normal',bots:[0,1].map(tm=>o.bots[tm]?mkBot(tm,o.bots[tm]):null),
-  names:o.names||['Ты','Соперник'],train:!!o.train,stats:[0,1].map(()=>({dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
+  names:o.names||['Ты','Соперник'],train:!!o.train,stats:[0,1].map(()=>({trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
  G.side.forEach((S,tm)=>{S.elMul=o.elMul?o.elMul[tm]:G.bots[tm]?G.bots[tm].s.el:1});
  G.bots.forEach((b,tm)=>{if(b){b.r=mul(seed*31+tm+7);b.think=1.2+b.r()*1.3;b.lane=b.r()<.5?0:1}});
  G.setup={elMul:G.side.map(S=>S.elMul),decks:o.decks,lv:o.lv,kl:o.kl,mode:o.mode||'normal',ex:o.ex||null,tt:o.tt||null,thp:o.thp||null,seed,names:G.names,train:G.train};
@@ -483,32 +487,47 @@ function spawn(tm,key,x,y,lvl,fl){const c=fl&&fl.evo&&EVO[key]?evoCard(key):fl&&
  for(const[fx,fy]of formation(key,x,y,c)){
   let ux=clamp(fx+rnd(-1.5,1.5),10,W-10),uy=clamp(fy+rnd(-1.5,1.5),10,H-10);
   if(!uc.fly&&Math.abs(uy-RY)<RIV+4)uy=RY+(uy<RY?-(RIV+5):RIV+5);
-  const u=mkUnit(tm,uk,ux,uy,lvl,uc);if(u.mass>=CFG.phys.deployPushMass&&!u.fly)for(const v of G.U)if(alive(v)&&!v.fly&&v.mass<u.mass){const d=dist(u,v);if(d<u.r+v.r+12&&d>.1)impulse(v,(v.x-u.x)/d,(v.y-u.y)/d,CFG.phys.deployPush*Math.min(1,u.mass/(v.mass*3)))}if(c.evo){u.evo=1;if(EVO[key].shield){u.shield=u.smx=LV(EVO[key].shield,lvl)}}if(c.hero)u.hero=1;G.U.push(u);if(uc.ability)G.side[tm].champ=u}
+  const u=mkUnit(tm,uk,ux,uy,lvl,uc);if(uc.shield){u.shield=u.smx=LV(uc.shield,lvl)}if(u.mass>=CFG.phys.deployPushMass&&!u.fly)for(const v of G.U)if(alive(v)&&!v.fly&&v.mass<u.mass){const d=dist(u,v);if(d<u.r+v.r+12&&d>.1)impulse(v,(v.x-u.x)/d,(v.y-u.y)/d,CFG.phys.deployPush*Math.min(1,u.mass/(v.mass*3)))}if(c.evo){u.evo=1;if(EVO[key].shield){u.shield=u.smx=LV(EVO[key].shield,lvl)}}if(c.hero)u.hero=1;G.U.push(u);if(uc.ability)G.side[tm].champ=u}
  if(c.zap){const z=LV(c.zap,lvl);areaHit(tm,x,y,2*TILE,z,z,'ga',{stun:.5});G.FX.push({k:'zapring',x,y,r:2*TILE,l:0,m:.35});AU.sfx('zap')}
  puff(x,y,'#d9cfb4',6,40,2.4);ring(x,y,22,TEAM[tm].m)}
 
 /* ---------- заклинания ---------- */
-function castSpell(tm,key,x,y,lvl){const c=CARDS[key],r=c.rad*TILE,dmg=LV(c.dmg||0,lvl),tdmg=LV(c.tdmg||0,lvl);
+/* размен: сколько эликсира врага убило заклинание; выгода от +1 всплывает над полем и копится в статистике */
+function withTrade(tr,fn){const p=G.tr;G.tr=tr;try{fn()}finally{G.tr=p}}
+function tradeReport(tr,x,y){if(!tr||tr.done)return;tr.done=1;const g=Math.floor(tr.val-tr.cost+.2);if(g>=1){floatText(x,y-30,`+${g} эликсира`,tr.tm?'#ff9a8a':'#ffd84d',13);G.stats[tr.tm].trade+=g}}
+function castSpell(tm,key,x,y,lvl){const c=CARDS[key],tr={tm,cost:c.cost,val:0};withTrade(tr,()=>castSpell0(tm,key,x,y,lvl,tr));if(!G.Z.some(z=>z.tr===tr)&&!G.S.some(s=>s.tr===tr))tradeReport(tr,x,y)}
+function castSpell0(tm,key,x,y,lvl,tr){const c=CARDS[key],r=c.rad*TILE,dmg=LV(c.dmg||0,lvl),tdmg=LV(c.tdmg||0,lvl);
  if(key==='fireball'){const k=G.T.find(t=>t.tm===tm&&t.kind==='k'),tt=Math.max(.35,Math.hypot(x-k.x,y-k.y)/300);
-  G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,fn:()=>{areaHit(tm,x,y,r,dmg,tdmg,'ga',{knock:c.knock});boomFx(x,y,r)}});AU.sfx('shot');return}
- if(c.waves){for(let w=0;w<c.waves;w++)G.S.push({t:G.t+.45+w*.3,fn:()=>{areaHit(tm,x,y,r,dmg/c.waves,tdmg/c.waves,'ga');ring(x,y,r,'#ffffff');AU.sfx('hit');for(let i=0;i<8;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;puff(x+Math.cos(a)*d,y+Math.sin(a)*d,'#e9eef7',2,20,1.6)}}});
+  G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg,tdmg,'ga',{knock:c.knock}));boomFx(x,y,r);tradeReport(tr,x,y)}});AU.sfx('shot');return}
+ if(c.waves){for(let w=0;w<c.waves;w++)G.S.push({t:G.t+.45+w*.3,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg/c.waves,tdmg/c.waves,'ga'));if(w===c.waves-1)tradeReport(tr,x,y);ring(x,y,r,'#ffffff');AU.sfx('hit');for(let i=0;i<8;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;puff(x+Math.cos(a)*d,y+Math.sin(a)*d,'#e9eef7',2,20,1.6)}}});
   for(let i=0;i<28;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;G.FX.push({k:'rain',x:x+Math.cos(a)*d+16,y:y+Math.sin(a)*d-80,x2:x+Math.cos(a)*d,y2:y+Math.sin(a)*d,l:-rnd(0,.95),m:.3})}AU.sfx('shot');return}
  if(c.freeze){areaHit(tm,x,y,r,dmg,tdmg,'ga',{freeze:c.freeze});G.Z.push({k:'freeze',tm,x,y,r,t:c.freeze,tot:c.freeze});AU.sfx('freeze');return}
  if(c.stun){areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.stun});G.FX.push({k:'zapring',x,y,r,l:0,m:.35});AU.sfx('zap');return}
  if(c.rage){G.Z.push({k:'rage',tm,x,y,r,t:c.rage,tot:c.rage});AU.sfx('rage');return}
- if(c.pull){G.Z.push({k:'pull',tm,x,y,r,t:c.pull,tot:c.pull,tick:0,dmg:dmg/4,tdmg:tdmg/4,spd:c.pullSpd});AU.sfx('poison');return}
+ if(c.pull){G.Z.push({k:'pull',tr,tm,x,y,r,t:c.pull,tot:c.pull,tick:0,dmg:dmg/4,tdmg:tdmg/4,spd:c.pullSpd});AU.sfx('poison');return}
+ if(c.roll){const dir=tm?1:-1;G.Z.push({k:'roll',tr,tm,x,y,r,t:99,tot:99,dir,left:c.roll.len*TILE,spd:c.roll.spd,dmg,tdmg,knock:c.knock,hit:new Set(),ang:0});AU.sfx('hit');return}
+ if(c.grave){const g=c.grave;G.Z.push({k:'grave',tm,x,y,r,t:g.t,tot:g.t,every:g.t/g.n,tick:.5,id:g.id,lvl});AU.sfx('ability');return}
  if(c.heal){G.Z.push({k:'heal',tm,x,y,r,t:c.healT,tot:c.healT,hps:LV(c.heal,lvl)/c.healT});AU.sfx('ability');return}
- if(c.poison){G.Z.push({k:'poison',tm,x,y,r,t:c.poison,tot:c.poison,tick:.5,dps:dmg/c.poison,tdps:tdmg/c.poison});AU.sfx('poison')}}
-function updZones(dt){for(const z of G.Z){z.t-=dt;
+ if(c.poison){G.Z.push({k:'poison',tr,tm,x,y,r,t:c.poison,tot:c.poison,tick:.5,dps:dmg/c.poison,tdps:tdmg/c.poison});AU.sfx('poison')}}
+function updZones(dt){for(const z of G.Z){const p0=G.tr;if(z.tr)G.tr=z.tr;try{updZone(z,dt)}finally{G.tr=p0}if(z.t<=0&&z.tr)tradeReport(z.tr,z.x,z.y)}
+ G.Z=G.Z.filter(z=>z.t>0)}
+function updZone(z,dt){z.t-=dt;
   if(z.k==='rage'){for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r+u.r)u.rageT=Math.max(u.rageT,.6)}
   else if(z.k==='poison'){for(const u of G.U)if(u.tm!==z.tm&&alive(u)&&dist(u,z)<z.r+u.r*.5){u.slowT=Math.max(u.slowT,.3);u.slowF=Math.max(u.slowF,.15)}
    z.tick-=dt;if(z.tick<=0){z.tick+=1;areaHit(z.tm,z.x,z.y,z.r,z.dps,z.tdps,'ga')}}
  else if(z.k==='pull'){ // вихрь тянет к центру; чем тяжелее юнит, тем медленнее
    for(const u of G.U)if(u.tm!==z.tm&&alive(u)&&!u.dashing){const d=dist(u,z);if(d<z.r+u.r&&d>1){const s=Math.min(d,z.spd*Math.min(1,(CFG.phys.pullMass/u.mass)**1.2)*dt);u.x+=(z.x-u.x)/d*s;u.y+=(z.y-u.y)/d*s;u.lock=0;u.wu=0}}
    z.tick-=dt;if(z.tick<=0){z.tick+=z.tot/4;areaHit(z.tm,z.x,z.y,z.r,z.dmg,z.tdmg,'ga')}}
+ else if(z.k==='roll'){ // каток: катится по полю, каждого бьёт один раз и толкает вперёд по ходу
+   const s=Math.min(z.left,z.spd*dt);z.y+=z.dir*s;z.left-=s;z.ang+=s/12;if(z.left<=0||z.y<8||z.y>H-8)z.t=0;
+   for(const v of G.U)if(v.tm!==z.tm&&alive(v)&&!v.fly&&!z.hit.has(v)&&Math.abs(v.x-z.x)<z.r+v.r*.5&&Math.abs(v.y-z.y)<10+v.r){z.hit.add(v);damage(v,z.dmg,z.tm);
+    if(v.mass<CFG.phys.knockMinMass&&!v.dashing&&!(v.shield>0)){impulse(v,0,z.dir,z.knock*CFG.phys.knockDamp);v.wu=0;v.lock=0;v.rt=0;v.beamT=0}}
+   for(const o of[...G.B,...G.T])if(o.tm!==z.tm&&!z.hit.has(o)&&(o.obj==='t'?o.hp>0:alive(o))&&Math.abs(o.x-z.x)<z.r+o.r*.6&&Math.abs(o.y-z.y)<10+o.r*.6){z.hit.add(o);damage(o,o.obj==='t'?z.tdmg:z.dmg,z.tm)}
+   if(G.tick%3===0)puff(z.x+rnd(-z.r,z.r),z.y,'#c9b99a',1,30,2)}
+  else if(z.k==='grave'){z.tick-=dt;if(z.tick<=0&&z.t>.3){z.tick+=z.every;for(let n=0;n<8;n++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*z.r*.9,px=clamp(z.x+Math.cos(a)*d,10,W-10),py=z.y+Math.sin(a)*d;
+     if(Math.abs(py-RY)<RIV+4||G.T.some(t=>t.hp>0&&dist(t,{x:px,y:py})<t.r+4))continue;const u=mkUnit(z.tm,z.id,px,py,z.lvl);G.U.push(u);puff(px,py,'#6b5a7a',6,30,2.2);break}}}
   else if(z.k==='heal'){for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r+u.r*.5)u.hp=Math.min(u.mx,u.hp+z.hps*dt)}
   else if(z.k==='aura'){if(alive(z.u)){z.x=z.u.x;z.y=z.u.y}for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r)u.rageT=Math.max(u.rageT,.5)}}
- G.Z=G.Z.filter(z=>z.t>0)}
 function useAbility(tm){const R0=RNG;RNG=G.simR;let ok;try{ok=doAbility(tm)}finally{RNG=R0}if(ok)G.log.push({k:'a',tk:G.tick,ph:G.inBots?1:0,tm});return ok}
 function applyReplay(ph){const L=G.replay;while(G.rpi<L.length&&L[G.rpi].tk===G.tick&&L[G.rpi].ph===ph){const c=L[G.rpi++];if(c.k==='p')doPlay(c.tm,c.i,c.x,c.y);else doAbility(c.tm)}}
 function doAbility(tm){const S=G.side[tm],u=S.champ;if(!alive(u))return false;const a=u.c.ability;if(S.abCd>0||S.el<a.cost)return false;
@@ -624,18 +643,18 @@ function explode(u,t){areaHit(u.tm,t.x,t.y,u.c.splash*TILE,u.dmg,u.dmg,'ga');rin
 function areaHit(tm,x,y,r,dmg,tdmg,tg,opt){opt=opt||{};const p={x,y};
  if(tg!=='b')for(const v of G.U)if(v.tm!==tm&&v!==opt.skip&&alive(v)&&!(v.fly&&tg==='g')&&dist(v,p)<r+v.r*.5){damage(v,dmg,tm);
   if(opt.stun)stunObj(v,opt.stun);if(opt.slow)slowObj(v,opt.slow);if(opt.freeze){v.frozenT=Math.max(v.frozenT,opt.freeze);v.wu=0;v.beamT=0}
-  if(opt.knock&&v.mass<CFG.phys.knockMinMass&&!v.fly&&!v.dashing){const d=dist(v,p)||1;impulse(v,(v.x-x)/d,(v.y-y)/d,opt.knock*CFG.phys.knockDamp);v.wu=0;v.lock=0;v.rt=0;v.beamT=0}}
+  if(opt.knock&&v.mass<CFG.phys.knockMinMass&&!v.fly&&!v.dashing&&!(v.shield>0)){const d=dist(v,p)||1;impulse(v,(v.x-x)/d,(v.y-y)/d,opt.knock*CFG.phys.knockDamp);v.wu=0;v.lock=0;v.rt=0;v.beamT=0}}
  for(const o of G.B)if(o.tm!==tm&&o!==opt.skip&&alive(o)&&dist(o,p)<r+o.r*.6){damage(o,tdmg,tm);if(opt.stun)stunObj(o,opt.stun);if(opt.freeze)o.frozenT=Math.max(o.frozenT,opt.freeze)}
  for(const o of G.T)if(o.tm!==tm&&o!==opt.skip&&o.hp>0&&dist(o,p)<r+o.r*.6){damage(o,tdmg,tm);if(opt.stun)stunObj(o,opt.stun);if(opt.freeze)o.frozenT=Math.max(o.frozenT,opt.freeze)}}
 /* физика толчков: скорость, которая плавно гаснет (CFG.phys.knockDamp), путь ≈ скорость / затухание */
 function impulse(u,nx,ny,v){u.kx=(u.kx||0)+nx*v;u.ky=(u.ky||0)+ny*v}
 function stepImpulse(u,dt){if(!u.kx&&!u.ky)return;u.x+=u.kx*dt;u.y+=u.ky*dt;const f=Math.exp(-CFG.phys.knockDamp*dt);u.kx*=f;u.ky*=f;if(Math.hypot(u.kx,u.ky)<3){u.kx=u.ky=0}}
-function stunObj(o,t){o.stunT=Math.max(o.stunT||0,t);if(o.obj==='u'){o.charging=0;o.run=0;o.wu=0;o.beamT=0;o.beamTg=null;o.cd=Math.max(o.cd,hitOf(o)*.5)}else o.cd=Math.max(o.cd||0,(o.hit||1)*.5)}
+function stunObj(o,t){if(o.shield>0)return;o.stunT=Math.max(o.stunT||0,t);if(o.obj==='u'){o.charging=0;o.run=0;o.wu=0;o.beamT=0;o.beamTg=null;o.cd=Math.max(o.cd,hitOf(o)*.5)}else o.cd=Math.max(o.cd||0,(o.hit||1)*.5)}
 function slowObj(o,s){if(o.obj!=='u')return;o.slowT=Math.max(o.slowT,s.t);o.slowF=Math.max(o.slowF||0,s.f)}
 function damage(o,d,fromTm){if(G.over||d<=0)return;if(!aliveT(o))return;if(o.dashing)return;
  if(o.shield>0){const a=Math.min(o.shield,d);o.shield-=a;d-=a;if(o.shield<=0)puff(o.x,o.y-12,'#ffe9a8',8,40,2);if(d<=0){o.fl=.08;return}}
  if(o.obj==='t')G.stats[fromTm].dmg+=Math.min(d,o.hp);
- o.hp-=d;o.fl=.1;if(d>=CFG.juice.heavyHit&&o.obj!=='b')G.hitstop=CFG.juice.hitStop;
+ o.hp-=d;o.fl=.1;if(G.tr&&o.obj==='u'&&o.hp<=0&&!o.counted){o.counted=1;const c=CARDS[o.key]||o.c;G.tr.val+=c.token?.5:(c.cost||0)/(c.count||1)}if(d>=CFG.juice.heavyHit&&o.obj!=='b')G.hitstop=CFG.juice.hitStop;
  if(o.obj==='t'){if(d>=25)floatText(o.x+rnd(-8,8),o.y-o.r-8,Math.round(d),o.tm?'#fff':'#ffd2cc');if(o.kind==='k')wakeKing(o);if(o.hp<=0){o.hp=0;towerDown(o)}}}
 function wakeKing(k){if(k.act)return;k.act=1;k.wake=CFG.tower.k.wakeAim;AU.sfx('wake');floatText(k.x,k.y+(k.tm?k.r+16:-k.r-16),'Король проснулся!','#ffd27a',12)}
 function crownsOf(tm){let c=0;for(const t of G.T)if(t.tm!==tm&&t.hp<=0)c+=t.kind==='k'?3:1;return Math.min(3,c)}
@@ -683,8 +702,12 @@ function updBuilding(b,dt){b.fl=Math.max(0,b.fl-dt);b.spawnT=Math.max(0,b.spawnT
  b.at=Math.max(0,b.at-dt*3);
  if(b.c.elx){b.ex=(b.ex??b.c.elx.every)-dt;if(b.ex<=0){b.ex+=b.c.elx.every;const S=G.side[b.tm];S.el=Math.min(CFG.elixir.max,S.el+b.c.elx.n);b.at=1;floatText(b.x,b.y-24,'+'+b.c.elx.n,'#e08bff',13)}}
  if(b.c.spawn){b.spT-=dt;if(b.spT<=0){b.spT=b.c.spawn.every;b.at=1;for(let i=0;i<b.c.spawn.n;i++)G.U.push(mkUnit(b.tm,b.c.spawn.id,b.x+rnd(-8,8),b.y+(b.tm?16:-16)+rnd(-3,3),b.lvl));puff(b.x,b.y-6,'#cfe8c0',5,30,2)}}
- if(b.c.dmg){b.cd-=dt;let best=null,bd=b.c.rng*TILE;for(const u of G.U)if(u.tm!==b.tm&&alive(u)&&canHit(b.c,u)){const d=dist(b,u)-u.r;if(d<bd){bd=d;best=u}}
-  if(best){b.ang=Math.atan2(best.y-(b.y-10),best.x-b.x);if(b.cd<=0){b.cd=b.c.hit;b.at=1;G.PR.push({pk:'ball',x:b.x,y:b.y-12,tg:best,lx:best.x,ly:best.y,dmg:b.dmg,tm:b.tm,spl:0,sp:PSPD.ball,fly:best.fly,l:0});AU.sfx('shot')}}}}
+ if(b.c.dmg){b.cd-=dt;const mn=(b.c.minRng||0)*TILE;let best=null,bd=b.c.rng*TILE;const ok=(o,d)=>d<bd&&dist(b,o)>=mn;
+  if(b.tg&&(b.tg.obj==='t'?b.tg.hp>0:alive(b.tg))){const d=dist(b,b.tg)-b.tg.r;if(ok(b.tg,d+.01))best=b.tg}
+  if(!best){for(const u of G.U)if(u.tm!==b.tm&&alive(u)&&canHit(b.c,u)){const d=dist(b,u)-u.r;if(ok(u,d)){bd=d;best=u}}
+   if(b.c.siege){for(const o of G.B)if(o.tm!==b.tm&&alive(o)){const d=dist(b,o)-o.r;if(ok(o,d)){bd=d;best=o}}for(const t of G.T)if(t.tm!==b.tm&&t.hp>0){const d=dist(b,t)-t.r;if(ok(t,d)){bd=d;best=t}}}}
+  b.tg=best;
+  if(best){b.ang=Math.atan2(best.y-(b.y-10),best.x-b.x);if(b.cd<=0){b.cd=b.c.hit;b.at=1;const sh=!!b.c.splash;G.PR.push({pk:sh?'bomb':'ball',hi:sh?1:0,x:b.x,y:b.y-12,tg:best,lx:best.x,ly:best.y,dmg:b.dmg,tm:b.tm,spl:(b.c.splash||0)*TILE,tgf:b.c.tg,sp:sh?PSPD.shell:PSPD.ball,from:{x:b.x,y:b.y},fly:best.fly,l:0});AU.sfx(sh?'boom':'shot')}}}}
 function updProj(p,dt){p.l+=dt;
  if(p.pk!=='bomb'&&p.tg&&aliveT(p.tg)){p.lx=p.tg.x;p.ly=p.tg.y}
  const dx=p.lx-p.x,dy=p.ly-p.y,d=Math.hypot(dx,dy),s=p.sp*dt;
@@ -794,7 +817,7 @@ function counterScore(key,T){const c=CARDS[key],R=ROLE[key];if(c.type==='spell')
  if(c.tunnel)s-=2;
  s-=Math.max(0,c.cost-T.v-1)*1.3+c.cost*.35;
  return s}
-function spellTarget(b,key,units){const c=CARDS[key],lvl=G.side[b.tm].lv[key]||1;if(!c.dmg||c.freeze)return null;
+function spellTarget(b,key,units){const c=CARDS[key],lvl=G.side[b.tm].lv[key]||1;if(!c.dmg||c.freeze)return null;units=c.roll?units.filter(u=>!u.fly):units;
  const r=c.rad*TILE,dm=LV(c.dmg,lvl)*(c.poison?.75:1);let best=null;
  for(const u of units){let val=0,n=0,sx=0,sy=0;for(const v of units)if(Math.hypot(v.x-u.x,v.y-u.y)<r*.8){n++;sx+=v.x;sy+=v.y;val+=v.hp<=dm?uval(v):uval(v)*dm/v.hp*.5}
   if(!best||val>best.val)best={x:sx/n,y:sy/n,val,n}}
@@ -852,7 +875,7 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
  if(need&&RNG()>s.mist*.5){const T=need.T;
   // заклинание по скоплению, если размен выгоден
   if(RNG()<s.spell){let best=null;for(const k of hand){const c=CARDS[k];if(c.type!=='spell')continue;const p=spellTarget(b,k,T.units);if(p&&p.val>=c.cost+.4&&(!best||p.val-c.cost>best.gain))best={k,p,gain:p.val-c.cost}}
-   if(best&&T.small>=2){const lead=CARDS[best.k].poison?0:-10;if(botPlay(b,best.k,best.p.x,fyOf(b,best.p.y)+lead,true))return}}
+   if(best&&T.small>=2){const lead=CARDS[best.k].poison?0:CARDS[best.k].roll?-55:-10;if(botPlay(b,best.k,best.p.x,fyOf(b,best.p.y)+lead,true))return}}
   // клич в обороне, когда свои уже дерутся
   const rg=hand.find(k=>CARDS[k].rage);
   if(rg&&T.v>=4){const own=G.U.filter(u=>u.tm===b.tm&&alive(u)&&laneOf(u.x)===need.lane&&fyOf(b,u.y)<360);const ov=own.reduce((a,u)=>a+uval(u),0);
@@ -873,7 +896,10 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
  // атака
  const dbl=elRate()>1,thr=s.push-(dbl?1.5:0)-(G.ot?.5:0);
  const other=G.side[1-b.tm],ol=other.last,punish=ol&&G.t-ol.t<4&&CARDS[ol.key].cost>=5&&fyOf(b,ol.y)>520||s.countEl&&b.oppEl<2.5&&S.el>=5;
- const wins=hand.filter(k=>ROLE[k].win);
+ const gv=hand.find(k=>CARDS[k].grave);
+ if(gv&&S.el>=thr&&G.t-b.lastPush>4){const lane=pushLane(b),t=enemyTowerIn(b,lane),tt=t.hp>0?t:G.T.find(t=>t.tm!==b.tm&&t.kind==='k');
+  if(botPlay(b,gv,tt.x+(lane?-1:1)*10,fyOf(b,tt.y)-30,true)){b.lane=lane;b.lastPush=G.t;b.plan.push({t:G.t+rnd(.5,1.2),lane,k:'sup'});return}}
+ const wins=hand.filter(k=>ROLE[k].win&&!ROLE[k].spell);
  if(wins.length&&(S.el>=thr||punish&&S.el>=CARDS[wins[0]].cost+1)&&G.t-b.lastPush>4){
   const lane=punish&&ol?1-laneOf(ol.x):pushLane(b);let k=wins[0];
   if(punish&&ol){const f=wins.find(x=>CARDS[x].spd==='vfast'||CARDS[x].tunnel);if(f)k=f}
@@ -1034,7 +1060,7 @@ function drawProj(g,p){const a=Math.atan2(p.ly-p.y,p.lx-p.x);
   case 'flame':for(let i=0;i<3;i++)oc(g,p.x-Math.cos(a)*i*4,p.y-Math.sin(a)*i*4,5-i*1.3,['#ffe27a','#ff9a2a','#ff5a1a'][i]);break;
   case 'ice':oc(g,p.x,p.y,7,'rgba(160,220,255,.35)');g.save();g.translate(p.x,p.y);g.rotate(a);poly(g,[[-6,0],[0,-3],[6,0],[0,3]],'#dff4ff','#8fd0ff');g.restore();break;
   case 'ball':case 'king':case 'tball':oc(g,p.x,p.y,p.pk==='king'||p.pk==='tball'?4.4:3.6,'#2c3040','#8b93a8');break;
-  case 'bomb':{const f=p.from,tot=Math.hypot(p.lx-f.x,p.ly-f.y)||1,done=clamp(1-Math.hypot(p.lx-p.x,p.ly-p.y)/tot,0,1),h=Math.sin(done*Math.PI)*24;
+  case 'bomb':{const f=p.from,tot=Math.hypot(p.lx-f.x,p.ly-f.y)||1,done=clamp(1-Math.hypot(p.lx-p.x,p.ly-p.y)/tot,0,1),h=Math.sin(done*Math.PI)*(p.hi?70:24);
    g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(p.x,p.y+4,4,2,0,0,7);g.fill();oc(g,p.x,p.y-h,4.4,'#23262e','#697088');oc(g,p.x+3,p.y-h-4,1.3,'#ffcf5a');break}}}
 function zig(g,x1,y1,x2,y2,n,amp){g.beginPath();g.moveTo(x1,y1);for(let i=1;i<n;i++){const t=i/n;g.lineTo(x1+(x2-x1)*t+rndV(-amp,amp),y1+(y2-y1)*t+rndV(-amp,amp))}g.lineTo(x2,y2);g.stroke()}
 function drawFX(g,f){const t=clamp(f.l/f.m,0,1);
@@ -1065,6 +1091,9 @@ function drawZone(g,z,now){const a=Math.min(1,z.t/.4,(z.tot-z.t)/.2+.2);g.global
  else if(z.k==='poison'){g.fillStyle='rgba(110,210,80,.22)';g.strokeStyle='rgba(150,240,110,.7)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke();
   for(let i=0;i<10;i++){const an=i*2.4+now/1600,d=z.r*(.2+((i*37)%70)/100),ph=(now/900+i*.37)%1;oc(g,z.x+Math.cos(an)*d,z.y+Math.sin(an)*d*.78-ph*8,2+ph*2.5,`rgba(170,255,130,${.6*(1-ph)})`)}}
  else if(z.k==='pull'){g.strokeStyle='rgba(180,220,255,.8)';g.lineWidth=2;for(let i=0;i<3;i++){g.beginPath();g.ellipse(z.x,z.y,z.r*(.35+i*.3),z.r*(.35+i*.3)*.78,now/300+i,0,4.5);g.stroke()}}
+ else if(z.k==='roll'){g.fillStyle='#8a5a32';g.strokeStyle='#4a2e18';g.lineWidth=2;rr(g,z.x-z.r,z.y-9,z.r*2,18,8,'#8a5a32');g.stroke();g.fillStyle='#e2b77a';for(const s of[-1,1]){g.beginPath();g.ellipse(z.x+s*z.r,z.y,4,9,0,0,7);g.fill()}
+  g.strokeStyle='#5c3a1e';for(let i=0;i<4;i++){const yy=z.y-9+((z.ang*6+i*4.5)%18);g.beginPath();g.moveTo(z.x-z.r+4,yy);g.lineTo(z.x+z.r-4,yy);g.stroke()}}
+ else if(z.k==='grave'){g.fillStyle='rgba(70,40,100,.28)';g.strokeStyle='rgba(180,140,255,.7)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke()}
  else if(z.k==='heal'){g.fillStyle='rgba(120,255,160,.2)';g.strokeStyle='rgba(150,255,180,.8)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke()}
  else if(z.k==='aura'){const p=.5+.5*Math.sin(now/120);g.strokeStyle=`rgba(255,216,77,${.5+p*.4})`;g.lineWidth=2.5;g.setLineDash([6,5]);g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.stroke();g.setLineDash([])}
  g.globalAlpha=1}
@@ -1087,6 +1116,7 @@ function drawDeployZones(g,key,now){const c=CARDS[key];if(c.type==='spell')retur
  g.setLineDash([])}
 function drawGhost(g,now){if(!G||G.over||sel==null||gx<0||mode!=='play')return;const S=G.side[0],key=S.hand[sel];if(!key)return;
  const c=CARDS[key],ok=canPlace(0,key,gx,gy)&&!cardBlocked(0,key)&&S.el>=c.cost,p=.5+.5*Math.sin(now/200);
+ if(c.type==='spell'&&c.roll){const r=c.rad*TILE,L=c.roll.len*TILE;g.fillStyle=`rgba(255,240,200,${.14+p*.08})`;g.strokeStyle='#ffe9a8';g.lineWidth=2;g.setLineDash([6,5]);g.beginPath();g.rect(gx-r,gy-L,r*2,L);g.fill();g.stroke();g.setLineDash([]);return}
  if(c.type==='spell'){const r=c.rad*TILE;g.fillStyle=`rgba(255,240,200,${.14+p*.08})`;g.strokeStyle='#ffe9a8';g.lineWidth=2;g.setLineDash([6,5]);g.beginPath();g.arc(gx,gy,r,0,7);g.fill();g.stroke();g.setLineDash([]);return}
  g.globalAlpha=ok?.62:.3;
  if(c.type==='building')drawChar(g,key,0,gx,gy,{s:1.1});
@@ -1269,6 +1299,7 @@ const VIS={
  sorcerer:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.56,atk:['Spellcast_Shoot']},
  knightrider:{m:'Knight',keep:['Knight_Helmet','Knight_Cape','2H_Sword','Round_Shield'],s:.7,idle:'2H_Melee_Idle',move:'Running_A',atk:['2H_Melee_Attack_Stab','2H_Melee_Attack_Chop']},
  frostsage:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.56,tint:'ice',atk:['Spellcast_Shoot']},
+ shieldman:{m:'Knight',keep:['Knight_Helmet','1H_Sword','Spike_Shield'],s:.6,tint:'gold',atk:['1H_Melee_Attack_Chop','1H_Melee_Attack_Slice_Diagonal']},
  raider:{m:'Rogue_Hooded',keep:['Rogue_Cape','Knife','Knife_Offhand'],s:.5,tint:'storm',move:'Running_A',atk:['1H_Melee_Attack_Stab','1H_Melee_Attack_Slice_Diagonal']},
  scorch:{m:'Mage',keep:['Mage_Hat','Mage_Cape','2H_Staff'],s:.56,tint:'storm',atk:['Spellcast_Shoot']},
  thunder:{m:'Mage',keep:['Mage_Hat','Mage_Cape','1H_Wand','Spellbook_open'],s:.56,tint:'storm',atk:['Spellcast_Raise','Spellcast_Shoot']},
@@ -1277,7 +1308,7 @@ const VIS={
  archer:{m:'Rogue_Hooded',keep:['Rogue_Cape','2H_Crossbow'],s:.36,atk:['2H_Ranged_Shoot']},
  dagger:{m:'Rogue',keep:['Rogue_Cape','Knife','Knife_Offhand'],s:.38,tint:'storm',atk:['Throw']},
  king:{m:'Knight',keep:['Knight_Cape'],s:.44,crown:1,idle:'Idle',atk:['Spellcast_Raise']}};
-const PROC={cannon:1,lair:1,ram:1,airship:1,spring:1};
+const PROC={cannon:1,lair:1,ram:1,airship:1,spring:1,mortar:1};
 const US3=1.65;
 const HEIGHT={bats:1.9,drake:2.2,airship:3.1,wisp:.5};
 
@@ -1489,6 +1520,7 @@ function r3Inst(key,tm){const tpl=bake(key,tm),root=T3.SkeletonUtils.clone(tpl);
 function procModel(key,tm){const g=new T.Group(),T0=TEAM[tm],team=new T.MeshStandardMaterial({color:T0.m,roughness:.6}),wood=pbr('planks',.6,.6,{color:'#8a5d36'});
  const iron=new T.MeshStandardMaterial({color:'#4a4e57',metalness:.85,roughness:.4}),parts={};
  if(key==='cannon')return cannonModel(tm,1.15);
+ if(key==='mortar'){const g=cannonModel(tm,1.35),U=g.userData;U.pitch.rotation.x=-.9;U.barrel.scale.set(1.7,.55,1.7);U.barrel.position.z=.2;g.children[0].material=pbr('wall',1,.5,{color:'#9a9184'});g.children[0].scale.set(1.1,1.3,1.1);return g}
  if(key==='lair'){const cr=A3.mon&&monNode('crypt');if(cr){const c=cr.clone(true);c.position.set(0,0,0);const bx=new T.Box3().setFromObject(c);c.scale.setScalar(1.9/Math.max(.01,bx.max.x-bx.min.x,bx.max.z-bx.min.z));c.rotation.y=Math.PI;g.add(c)}
   else{const st=pbr('wall',1,1,{color:'#a49c8c'});const b=new T.Mesh(new T.BoxGeometry(1.7,1.2,1.5),st);b.position.y=.6;g.add(b)}
   const door=new T.Mesh(new T.BoxGeometry(.7,.85,.06),new T.MeshStandardMaterial({color:'#0e0b08',emissive:'#4cff7a',emissiveIntensity:0}));door.position.set(0,.45,.76);g.add(door);parts.door=door;
@@ -1618,8 +1650,8 @@ function procAnim(v,u,dt,now,moved,still){const p=v.parts,t=still?0:now/1000;
 /* строения */
 function syncBuildings(dt,now){const seen=new Set();
  for(const b of G.B){let v=S3.blds.get(b);if(!v){v={b,root:procModel(b.key,b.tm)};v.root.position.set(W3(b.x),0,Z3(b.y));if(b.key==='lair')v.root.rotation.y=b.tm?Math.PI:0;S3.dyn.add(v.root);S3.blds.set(b,v);burst(b.x,b.y,.4,'#c9b99a',16,1.4,1,0)}
-  seen.add(b);const sp=b.spawnT>0?b.spawnT/.3:0;v.root.scale.setScalar((b.key==='cannon'?1.15:1)*(1-sp*.5));
-  if(b.key==='cannon'){const y=v.root.userData.yaw;y.rotation.y=lerpAng(y.rotation.y,Math.atan2(Math.cos(b.ang),Math.sin(b.ang)),dt*8);v.root.userData.barrel.position.z=.42-b.at*.18}
+  seen.add(b);const sp=b.spawnT>0?b.spawnT/.3:0;v.root.scale.setScalar((b.key==='cannon'?1.15:b.key==='mortar'?1.35:1)*(1-sp*.5));
+  if(b.key==='cannon'||b.key==='mortar'){const y=v.root.userData.yaw;y.rotation.y=lerpAng(y.rotation.y,Math.atan2(Math.cos(b.ang),Math.sin(b.ang)),dt*8);v.root.userData.barrel.position.z=(b.key==='mortar'?.2:.42)-b.at*.18}
   if(b.key==='lair'){const d=v.root.userData.parts.door;d.material.emissiveIntensity=b.at*2}
   if(b.key==='spring'){const P=v.root.userData.parts;if(P&&P.drop){P.drop.position.y=1.15+Math.sin(performance.now()/300)*.08+b.at*.5;P.liq.material.emissiveIntensity=1.2+b.at*2}}}
  for(const[b,v]of S3.blds)if(!seen.has(b)){S3.blds.delete(b);S3.dyn.remove(v.root);burst(b.x,b.y,.6,'#9a8f7a',26,1.8,1.4,0)}}
@@ -1631,7 +1663,7 @@ function projModel(pk,tm){let m;
  m=new T.Mesh(pk==='ice'?new T.OctahedronGeometry(.16):new T.SphereGeometry(pk==='stone'?.09:pk==='king'||pk==='tball'?.17:pk==='orb'?.17:.14,12,8),mat);m.castShadow=true;return m}
 function syncProj(dt){const seen=new Set();
  for(const p of G.PR){let v=S3.proj.get(p);if(!v){const fromT=!!p.tw;v={p,m:projModel(p.pk,p.tm),sx:p.x,sy:p.y,sh:fromT?(p.pk==='king'?3.6:3.4):1.1,
-   tot:Math.max(1,Math.hypot(p.lx-p.x,p.ly-p.y)),arc:p.pk==='bomb'||p.pk==='stone'?1.6:p.pk==='ball'||p.pk==='king'||p.pk==='tball'?.4:.6,px:W3(p.x),pz:Z3(p.y),py:0};S3.dyn.add(v.m);S3.proj.set(p,v)}
+   tot:Math.max(1,Math.hypot(p.lx-p.x,p.ly-p.y)),arc:p.hi?4.5:p.pk==='bomb'||p.pk==='stone'?1.6:p.pk==='ball'||p.pk==='king'||p.pk==='tball'?.4:.6,px:W3(p.x),pz:Z3(p.y),py:0};S3.dyn.add(v.m);S3.proj.set(p,v)}
   seen.add(p);const rem=Math.hypot(p.lx-p.x,p.ly-p.y),k=clamp(1-rem/v.tot,0,1),eh=p.fly?2.3:.75,y=v.sh+(eh-v.sh)*k+Math.sin(k*Math.PI)*v.arc;
   const X=W3(IX(p)),Z=Z3(IY(p));v.m.position.set(X,y,Z);
   if(v.m.children.length){const d=new T.Vector3(X-v.px,y-v.py,Z-v.pz);if(d.lengthSq()>1e-6)v.m.lookAt(X+d.x,y+d.y,Z+d.z)}
@@ -1669,11 +1701,15 @@ function boltMesh(x1,y1,z1,x2,y2,z2){const pts=[],n=7;for(let i=0;i<=n;i++){cons
  const g=new T.TubeGeometry(new T.CatmullRomCurve3(pts),24,.035,5,false);return new T.Mesh(g,new T.MeshBasicMaterial({color:'#dff4ff',transparent:true,blending:T.AdditiveBlending,depthWrite:false}))}
 /* зоны заклинаний на земле */
 function syncZones(now){const seen=new Set();for(const z of G.Z){seen.add(z);let v=S3.zones.get(z);
-  if(!v){const col={freeze:'#bfe9ff',rage:'#ff4f86',poison:'#7ee05a',aura:'#ffd84d',pull:'#9fd0ff',heal:'#4fdc7c'}[z.k];
-   v=new T.Mesh(new T.CircleGeometry(1,40),new T.MeshBasicMaterial({map:S3.soft,color:col,transparent:true,depthWrite:false,blending:z.k==='poison'||z.k==='heal'?T.NormalBlending:T.AdditiveBlending}));v.rotation.x=-Math.PI/2;S3.dyn.add(v);S3.zones.set(z,v);
+  if(z.k==='roll'){if(!v){v=new T.Group();const L=spellModel('roller',0);L.scale.set(z.r/TILE*1.05,1,1);v.add(L);v.userData.L=L;S3.dyn.add(v);S3.zones.set(z,v)}
+   const back=Math.min(z.spd*TICK,z.spd*TICK)*(1-ALPHA),ry=z.y-z.dir*back;v.position.set(W3(z.x),.45,Z3(ry));v.userData.L.rotation.x=-(z.ang-back/12)*z.dir;
+   if(Math.random()<.8)S3.parts.norm.emit(W3(z.x)+rndV(-1,1)*z.r/TILE,.1,Z3(ry)-z.dir*.4,rndV(-.3,.3),.6,-z.dir*.6,'#b9a27e',.35,.5);continue}
+  if(!v){const col={freeze:'#bfe9ff',rage:'#ff4f86',poison:'#7ee05a',aura:'#ffd84d',pull:'#9fd0ff',heal:'#4fdc7c',grave:'#7a55b0'}[z.k];
+   v=new T.Mesh(new T.CircleGeometry(1,40),new T.MeshBasicMaterial({map:S3.soft,color:col,transparent:true,depthWrite:false,blending:z.k==='poison'||z.k==='heal'||z.k==='grave'?T.NormalBlending:T.AdditiveBlending}));v.rotation.x=-Math.PI/2;S3.dyn.add(v);S3.zones.set(z,v);
    if(z.k==='freeze'){v.userData.ice=iceCrystals(z);S3.dyn.add(v.userData.ice)}
-   if(z.k==='pull'||z.k==='heal'){const sw=new T.Group(),m=new T.MeshBasicMaterial({color:z.k==='pull'?'#e4f3ff':'#2fbf62',transparent:true,opacity:.8,blending:z.k==='pull'?T.AdditiveBlending:T.NormalBlending,depthWrite:false,side:T.DoubleSide});
+   if(z.k==='pull'||z.k==='heal'||z.k==='grave'){const sw=new T.Group(),m=new T.MeshBasicMaterial({color:z.k==='pull'?'#e4f3ff':z.k==='grave'?'#9a6ae0':'#2fbf62',transparent:true,opacity:.8,blending:z.k==='pull'?T.AdditiveBlending:T.NormalBlending,depthWrite:false,side:T.DoubleSide});
     for(let i=0;i<(z.k==='pull'?3:1);i++){const ar=new T.Mesh(z.k==='pull'?new T.RingGeometry(.55+i*.17,.62+i*.17,40,1,i*2.1,3.4):new T.RingGeometry(.93,1,48),m);ar.rotation.x=-Math.PI/2;ar.position.y=.09+i*.01;sw.add(ar)}
+    if(z.k==='grave')for(let i=0;i<4;i++){const ts=spellModel('grave',0);const R=z.r/TILE;ts.scale.set(.55/R,.55,.55/R);const a=i*1.7+.4,d=.35+(i%2)*.3;ts.position.set(Math.cos(a)*d,.3,Math.sin(a)*d);ts.rotation.y=rndV(-.4,.4);sw.add(ts)}
     sw.userData.m=m;v.userData.sw=sw;S3.dyn.add(sw)}}
   if(v.userData.sw){const sw=v.userData.sw,s=z.r/TILE*(z.k==='pull'?1-.25*(1-z.t/z.tot):1+.04*Math.sin(now/120));sw.scale.set(s,1,s);sw.position.set(W3(z.x),0,Z3(z.y));sw.rotation.y=z.k==='pull'?now/140:0;sw.userData.m.opacity=.8*Math.min(1,z.t/.3)}
   if(v.userData.ice){const k=Math.min(1,(z.tot-z.t)/.25,z.t/.4);v.userData.ice.scale.setScalar(Math.max(.01,k))}
@@ -1681,8 +1717,8 @@ function syncZones(now){const seen=new Set();for(const z of G.Z){seen.add(z);let
   if(z.k==='heal'&&Math.random()<.7){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*z.r/TILE;S3.parts.add.emit(W3(z.x)+Math.cos(an)*d,.2,Z3(z.y)+Math.sin(an)*d,0,1.6,0,'#9dffb8',.3,.7)}
   if(z.k==='poison'&&Math.random()<.6){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*z.r/TILE;S3.parts.norm.emit(W3(z.x)+Math.cos(an)*d,.4,Z3(z.y)+Math.sin(an)*d,rndV(-.2,.2),.25,rndV(-.2,.2),['#6fcf4a','#3f8a2a','#9be86a'][Math.random()*3|0],.9,1.8)}
   const r=z.r/TILE,a=Math.min(1,z.t/.4,(z.tot-z.t)/.2+.2);v.scale.set(r,r,r);v.position.set(W3(z.x),.07,Z3(z.y));v.material.opacity=(z.k==='poison'?.55:.6)*a*(z.k==='rage'?.75+.25*Math.sin(now/150):1);
-  if(Math.random()<.5){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*r,c={freeze:'#e8f8ff',rage:'#ff7aa2',poison:'#a8ff7a',aura:'#ffe27a',pull:'#e4f3ff',heal:'#3fd46f'}[z.k];
-   S3.parts[z.k==='poison'||z.k==='heal'?'norm':'add'].emit(W3(z.x)+Math.cos(an)*d,.2,Z3(z.y)+Math.sin(an)*d,0,z.k==='freeze'?-.3:.9,0,c,z.k==='poison'?.5:.22,1)}}
+  if(Math.random()<.5){const an=Math.random()*6.28,d=Math.sqrt(Math.random())*r,c={freeze:'#e8f8ff',rage:'#ff7aa2',poison:'#a8ff7a',aura:'#ffe27a',pull:'#e4f3ff',heal:'#3fd46f',grave:'#b48cff'}[z.k];
+   S3.parts[z.k==='poison'||z.k==='heal'||z.k==='grave'?'norm':'add'].emit(W3(z.x)+Math.cos(an)*d,.2,Z3(z.y)+Math.sin(an)*d,0,z.k==='freeze'?-.3:.9,0,c,z.k==='poison'?.5:.22,1)}}
  for(const[z,v]of S3.zones)if(!seen.has(z)){S3.zones.delete(z);S3.dyn.remove(v);if(v.userData.sw)S3.dyn.remove(v.userData.sw);if(v.userData.ice){S3.dyn.remove(v.userData.ice);burst(z.x,z.y,.5,'#e8f8ff',20,1.6,.6,0)}}}
 /* карты в пути: полупрозрачный призрак и кольцо отсчёта (в слое поверх) */
 function ghostModel(key,tm){const c=CARDS[key],vk=c.unit||key,id=vk+tm;if(A3.ghost[id])return T3.SkeletonUtils.clone(A3.ghost[id]);
@@ -1700,7 +1736,8 @@ function syncGhost(now){const key=sel!=null&&mode==='play'&&G&&!G.over?G.side[0]
  if(key!==S3.ghostKey){if(S3.ghost)S3.dyn.remove(S3.ghost);S3.ghost=null;S3.ghostKey=key;
   if(key){const c=CARDS[key],g=new T.Group();
    if(c.type==='spell'){const d=new T.Mesh(new T.CircleGeometry(c.rad,48),new T.MeshBasicMaterial({map:S3.soft,color:'#ffe9a8',transparent:true,opacity:.55,depthWrite:false}));d.rotation.x=-Math.PI/2;d.position.y=.08;g.add(d);
-    const r=new T.Mesh(new T.RingGeometry(c.rad*.96,c.rad,64),new T.MeshBasicMaterial({color:'#ffe9a8',transparent:true,opacity:.9,depthWrite:false}));r.rotation.x=-Math.PI/2;r.position.y=.09;g.add(r)}
+    const r=new T.Mesh(new T.RingGeometry(c.rad*.96,c.rad,64),new T.MeshBasicMaterial({color:'#ffe9a8',transparent:true,opacity:.9,depthWrite:false}));r.rotation.x=-Math.PI/2;r.position.y=.09;g.add(r);
+    if(c.roll){d.visible=r.visible=false;const p=new T.Mesh(new T.PlaneGeometry(c.rad*2,c.roll.len),new T.MeshBasicMaterial({color:'#ffe9a8',transparent:true,opacity:.35,depthWrite:false}));p.rotation.x=-Math.PI/2;p.position.set(0,.08,-c.roll.len/2);g.add(p)}}
    else{for(const[px,py]of formation(key,0,0)){const m=ghostModel(key,0);m.position.x=px/TILE;m.position.z=py/TILE;m.rotation.y=Math.PI;g.add(m)}
     if(c.rng>=3){const r=new T.Mesh(new T.RingGeometry(c.rng-.04,c.rng+.04,64),new T.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:.5,depthWrite:false}));r.rotation.x=-Math.PI/2;r.position.y=.08;g.add(r)}}
    const ok=new T.Mesh(new T.RingGeometry(.55,.68,32),new T.MeshBasicMaterial({color:'#9cffb8',transparent:true,depthWrite:false}));ok.rotation.x=-Math.PI/2;ok.position.y=.09;g.add(ok);g.userData.ok=ok;
@@ -1738,7 +1775,7 @@ function overlay(now){const g=X,k=C.width/360;g.setTransform(1,0,0,1,0,0);g.clea
  const bar=(sx,sy,w,p,tm,gold)=>{w*=k;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,gold?'#ffd84d':'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,Math.max(0,w*p),4*k,2*k,tm?'#ff6a5a':'#4cd37a')};
  for(const b of G.B){const[sx,sy]=proj(b.x,b.y,1.9);bar(sx,sy,28,b.hp/b.mx,b.tm)}
  for(const u of G.U){if(u.spawnT>0)continue;const v=S3.units.get(u),hh=(v&&v.inst?(v.inst.V.hh||2.47*v.inst.V.s*US3):1.7)+(HEIGHT[u.key]||0)+.25;
-  if(u.hp<u.mx||u.c.ability){const[sx,sy]=proj(IX(u),IY(u),hh);const w=Math.max(16,u.r*2.2);bar(sx,sy,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,sx-w*k/2,sy-6*k,w*k*u.shield/u.smx,3*k,1.5*k,'#ffd84d')}
+  if(u.hp<u.mx||u.c.ability||u.shield>0){const[sx,sy]=proj(IX(u),IY(u),hh);const w=Math.max(16,u.r*2.2);bar(sx,sy,w,u.hp/u.mx,u.tm,!!u.c.ability);if(u.shield>0)rr(g,sx-w*k/2,sy-6*k,w*k*u.shield/u.smx,3*k,1.5*k,'#ffd84d')}
   if(u.stunT>0){const[sx,sy]=proj(IX(u),IY(u),hh+.3);g.save();g.scale(k,k);stars(g,sx/k,sy/k,now);g.restore()}}
  for(const t of G.T){if(t.hp<=0)continue;const[sx,sy]=proj(t.x,t.y,t.kind==='k'?(t.tm?3.9:3.6):(t.tm?3.6:3.3));g.save();g.translate(sx,sy);g.scale(k,k);towerBar(g,Object.assign({},t,{x:0,y:0,tm:t.tm,kind:t.kind,r:0}));g.restore();
   if(t.kind==='k'&&!t.act){g.save();g.scale(k,k);g.fillStyle='#fff';g.font=`800 11px ${FONT}`;g.textAlign='center';g.fillText('z',sx/k+16,sy/k+26-Math.sin(now/500)*3);g.font=`800 8px ${FONT}`;g.fillText('z',sx/k+22,sy/k+18-Math.sin(now/500+1)*3);g.restore()}}
@@ -1785,6 +1822,12 @@ function spellModel(key){const g=new T.Group(),E=(c,e,i,o)=>new T.MeshStandardMa
  else if(key==='poison'){const gl=new T.MeshStandardMaterial({color:'#b8ffcf',roughness:.05,transparent:true,opacity:.45});g.add(new T.Mesh(new T.SphereGeometry(.55,24,16),gl));const liq=new T.Mesh(new T.SphereGeometry(.47,24,16,0,6.28,1.2,1.94),E('#7ee05a','#3a9a1a',1.4));g.add(liq);
   const n=new T.Mesh(new T.CylinderGeometry(.14,.16,.4,12),gl);n.position.y=.68;g.add(n);const cork=new T.Mesh(new T.CylinderGeometry(.15,.13,.16,10),flat('#8a5a32'));cork.position.y=.92;g.add(cork);
   for(let i=0;i<5;i++){const b=new T.Mesh(new T.SphereGeometry(.08+.04*(i%2),10,8),E('#a8ff7a','#4cd32a',1.5,{transparent:true,opacity:.8}));b.position.set(-.5+i*.25,.9+(i%3)*.25,.2);g.add(b)}}
+ else if(key==='roller'){const wood=pbr('planks',.6,.6,{color:'#8a5a32'});const lg=new T.Mesh(new T.CylinderGeometry(.42,.42,1.9,18),wood);lg.rotation.z=Math.PI/2;g.add(lg);
+  for(const s of[-1,1]){const cap=new T.Mesh(new T.CircleGeometry(.42,18),new T.MeshStandardMaterial({color:'#e2b77a',roughness:.8}));cap.position.x=s*.951;cap.rotation.y=s*Math.PI/2;g.add(cap)}
+  for(let i=0;i<6;i++){const sp=new T.Mesh(new T.ConeGeometry(.08,.3,6),new T.MeshStandardMaterial({color:'#cfd3da',metalness:.8,roughness:.3}));const a=i*1.05;sp.position.set(-.6+i*.24,Math.cos(a)*.5,Math.sin(a)*.5);sp.rotation.x=a;g.add(sp)}}
+ else if(key==='grave'){const st=pbr('wall',1,.6,{color:'#9a96a8'});const t=new T.Mesh(new T.BoxGeometry(.8,1.1,.22),st);t.position.y=.1;g.add(t);const top=new T.Mesh(new T.CylinderGeometry(.4,.4,.22,18,1,false,0,Math.PI),st);top.rotation.x=Math.PI/2;top.rotation.z=Math.PI/2;top.position.y=.65;g.add(top);
+  const cr=new T.Mesh(new T.BoxGeometry(.1,.45,.05),E('#d7b8ff','#8a4cff',1.6));cr.position.set(0,.3,.13);g.add(cr);const cr2=new T.Mesh(new T.BoxGeometry(.3,.1,.05),cr.material);cr2.position.set(0,.4,.13);g.add(cr2);
+  const sk=new T.Mesh(new T.SphereGeometry(.2,12,10),new T.MeshStandardMaterial({color:'#f2ecdc',roughness:.6}));sk.position.set(.55,-.4,.2);g.add(sk)}
  else if(key==='vortex'){for(let i=0;i<5;i++){const t=new T.Mesh(new T.TorusGeometry(.25+i*.14,.05,8,32,Math.PI*1.6),E('#d8f0ff','#6ab8ff',1.2,{transparent:true,opacity:.85}));t.rotation.set(Math.PI/2,0,i*1.1);t.position.y=-.5+i*.25;g.add(t)}}
  else if(key==='mend'){const gold=new T.MeshStandardMaterial({color:'#ffe08a',metalness:.7,roughness:.25});const b=new T.Mesh(new T.CylinderGeometry(.18,.5,.75,20,1,true),gold);b.material.side=T.DoubleSide;g.add(b);
   const k=new T.Mesh(new T.SphereGeometry(.12,10,8),gold);k.position.y=-.42;g.add(k);for(let i=0;i<4;i++){const h=new T.Mesh(new T.TorusGeometry(.12,.035,6,16),E('#9fffb0','#2ad45a',2));h.position.set(-.6+i*.4,.55+(i%2)*.2,.2);g.add(h)}}
@@ -1919,7 +1962,7 @@ function crowdStep(now){const c=S3.crowd;if(!c)return;const M=new T.Matrix4(),hy
 const ARENAS=[
  {n:'Тренировочный лагерь',tr:0},{n:'Костяной овраг',tr:300},{n:'Кузнечная слобода',tr:650},{n:'Морозный перевал',tr:1000},
  {n:'Драконьи скалы',tr:1400},{n:'Ядовитая топь',tr:1800},{n:'Грозовая цитадель',tr:2250},{n:'Каменный трон',tr:2750}];
-const ARENA_OF={guard:0,shooters:0,bones:0,imps:0,slingers:0,bomber:0,cannon:0,volley:0,giant:0,crossbow:0,axe:0,fireball:0,
+const ARENA_OF={roller:4,shieldman:1,mortar:2,grave:6,guard:0,shooters:0,bones:0,imps:0,slingers:0,bomber:0,cannon:0,volley:0,giant:0,crossbow:0,axe:0,fireball:0,
  lair:1,legion:1,wisp:1,spark:1,hammer:2,militia:2,ram:2,bats:3,freeze:3,frostsage:3,drake:4,airship:4,sorcerer:4,
  poison:5,mole:5,scorch:4,vortex:3,spring:2,raider:5,mend:1,cry:5,thunder:6,knightrider:6,colossus:7,warlord:7};
 const arenaOf=tr=>{let a=0;ARENAS.forEach((x,i)=>{if(tr>=x.tr)a=i});return a};
@@ -2324,21 +2367,21 @@ function openDeckMenu(){AU.init();AU.sfx('ui');const sh=$('#sheet');
  $('#drnd').onclick=()=>{const own=shuffleV(CARD_IDS.filter(k=>P.cards[k])),d=[];for(const k of own)if(d.length<8&&!(CARDS[k].ability&&d.some(x=>CARDS[x].ability)))d.push(k);if(d.length<8||!okDeck(d)){AU.sfx('deny');return}P.decks[P.slot]=d;saveP();AU.sfx('dep');closeSheet();renderHome()};
  sh.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{P.decks[P.slot]=P.decks[+b.dataset.cp].slice();saveP();AU.sfx('dep');closeSheet();renderHome()})}
 function statRows(k,lv){const c=CARDS[k],n=c.count||1,R=[];
- if(c.type==='spell'){if(c.dmg)R.push(['Урон',LV(c.dmg,lv)]);if(c.tdmg)R.push(['Урон по башням',LV(c.tdmg,lv)]);R.push(['Радиус',c.rad+' кл.']);
+ if(c.type==='spell'){if(c.dmg)R.push(['Урон',LV(c.dmg,lv)]);if(c.tdmg)R.push(['Урон по башням',LV(c.tdmg,lv)]);R.push(c.roll?['Ширина',c.rad*2+' кл.']:['Радиус',c.rad+' кл.']);if(c.roll)R.push(['Катится',c.roll.len+' кл.']);if(c.grave)R.push(['Скелетов',c.grave.n,` за ${c.grave.t} с`]);
   if(c.freeze)R.push(['Заморозка',c.freeze+' с']);if(c.rage)R.push(['Ярость',c.rage+' с, +35%']);if(c.pull)R.push(['Затягивает',c.pull+' с']);if(c.heal)R.push(['Лечит',LV(c.heal,lv),` за ${c.healT} с`]);if(c.poison)R.push(['Длится',c.poison+' с']);if(c.stun)R.push(['Оглушение',c.stun+' с']);if(c.waves)R.push(['Волн',c.waves]);return R}
  const u=CARDS[c.unit||k];
- R.push(['Здоровье',LV(u.hp,lv),n>1?' ×'+n:'']);
+ R.push(['Здоровье',LV(u.hp,lv),n>1?' ×'+n:'']);if(u.shield)R.push(['Щит',LV(u.shield,lv)]);
  if(u.dmg){R.push(['Урон',LV(u.dmg,lv),c.splash||c.spin?', по площади':'']);R.push(['Удар раз в',u.hit+' с']);R.push(['Урон в секунду',Math.round(LV(u.dmg,lv)/u.hit*n)])}
  if(c.death)R.push(['Урон при гибели',LV(c.death.dmg,lv)]);
  if(c.elx)R.push(['Эликсир',`+${c.elx.n} каждые ${c.elx.every} с`]);if(c.type==='building')R.push(['Стоит',c.life+' с']);else R.push(['Скорость',SPDN[u.spd]]);
- if(u.dmg)R.push(['Дальность',u.rng>=2?u.rng+' кл.':'Ближний бой']);
+ if(u.dmg)R.push(['Дальность',u.rng>=2?u.rng+' кл.':'Ближний бой',u.minRng?`, не ближе ${u.minRng}`:'']);
  R.push(['Цели',TGN[u.tg]]);R.push(['Выход',(c.dep??1)+' с']);
  if(c.ability)R.push(['Способность',`${c.ability.n}: щит ${LV(c.ability.shield,lv)}`,`, ${c.ability.cost} эликсира`]);
  return R}
 function tagsOf(k){const c=CARDS[k],T=[];
  if(c.fly)T.push('Летает');if(c.splash||c.spin)T.push('Урон по площади');if(c.charge)T.push('Рывок: удар ×2');if(c.stun)T.push('Оглушает');if(c.slow)T.push('Замедляет');
  if(c.chain)T.push('Бьёт сразу двоих');if(c.kami)T.push('Взрывается');if(c.death)T.push('Урон при гибели');if(c.dspawn)T.push(c.type==='building'?'При разрушении — ещё костяшки':'Распадается на камешки');
- if(c.spawn)T.push('Выпускает костяшек');if(c.tunnel)T.push('Роет ход куда угодно');if(c.zap)T.push('Разряд при выходе');if(c.td)T.push('По башням бьёт слабо');if(c.knock)T.push('Отбрасывает');if(c.ability)T.push('Один чемпион в колоде');if(c.dash)T.push('Рывок, во время рывка неуязвима');if(c.pull)T.push('Затягивает к центру');if(c.heal)T.push('Лечит своих');if(c.elx)T.push('Добывает эликсир');if(c.noStart)T.push('Не бывает в стартовой руке');
+ if(c.spawn)T.push('Выпускает костяшек');if(c.tunnel)T.push('Роет ход куда угодно');if(c.zap)T.push('Разряд при выходе');if(c.td)T.push('По башням бьёт слабо');if(c.knock)T.push('Отбрасывает');if(c.ability)T.push('Один чемпион в колоде');if(c.dash)T.push('Рывок, во время рывка неуязвима');if(c.pull)T.push('Затягивает к центру');if(c.heal)T.push('Лечит своих');if(c.elx)T.push('Добывает эликсир');if(c.noStart)T.push('Не бывает в стартовой руке');if(c.roll)T.push('Катится и отталкивает');if(c.shield)T.push('Щит');if(c.siege)T.push('Бьёт башни издалека');if(c.minRng)T.push('Мёртвая зона вблизи');if(c.grave)T.push('Поднимает скелетов');
  return T}
 function openSheet(k){const c=CARDS[k],o=P.cards[k],lv=o?o.lv:1,inDeck=curDeck().includes(k),sh=$('#sheet'),type=c.type==='spell'?'заклинание':c.type==='building'?'строение':'боец',tags=tagsOf(k);
  if(P.fresh.includes(k)){P.fresh=P.fresh.filter(x=>x!==k);saveP()}
@@ -2582,7 +2625,7 @@ function endScreen(){mode='end';sel=null;const r=G.res,cr=G.crowns,S=G.stats[0],
   <div class="pips big3">${[0,1,2].map(i=>crownSVG.replace('<svg','<svg class="'+(i<cr[0]?'on':'')+'"')).join('')}</div>
   <p class="sub">Счёт ${cr[0]} : ${cr[1]} против «${esc(G.names[1])}»</p>
   <div class="endrw">${rw}</div>
-  <div class="st2"><span>Урон башням <b>${fmtN(S.dmg)}</b></span><span>Эликсир <b>${Math.round(S.spent)}</b></span><span>Пропало <b>${Math.round(S.leak)}</b></span></div>
+  <div class="st2"><span>Урон башням <b>${fmtN(S.dmg)}</b></span><span>Эликсир <b>${Math.round(S.spent)}</b></span><span>Пропало <b>${Math.round(S.leak)}</b></span>${S.trade?`<span>Выгодные размены <b>+${S.trade}</b></span>`:''}</div>
   <div class="odeck" aria-label="Колода соперника"><small>КОЛОДА СОПЕРНИКА</small>${G.side[1].deck.map(k=>`<canvas width="60" height="60" data-ic="${k}" title="${CARDS[k].n}"></canvas>`).join('')}<button class="link" id="cpd">Скопировать колоду</button></div>
   ${lastReplay?'<button class="ghost" id="rep">Смотреть повтор</button>':''}<button class="big" id="again">${train?'ЕЩЁ РАЗ':'ЕЩЁ БОЙ'}</button><button class="ghost" id="home2">Домой</button></div>`);
  paintIcons(OV);
