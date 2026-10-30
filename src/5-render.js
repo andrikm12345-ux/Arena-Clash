@@ -159,6 +159,8 @@ function drawZone(g,z,now){const a=Math.min(1,z.t/.4,(z.tot-z.t)/.2+.2);g.global
  else if(z.k==='pull'){g.strokeStyle='rgba(180,220,255,.8)';g.lineWidth=2;for(let i=0;i<3;i++){g.beginPath();g.ellipse(z.x,z.y,z.r*(.35+i*.3),z.r*(.35+i*.3)*.78,now/300+i,0,4.5);g.stroke()}}
  else if(z.k==='roll'){g.fillStyle='#8a5a32';g.strokeStyle='#4a2e18';g.lineWidth=2;rr(g,z.x-z.r,z.y-9,z.r*2,18,8,'#8a5a32');g.stroke();g.fillStyle='#e2b77a';for(const s of[-1,1]){g.beginPath();g.ellipse(z.x+s*z.r,z.y,4,9,0,0,7);g.fill()}
   g.strokeStyle='#5c3a1e';for(let i=0;i<4;i++){const yy=z.y-9+((z.ang*6+i*4.5)%18);g.beginPath();g.moveTo(z.x-z.r+4,yy);g.lineTo(z.x+z.r-4,yy);g.stroke()}}
+ else if(z.k==='flash'){g.fillStyle='rgba(255,246,190,.25)';g.strokeStyle='rgba(255,236,150,.85)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.light,z.light*.78,0,0,7);g.fill();g.stroke()}
+ else if(z.k==='shade'){g.fillStyle='rgba(16,8,34,.55)';g.strokeStyle='rgba(150,110,230,.7)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke()}
  else if(z.k==='grave'){g.fillStyle='rgba(70,40,100,.28)';g.strokeStyle='rgba(180,140,255,.7)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke()}
  else if(z.k==='heal'){g.fillStyle='rgba(120,255,160,.2)';g.strokeStyle='rgba(150,255,180,.8)';g.lineWidth=2;g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.fill();g.stroke()}
  else if(z.k==='aura'){const p=.5+.5*Math.sin(now/120);g.strokeStyle=`rgba(255,216,77,${.5+p*.4})`;g.lineWidth=2.5;g.setLineDash([6,5]);g.beginPath();g.ellipse(z.x,z.y,z.r,z.r*.78,0,0,7);g.stroke();g.setLineDash([])}

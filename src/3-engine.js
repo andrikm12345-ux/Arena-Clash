@@ -89,6 +89,8 @@ function castSpell0(tm,key,x,y,lvl,tr){const c=CARDS[key],r=c.rad*TILE,dmg=LV(c.
  if(c.stun){areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.stun});G.FX.push({k:'zapring',x,y,r,l:0,m:.35});AU.sfx('zap');return}
  if(c.rage){G.Z.push({k:'rage',tm,x,y,r,t:c.rage,tot:c.rage});AU.sfx('rage');return}
  if(c.pull){G.Z.push({k:'pull',tr,tm,x,y,r,t:c.pull,tot:c.pull,tick:0,dmg:dmg/4,tdmg:tdmg/4,spd:c.pullSpd});AU.sfx('poison');return}
+ if(c.flash){G.Z.push({k:'flash',tm,x,y,r,t:c.flash.t,tot:c.flash.t,light:c.flash.light*TILE});for(const v of G.U)if(v.tm!==tm&&alive(v)&&dist(v,{x,y})<r+v.r*.5)stunObj(v,c.blind);AU.sfx('zap');return}
+ if(c.shade){G.Z.push({k:'shade',tm,x,y,r,t:c.shade,tot:c.shade});AU.sfx('freeze');return}
  if(c.roll){const dir=tm?1:-1;G.Z.push({k:'roll',tr,tm,x,y,r,t:99,tot:99,dir,left:c.roll.len*TILE,spd:c.roll.spd,dmg,tdmg,knock:c.knock,hit:new Set(),ang:0});AU.sfx('hit');return}
  if(c.grave){const g=c.grave;G.Z.push({k:'grave',tm,x,y,r,t:g.t,tot:g.t,every:g.t/g.n,tick:.5,id:g.id,lvl});AU.sfx('ability');return}
  if(c.heal){G.Z.push({k:'heal',tm,x,y,r,t:c.healT,tot:c.healT,hps:LV(c.heal,lvl)/c.healT});AU.sfx('ability');return}
@@ -139,10 +141,10 @@ function inShade(p){for(const z of G.Z)if(z.k==='shade'&&dist(p,z)<z.r)return tr
 function litBy(S,p){if(inShade(p))return false;for(const l of S)if(dist(p,l)<l.r)return true;return false}
 /* раз в тик: кого из врагов видит каждая сторона (null — день, видно всех) */
 function computeVis(){const n=isNight();if(n!==!!G.night){G.night=n;if(G.t>1)banner(n?'Наступает ночь':'Рассвет',n?'#9fb4ff':'#ffd27a')}
- if(!n){G.vis=null;return}const S=lightSources(),near=CFG.cycle.near*TILE,V=[new Set(),new Set()];
+ const sh=G.Z.some(z=>z.k==='shade');if(!n&&!sh){G.vis=null;return}const S=n?lightSources():[],near=CFG.cycle.near*TILE,V=[new Set(),new Set()];
  const ents=tm=>[...G.U.filter(u=>u.tm===tm&&alive(u)),...G.B.filter(b=>b.tm===tm&&alive(b)),...G.T.filter(t=>t.tm===tm&&t.hp>0)];
  const E=[ents(0),ents(1)];
- for(const tm of[0,1])for(const o of E[1-tm]){if(o.obj==='t'||litBy(S,o)&&!(o.obj==='u'&&inShade(o))){V[tm].add(o);continue}
+ for(const tm of[0,1])for(const o of E[1-tm]){if(o.obj==='t'||(n?litBy(S,o):!inShade(o))){V[tm].add(o);continue}
   for(const e of E[tm])if(dist(e,o)<near+o.r+e.r){V[tm].add(o);break}}
  G.vis=V}
 /* видит ли сторона tm объект o (башни видно всегда) */

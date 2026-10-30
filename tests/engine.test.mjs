@@ -371,3 +371,25 @@ test('сродство: ночная карта ночью бьёт на 25% с�
   w.run(`spawn(1,'giant',180,430,11);globalThis.v=G.U.find(u=>u.key==='giant');v.hp=v.mx=1e6;attack(g,v)`);
   assert.ok(Math.abs((1e6 - w.run('v.hp')) / w.run('g.dmg') - 1.25) < 1e-9);
 });
+
+test('Факелоносец и Фонарь светят ночью; Вспышка светит и ослепляет', () => {
+  const w = world();
+  w.run(`G.t=60;spawn(1,'shooters',180,200,11);G.U.length=1;globalThis.s=G.U[0];s.frozenT=999;s.hp=s.mx=1e6`);
+  run(w, 1/30); assert.equal(w.run('seen(0,s)'), false);
+  w.run(`spawn(0,'torchman',180,200+3*TILE,11);globalThis.tc=G.U.find(u=>u.key==='torchman');tc.frozenT=999`); run(w, 1/30);
+  assert.equal(w.run('seen(0,s)'), true, 'факел в 3 клетках');
+  w.run(`tc.hp=0`); run(w, 1/30); w.run(`spawn(0,'lantern',180,300,11)`); run(w, 1/30);
+  assert.equal(w.run('dist(s,G.B[0])<6*TILE'), true); assert.equal(w.run('seen(0,s)'), true, 'фонарь');
+  w.run(`G.B=[];G.T.forEach(t=>t.dmg=0);spawn(1,'guard',100,150,11);globalThis.g=G.U.find(u=>u.key==='guard');castSpell(0,'flash',100,150,11)`); run(w, 1/30);
+  assert.ok(w.run('g.stunT') > 0, 'ослеплён'); assert.equal(w.run('seen(0,g)'), true);
+});
+
+test('Сумрак прячет даже днём, кроме ближнего круга', () => {
+  const w = world();
+  w.run(`spawn(1,'shooters',180,200,11);G.U.length=1;globalThis.s=G.U[0];s.frozenT=999;spawn(0,'crossbow',180,200+5*TILE,11);globalThis.c=G.U.find(u=>u.key==='crossbow');c.frozenT=999`);
+  run(w, 1/30); assert.equal(w.run('seen(0,s)'), true, 'днём видно');
+  w.run(`castSpell(1,'shade',180,200,11)`); run(w, 1/30);
+  assert.equal(w.run('seen(0,s)'), false, 'в Сумраке скрыт');
+  w.run('c.y=200+2*TILE'); run(w, 1/30);
+  assert.equal(w.run('seen(0,s)'), true, 'вплотную видно');
+});

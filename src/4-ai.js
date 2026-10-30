@@ -26,8 +26,8 @@ function laneDef(b,lane){let d=0;
  return d}
 function enemyDef(b,lane){let d=0;for(const u of G.U)if(u.tm!==b.tm&&alive(u)&&laneOf(u.x)===lane&&fyOf(b,u.y)>300)d+=uval(u);for(const o of G.B)if(o.tm!==b.tm&&alive(o))d+=1.5;return d}
 function dpsOf(c){return c.dmg?c.dmg/c.hit*(c.count||1):0}
-function counterScore(key,T){const c=CARDS[key],R=ROLE[key];if(c.type==='spell')return-99;if(R.eco)return T.bt?2:-99;if(R.win&&!c.tunnel)return-99;
- let s=4;const airShare=T.air/(T.v||1);
+function counterScore(key,T){const c=CARDS[key],R=ROLE[key];if(c.type==='spell')return-99;if(R.eco||c.light&&!c.dmg)return T.bt?2:-99;if(R.win&&!c.tunnel)return-99;
+ let s=4+(affOn(CARDS[c.unit]||c)?1:0);const airShare=T.air/(T.v||1);
  if(T.air>0)s+=c.tg==='ga'?2*airShare+1:(airShare>.5?-12:-3);
  if(T.small>=3)s+=R.splash||c.kami?4:R.swarm?-1:-2;
  if(T.tank)s+=(dpsOf(c)>=180?3:0)+(R.swarm&&!T.spl?2:0)+(R.bld?1:0);
@@ -101,6 +101,9 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
   const rg=hand.find(k=>CARDS[k].rage);
   if(rg&&T.v>=4){const own=G.U.filter(u=>u.tm===b.tm&&alive(u)&&laneOf(u.x)===need.lane&&fyOf(b,u.y)<360);const ov=own.reduce((a,u)=>a+uval(u),0);
    if(ov>=4){const cx=own.reduce((a,u)=>a+u.x,0)/own.length,cy=own.reduce((a,u)=>a+u.y,0)/own.length;if(botPlay(b,rg,cx,fyOf(b,cy),true))return}}
+ // ночью — вспышка по угрозе, чтобы башня и стрелки её увидели
+  const fl=hand.find(k=>CARDS[k].flash);
+  if(fl&&isNight()&&T.fy<230&&T.units.some(u=>!seen(b.tm,u))){const cx=T.units.reduce((a,u)=>a+u.x,0)/T.units.length,cy=T.units.reduce((a,u)=>a+u.y,0)/T.units.length;if(botPlay(b,fl,cx,fyOf(b,cy),true))return}
   // звон лечит своих, если они в обороне уже потрёпаны
   const md=hand.find(k=>CARDS[k].heal);
   if(md){const own=G.U.filter(u=>u.tm===b.tm&&alive(u)&&laneOf(u.x)===need.lane&&fyOf(b,u.y)<360&&!u.c.token),miss=own.reduce((a,u)=>a+u.mx-u.hp,0);
@@ -117,6 +120,9 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
  // атака
  const dbl=elRate()>1,thr=s.push-(dbl?1.5:0)-(G.ot?.5:0);
  const other=G.side[1-b.tm],ol=other.last,punish=ol&&G.t-ol.t<4&&CARDS[ol.key].cost>=5&&fyOf(b,ol.y)>520||s.countEl&&b.oppEl<2.5&&S.el>=5;
+ // ночью перед атакой — фонарь у моста своей дорожки
+ const ln=hand.find(k=>CARDS[k].light&&CARDS[k].type==='building');
+ if(ln&&isNight()&&!need&&S.el>=thr-1&&!G.B.some(o=>o.tm===b.tm&&o.key===ln)){const lane=pushLane(b);if(botPlay(b,ln,BR[lane],262)){b.lane=lane;return}}
  const gv=hand.find(k=>CARDS[k].grave);
  if(gv&&S.el>=thr&&G.t-b.lastPush>4){const lane=pushLane(b),t=enemyTowerIn(b,lane),tt=t.hp>0?t:G.T.find(t=>t.tm!==b.tm&&t.kind==='k');
   if(botPlay(b,gv,tt.x+(lane?-1:1)*10,fyOf(b,tt.y)-30,true)){b.lane=lane;b.lastPush=G.t;b.plan.push({t:G.t+rnd(.5,1.2),lane,k:'sup'});return}}
@@ -151,5 +157,6 @@ function botOffenseSpells(b,hand){const s=b.s;if(RNG()>s.spell)return;
   const def=G.U.filter(u=>u.tm!==b.tm&&alive(u)&&dist(u,t)<130);
   for(const k of hand){const c=CARDS[k];if(c.type!=='spell')continue;
    if(c.freeze&&own>=6){if(botPlay(b,k,t.x,fyOf(b,t.y)+(fyOf(b,t.y)>320?-20:20),true))return}
+   else if(c.shade){const rs=G.U.filter(u=>u.tm===b.tm&&alive(u)&&ROLE[u.key]?.ranged&&dist(u,t)<t.r+c.rad*TILE*2);if(rs.length>=1&&own>=4){const cx=rs.reduce((a,u)=>a+u.x,0)/rs.length,cy=rs.reduce((a,u)=>a+u.y,0)/rs.length;if(botPlay(b,k,cx,fyOf(b,cy),true))return}}
    else if((c.rage||c.heal)&&own>=4){const near=G.U.filter(u=>u.tm===b.tm&&alive(u)&&dist(u,t)<t.r+70);const cx=near.reduce((a,u)=>a+u.x,0)/near.length,cy=near.reduce((a,u)=>a+u.y,0)/near.length;if(botPlay(b,k,cx,fyOf(b,cy),true))return}
    else if(c.dmg&&def.length){const p=spellTarget(b,k,def);if(p&&p.val+(dist(p,t)<c.rad*TILE+t.r?c.tdmg/300:0)>=c.cost&&botPlay(b,k,p.x,fyOf(b,p.y),true))return}}}}

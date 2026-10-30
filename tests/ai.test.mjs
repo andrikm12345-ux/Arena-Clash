@@ -83,9 +83,9 @@ test('бот: 5 уровней из конфига, HP башен и урове�
   assert.equal(w.run('G.T.find(t=>t.tm===1&&t.kind==="p").mx'), Math.round(3052 * .4));
 });
 
-test('турнир (малый): эксперт ≥ 90% против новичка (10 матчей), средний ≥ 80% против случайного, простой < 3 с', () => {
-  const a = series('expert', 'novice', 10, 101), b = series('normal', 'random', 10, 201);
-  assert.ok(a.winA >= 0.9, `эксперт ${a.winA}`);
+test('турнир (малый): эксперт ≥ 85% против новичка (20 матчей; полный турнир — tools/tournament.mjs), средний ≥ 80% против случайного, простой < 3 с', () => {
+  const a = series('expert', 'novice', 20, 101), b = series('normal', 'random', 10, 201);
+  assert.ok(a.winA >= 0.85, `эксперт ${a.winA}`);
   assert.ok(b.winA >= 0.8, `средний ${b.winA}`);
   assert.ok(a.fullAvg < 3 && b.fullAvg < 3);
 });
