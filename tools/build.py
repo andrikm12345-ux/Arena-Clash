@@ -6,7 +6,7 @@ python3 tools/build.py --artifact OUT.html [--test TEST.html THREE_DIR]
 import base64, hashlib, pathlib, sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / 'src'
-ORDER = ['1-data.js', '2-sprites.js', '3-engine.js', '4-ai.js', '5-render.js', '6-render3d.js', '7-meta.js', '8-ui.js']
+ORDER = ['0-config.js', '1-data.js', '2-sprites.js', '3-engine.js', '4-ai.js', '5-render.js', '6-render3d.js', '7-meta.js', '8-ui.js']
 ADDONS = [('GLTFLoader', 'loaders/GLTFLoader.js'), ('RGBELoader', 'loaders/RGBELoader.js'), ('SkeletonUtils', 'utils/SkeletonUtils.js', 1),
           ('BufferGeometryUtils', 'utils/BufferGeometryUtils.js', 1), ('EffectComposer', 'postprocessing/EffectComposer.js'),
           ('RenderPass', 'postprocessing/RenderPass.js'), ('UnrealBloomPass', 'postprocessing/UnrealBloomPass.js'), ('OutputPass', 'postprocessing/OutputPass.js')]

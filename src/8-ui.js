@@ -43,11 +43,11 @@ function drawChest(g,t,open,w,h){const C=CHESTS[t].col,s=Math.min(w/120,h/100);g
 /* ---------- шапка и вкладки ---------- */
 let tab='play',repl=null;
 const TABS=[['shop','Магазин',ICO.shop],['cards','Карты',ICO.cards],['play','Бой',ICO.swords],['clan','Клан',ICO.clan],['events','События',ICO.events]];
-function renderHeader(){const nx=P.kl<9?KL_XP[P.kl]:1,pv=P.kl>1?KL_XP[P.kl-1]:0,x=P.kl<9?clamp((P.xp-pv)/(nx-pv),0,1):1;
- $('#hh').innerHTML=`<div class="prof"><button class="kb" id="kb" aria-label="Уровень короля ${P.kl}${P.kl<9?`, опыт ${P.xp} из ${nx}`:''}"><b>${P.kl}</b><i style="--x:${x.toFixed(3)}"></i></button><div class="who"><b>${esc(P.name)}</b><small>${ICO.trophy.replace('<svg','<svg style="width:12px;height:12px;vertical-align:-2px"')} ${fmtN(P.tr)} · ${ARENAS[curArena()].n}</small></div></div>
+function renderHeader(){const nx=P.kl<KL_MAX?KL_XP[P.kl]:1,pv=P.kl>1?KL_XP[P.kl-1]:0,x=P.kl<KL_MAX?clamp((P.xp-pv)/(nx-pv),0,1):1;
+ $('#hh').innerHTML=`<div class="prof"><button class="kb" id="kb" aria-label="Уровень короля ${P.kl}${P.kl<KL_MAX?`, опыт ${P.xp} из ${nx}`:''}"><b>${P.kl}</b><i style="--x:${x.toFixed(3)}"></i></button><div class="who"><b>${esc(P.name)}</b><small>${ICO.trophy.replace('<svg','<svg style="width:12px;height:12px;vertical-align:-2px"')} ${fmtN(P.tr)} · ${ARENAS[curArena()].n}</small></div></div>
   <div class="res"><span class="pill" title="Золото">${ICO.gold}<b>${fmtN(P.gold)}</b></span><span class="pill" title="Кристаллы">${ICO.gem}<b>${fmtN(P.gems)}</b></span><span class="pill" title="Осколки эволюции">${ICO.shard}<b>${P.shards}</b></span><button class="gear" id="gear" aria-label="Настройки и сохранение">${ICO.gear}</button></div>`;
  $('#gear').onclick=()=>{AU.init();AU.sfx('ui');openSettings()};
- $('#kb').onclick=()=>{AU.init();toast(P.kl<9?`Уровень короля ${P.kl}: опыт ${P.xp} из ${nx}. Опыт дают улучшения карт`:'Уровень короля максимальный')}}
+ $('#kb').onclick=()=>{AU.init();toast(P.kl<KL_MAX?`Уровень короля ${P.kl}: опыт ${P.xp} из ${nx}. Опыт дают улучшения карт`:'Уровень короля максимальный')}}
 function renderNav(){const n=$('#nav');n.style.setProperty('--tabs',TABS.length);
  const rs=reqState(),dots={play:ROAD.some((_,i)=>roadReady(i))||P.luck.length>0||P.chests.some(c=>c),clan:!!rs&&rs.got>rs.q.taken||canRequest(),events:EVENTS.some(e=>!evDay().won.includes(e.id)&&e.id!=='train'),cards:CARD_IDS.some(k=>canUp(k)&&P.gold>=upCost(k))||P.fresh.length>0,shop:!!(P.shop&&P.shop.day===dayKey()?!P.shop.bought.includes(0):true)};
  n.innerHTML=TABS.map(([id,t,ic])=>`<button data-t="${id}"${(tab==='road'?'play':tab)===id?' aria-current="page"':''}>${ic}<span>${t}</span>${dots[id]?'<i class="dot" aria-hidden="true"></i>':''}</button>`).join('');
@@ -100,10 +100,11 @@ function openTraining(){AU.init();AU.sfx('ui');const sh=$('#sheet');
  $('#tgo').onclick=()=>startBattle(true);$('#tgo').focus()}
 function openRules(){AU.init();AU.sfx('ui');const sh=$('#sheet');
  sh.innerHTML=`<div class="sh" role="dialog" aria-modal="true" aria-labelledby="shn"><h3 class="t" id="shn">Как играть</h3>
-  <p class="note"><b>Бой.</b> Три минуты. Выбери карту внизу и отпусти её на своей половине. Карта стоит эликсир: он копится сам, до 10, в последнюю минуту — вдвое быстрее.</p>
-  <p class="note"><b>Короны.</b> Башня принцессы — одна корона, башня короля — сразу победа. Король спит, пока его не ударят или не сломают принцессу.</p>
-  <p class="note"><b>Карман.</b> Сломал башню принцессы — на её стороне реки можно выставлять войска.</p>
-  <p class="note"><b>Дополнительное время.</b> Если короны равны: ещё две минуты, эликсир ×2, потом ×3. Кто первым сломает башню, тот победил; иначе проиграет тот, у кого самая слабая башня.</p>
+  <p class="note"><b>Бой.</b> Три минуты. Выбери карту внизу и отпусти её на своей половине. Карта стоит эликсир: он копится сам, до 10, с 2:00 — вдвое быстрее. Новая карта входит в руку через секунду после розыгрыша.</p>
+  <p class="note"><b>Короны.</b> Башня принцессы — одна корона, королевская башня — сразу победа и три короны. Король спит, пока его не ударят или не сломают боковую башню, и просыпается около 4 секунд.</p>
+  <p class="note"><b>Карман.</b> Сломал боковую башню — на её дорожке можно ставить войска на 4 клетки за рекой.</p>
+  <p class="note"><b>Овертайм.</b> Если короны равны — ещё две минуты, эликсир ×2, в последнюю минуту ×3. Первая сломанная башня решает бой; если обе пали одновременно — играем дальше.</p>
+  <p class="note"><b>Тайбрейкер.</b> Если и в овертайме ничья: войска исчезают, все башни теряют здоровье, и проигрывает владелец самой слабой башни. Равны — ничья.</p>
   <p class="note"><b>Эволюции и герои.</b> Первый слот колоды — для эволюции: она выходит усиленной сразу и потом через несколько розыгрышей. Второй — для героя со способностью по кнопке (если в колоде нет чемпиона). Открываются за осколки.</p>
   <p class="note"><b>Башня и режимы.</b> Перед боем выбери, кто стоит на башнях: лучница, пушкарь или метательница кинжалов. Во вкладке «События» — тройной эликсир, внезапная смерть и драфт.</p>
   <p class="note"><b>Прогресс.</b> За победы — кубки и сундук удачи. Карты из сундуков улучшают уровни, улучшения дают опыт короля, а он укрепляет башни. Кубки открывают новые арены и карты.</p>
@@ -296,13 +297,13 @@ function openSettings(){const sh=$('#sheet');let armed=false;
 /* ---------- бой ---------- */
 const TIPS={full:'Эликсир полон — трать его, иначе он пропадает',enemy:'Враг перешёл реку — поставь защитника у него на пути',spell:'Заклинание можно бросить в любое место поля',
  tower:'Башня пала! Теперь войска можно ставить и на её стороне реки',king:'Король проснулся — теперь он тоже стреляет',double:'Последняя минута: эликсир копится вдвое быстрее',
- champ:'Чемпион на поле — нажми кнопку способности в гуще боя',ot:'Дополнительное время: кто первым сломает башню, тот и победил'};
+ champ:'Чемпион на поле — нажми кнопку способности в гуще боя',ot:'Овертайм: кто первым сломает башню, тот и победил'};
 let tipT=0;
 function tip(k){if(P.st.games>=3||P.hints.includes(k)||!$('#tip').hidden||!$('#help').hidden)return;P.hints.push(k);saveP();const e=$('#tip');e.querySelector('span').textContent=TIPS[k];e.hidden=false;clearTimeout(tipT);tipT=setTimeout(()=>{e.hidden=true},4200)}
 function tips(){if(P.st.games>=3||G.over)return;const S=G.side[0];
- if(S.el>=10)tip('full');if(G.U.some(u=>u.tm===1&&u.y>RY+RIV))tip('enemy');if(sel!=null&&CARDS[S.hand[sel]].type==='spell')tip('spell');
+ if(S.el>=10)tip('full');if(G.U.some(u=>u.tm===1&&u.y>RY+RIV))tip('enemy');if(sel!=null&&S.hand[sel]&&CARDS[S.hand[sel]].type==='spell')tip('spell');
  if(G.T.some(t=>t.tm===1&&t.kind==='p'&&t.hp<=0))tip('tower');if(G.T.some(t=>t.tm===1&&t.kind==='k'&&t.act))tip('king');
- if(G.t>=120&&!G.ot)tip('double');if(G.ot)tip('ot');if(S.champ&&alive(S.champ))tip('champ')}
+ if(elRate()>1&&!G.ot)tip('double');if(G.ot)tip('ot');if(S.champ&&alive(S.champ))tip('champ')}
 const OV=$('#ov');
 function showOv(html){OV.innerHTML=html;OV.classList.add('on')}
 function hideOv(){OV.classList.remove('on');OV.innerHTML=''}
@@ -318,16 +319,17 @@ function startBattle(train,opt){AU.init();opt=opt||null;
  startBattle1(train,opt)}
 let lastOpt=null;
 const MODE_N={triple:'Тройной эликсир',sudden:'Внезапная смерть',draft:'Драфт'};
-function startBattle1(train,opt){AU.sfx('ui');closeSheet();lastOpt=opt;const a=curArena(),B=botSetup(a,train),nm=pickR(BOT_NAMES),md=opt?opt.mode:'normal';
+function startBattle1(train,opt){AU.sfx('ui');closeSheet();lastOpt=opt;const a=curArena(),B=botSetup(a,train),nm=pickV(BOT_NAMES),md=opt?opt.mode:'normal';
  if(TH!==THEMES[a]){TH=THEMES[a];BG=null}
  let decks=[curDeck(),B.deck],lv=[levelsMap(),B.lv],ex=[deckSpecial(),B.ex];
- if(md==='draft'){const L=ARENA_LV[a]+1,eq={};for(const k of CARD_IDS)eq[k]=L;decks=[opt.deck,opt.bot];lv=[eq,eq];ex=[{},{}]}
+ if(md==='draft'){const eq={};for(const k of CARD_IDS)eq[k]=START_LV[CARDS[k].rar]+ARENA_LV[a];decks=[opt.deck,opt.bot];lv=[eq,eq];ex=[{},{}]}
  newMatch({decks,lv,kl:[P.kl,B.kl],bots:[null,B.skill],names:['Ты',nm],train:train||!!opt,mode:md,ex,tt:[P.tt,B.tt]});G.event=opt?md:null;
  mode='play';sel=null;gx=-1;paused=false;hideOv();$('#emo').hidden=true;$('#tip').hidden=true;
  $('#enname').textContent=train?`Тренировка · ${SKILL[P.train].n}`:opt?`${MODE_N[md]} · ${nm}`:`${nm} · ур. ${B.kl}`;
  showView('battle');R3.on=false;if(R3.want&&R3.ready&&r3Begin(a))r3Show();else r3Stop();hs={};renderHand();$('#help').hidden=P.tut>0;banner(train?'Тренировка':opt?MODE_N[md]:'В бой!','#ffc83d')}
 function renderHand(){const S=G.side[0],box=$('#hand');box.innerHTML='';handEls=[];
- S.hand.forEach((k,i)=>{const c=CARDS[k],b=document.createElement('button');b.className='card';b.dataset.r=c.rar;b.setAttribute('aria-label',`${c.n}, ${c.cost} эликсира`);
+ S.hand.forEach((k,i)=>{if(!k){const e=document.createElement('div');e.className='card empty';e.setAttribute('aria-hidden','true');box.appendChild(e);handEls.push(e);return}
+  const c=CARDS[k],b=document.createElement('button');b.className='card';b.dataset.r=c.rar;b.setAttribute('aria-label',`${c.n}, ${c.cost} эликсира`);
   if(k===S.evo)b.classList.add(evoReady(S,k)?'evo':'evo-wait');if(k===S.hero)b.classList.add('hero');
   b.innerHTML=`<canvas width="120" height="120" data-ic="${k}"></canvas><i class="gem">${c.cost}</i>${k===S.evo?`<span class="eb">${evoReady(S,k)?'ЭВО':'эво '+S.evoN+'/'+EVO[k].cyc}</span>`:k===S.hero?'<span class="eb">ГЕРОЙ</span>':''}<span class="nm">${c.n}</span>`;
   b.addEventListener('pointerdown',e=>{if(!G||G.over||paused||mode!=='play')return;AU.init();sel=sel===i?null:i;AU.sfx('ui');e.preventDefault()});
@@ -338,15 +340,15 @@ const fmt=s=>{s=Math.max(0,Math.ceil(s));return(s/60|0)+':'+String(s%60).padStar
 const setPips=(tm,n)=>[...$('#cp'+tm+' .pips').children].forEach((e,i)=>e.classList.toggle('on',i<n));
 function hud(){const S=G.side[0],e=S.el,ei=Math.floor(e);
  $('#ef').style.width=(e*10)+'%';if(ei!==hs.el){hs.el=ei;$('#en').textContent=ei;$('#eb').classList.toggle('full',ei>=10)}
- const left=G.ot?120-G.otT:180-G.t,tm=fmt(left);if(tm!==hs.tm){if(hs.tm&&left<=10&&left>0&&!G.over)AU.sfx('tick');hs.tm=tm;$('#tm').textContent=tm;$('#tm').classList.toggle('low',left<=10||!!G.ot)}
+ const M=CFG.match,left=G.tb?0:G.ot?M.ot-G.otT:M.len-G.t,tm=fmt(left);if(tm!==hs.tm){if(hs.tm&&left<=10&&left>0&&!G.over)AU.sfx('tick');hs.tm=tm;$('#tm').textContent=tm;$('#tm').classList.toggle('low',left<=10||!!G.ot)}
  tips();
- const ph=G.ot?(G.otT>=60?'ДОП. ВРЕМЯ · ×3':'ДОП. ВРЕМЯ · ×2'):G.t>=120?'ЭЛИКСИР ×2':'ОСТАЛОСЬ';if(ph!==hs.ph){hs.ph=ph;$('#ph').textContent=ph}
+ const er=elRate(),ph=G.tb?'ТАЙБРЕЙКЕР':G.ot?'ОВЕРТАЙМ · ×'+er:er>1?'ЭЛИКСИР ×'+er:'ОСТАЛОСЬ';if(ph!==hs.ph){hs.ph=ph;$('#ph').textContent=ph}
  const cr=G.crowns.join();if(cr!==hs.cr){hs.cr=cr;setPips(0,G.crowns[0]);setPips(1,G.crowns[1])}
  if(S.hand.join()+'|'+S.queue[0]+'|'+S.evoN!==hs.sig)renderHand();
- handEls.forEach((b,i)=>{const c=CARDS[S.hand[i]];b.style.setProperty('--p',Math.min(1,e/c.cost).toFixed(3));b.classList.toggle('sel',sel===i);b.classList.toggle('off',cardBlocked(0,S.hand[i]))});
+ handEls.forEach((b,i)=>{if(!S.hand[i])return;const c=CARDS[S.hand[i]];b.style.setProperty('--p',Math.min(1,e/c.cost).toFixed(3));b.classList.toggle('sel',sel===i);b.classList.toggle('off',cardBlocked(0,S.hand[i]))});
  const ch=!!S.champ&&alive(S.champ),ab=$('#ab');if(ab.hidden!==!ch)ab.hidden=!ch;
  if(ch){const a=S.champ.c.ability;ab.classList.toggle('cd',S.abCd>0||S.el<a.cost);const t=S.abCd>0?`${a.n} · ${Math.ceil(S.abCd)} с`:a.n;if(t!==hs.ab){hs.ab=t;$('#abn').textContent=t}}}
-function tryPlay(){const S=G.side[0],key=S.hand[sel],c=CARDS[key];
+function tryPlay(){const S=G.side[0],key=S.hand[sel],c=CARDS[key];if(!key||G.tb){sel=null;return}
  if(cardBlocked(0,key))return deny(key===S.hero?'Герой уже на поле':'Чемпион уже на поле');
  if(S.el<c.cost)return deny('Мало эликсира');
  if(!canPlace(0,key,gx,gy))return deny(c.type==='building'&&gy>RY+RIV?'Мешает строение или башня':'Сюда нельзя');
@@ -399,7 +401,7 @@ addEventListener('pointerup',e=>{if(mode!=='play'||!G||G.over||paused||sel==null
 addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheet').hidden){closeSheet();return}
  if(mode!=='play'||!G)return;
  if(e.key==='Escape')sel=null;
- if(e.key>='1'&&e.key<='4'){const i=+e.key-1;sel=sel===i?null:i}
+ if(e.key>='1'&&e.key<='4'){const i=+e.key-1;if(G.side[0].hand[i])sel=sel===i?null:i}
  if(e.key==='p'||e.key==='P'||e.key===' '){e.preventDefault();togglePause()}
  if(e.key==='q'||e.key==='Q')useAbility(0)});
 $('#bp').onclick=()=>{AU.init();togglePause()};
@@ -409,7 +411,7 @@ $('#ab').onclick=()=>{AU.init();if(G&&!useAbility(0))AU.sfx('deny')};
 $('#emo').innerHTML=EMOTES.map((t,i)=>`<button data-e="${i}">${t}</button>`).join('');
 $('#be').onclick=()=>{AU.init();$('#emo').hidden=!$('#emo').hidden};
 $('#emo').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(!G)return;emote(0,+b.dataset.e);$('#emo').hidden=true;
- if(G.bots[1]&&Math.random()<.4)setTimeout(()=>{if(G&&!G.over)emote(1,pickR([0,3,4,5]))},900+Math.random()*900)});
+ if(G.bots[1]&&Math.random()<.4)setTimeout(()=>{if(G&&!G.over)emote(1,pickV([0,3,4,5]))},900+Math.random()*900)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='play'&&!paused&&G&&!G.over)togglePause()});
 
 /* ---------- размеры и цикл ---------- */
@@ -422,7 +424,7 @@ function fit(){if($('#battle').hidden)return;const st=$('#stage'),w=st.clientWid
 new ResizeObserver(()=>requestAnimationFrame(fit)).observe($('#stage'));
 let lastT=0,acc=0;
 function loop(ts){const dt=Math.min(.05,(ts-lastT)/1000||0);lastT=ts;
- if(G&&(mode==='play'||mode==='end')&&!paused){acc+=dt;let n=0;while(acc>=1/60&&n<4){step(1/60);acc-=1/60;n++}if(n===4)acc=0;
+ if(G&&(mode==='play'||mode==='end')&&!paused){acc+=dt;let n=0;while(acc>=TICK&&n<4){step(TICK);acc-=TICK;n++}if(n===4)acc=0;
   if(mode==='play'&&G.over&&performance.now()>G.endAt)endScreen()}
  if(G&&!$('#battle').hidden&&$('#loot').hidden){if(R3.on)r3Frame(ts);else draw(ts);hud()}
  requestAnimationFrame(loop)}

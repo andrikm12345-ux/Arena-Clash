@@ -1,26 +1,31 @@
 /* ================= БОЙ: ДВИЖОК ================= */
 let G=null,uid=0;
 const PSPD={arrow:300,stone:260,bolt:340,orb:220,flame:200,bomb:150,ball:280,ice:230,tower:320,king:300};
-function newMatch(o){uid=0;const T=[],tt=o.tt||['archer','archer'];
- for(const tm of[0,1]){const kl=o.kl[tm];
-  for(const [kind,x,y] of[['p',70,515],['p',290,515],['k',180,580]]){const d=TOWER[kind],hp=LV(d.hp,kl);
-   T.push({id:++uid,obj:'t',kind,tm,x,y:tm?H-y:y,r:d.r,hp,mx:hp,dmg:LV(d.dmg,kl),hit:d.hit,rng:d.rng,cd:rnd(0,.4),fl:0,act:kind==='p'?1:0,wake:0,ang:tm?Math.PI/2:-Math.PI/2,frozenT:0,stunT:0,lvl:kl,fly:false,tg:null});
+/* o: decks, lv, kl, bots, names, train, mode, ex (эво/герой), tt (башенные бойцы), thp (множитель HP башен), seed */
+function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.random()*2147483647|0);RNG=mul(seed);
+ const T=[],tt=o.tt||['archer','archer'],A=CFG.arena,mc=CFG.modes[o.mode]||CFG.modes.normal;
+ for(const tm of[0,1]){const kl=o.kl[tm],thp=o.thp?o.thp[tm]:1;
+  for(const [kind,x,y] of[['p',A.princess[0]*TILE,A.princess[1]*TILE],['p',W-A.princess[0]*TILE,A.princess[1]*TILE],['k',A.king[0]*TILE,A.king[1]*TILE]]){const d=TOWER[kind],hp=Math.round(LV(d.hp,kl)*thp);
+   T.push({id:++uid,obj:'t',kind,tm,x,y:tm?H-y:y,r:d.r,hp,mx:hp,dmg:LV(d.dmg,kl),hit:d.hit,rng:d.rng*TILE,cd:rnd(0,.4),fl:0,act:kind==='p'?1:0,wake:0,ang:tm?Math.PI/2:-Math.PI/2,frozenT:0,stunT:0,lvl:kl,fly:false,tg:null});
    if(kind==='p'){const q=TT[tt[tm]]||TT.archer,t=T[T.length-1];t.hp=t.mx=Math.round(hp*q.hp);t.dmg=Math.round(t.dmg*q.dmg);t.hit*=q.hit;t.pk=q.pk;t.tt=tt[tm];if(q.mag){t.mag=t.ammo=q.mag;t.reload=q.reload}}}}
- G={t:0,ot:0,otT:0,over:0,res:-1,endAt:0,crowns:[0,0],U:[],B:[],T,PR:[],FX:[],Z:[],D:[],S:[],PT:[],TX:[],DEC:[],EM:[],CF:[],shake:0,
-  side:[0,1].map(tm=>mkSide(tm,o.decks[tm],o.lv[tm],o.kl[tm],o.ex&&o.ex[tm])),mode:o.mode||'normal',bots:[0,1].map(tm=>o.bots[tm]?mkBot(tm,o.bots[tm]):null),
+ G={seed,mc,tick:0,downs:[],tb:null,t:0,ot:0,otT:0,over:0,res:-1,endAt:0,crowns:[0,0],U:[],B:[],T,PR:[],FX:[],Z:[],D:[],S:[],PT:[],TX:[],DEC:[],EM:[],CF:[],shake:0,
+  side:[0,1].map(tm=>mkSide(tm,o.decks[tm],o.lv[tm],o.kl[tm],o.ex&&o.ex[tm],mc.elStart)),mode:o.mode||'normal',bots:[0,1].map(tm=>o.bots[tm]?mkBot(tm,o.bots[tm]):null),
   names:o.names||['Ты','Соперник'],train:!!o.train,stats:[{dmg:0,spent:0,played:0,leak:0},{dmg:0,spent:0,played:0,leak:0}]};
  return G}
-function mkSide(tm,deck,lv,kl,ex){const d=shuffle(deck);ex=ex||{};const evo=EVO[ex.evo]&&deck.includes(ex.evo)?ex.evo:null,hero=HERO[ex.hero]&&deck.includes(ex.hero)&&!deck.some(k=>CARDS[k].ability)?ex.hero:null;
- return{tm,deck:deck.slice(),hand:d.splice(0,4),queue:d,el:5,lv:lv||{},kl,champ:null,abCd:0,last:null,evo,evoN:evo?EVO[evo].cyc:0,hero}}
+/* стартовая рука — первые карты перемешанной по seed колоды, кроме помеченных noStart */
+function mkSide(tm,deck,lv,kl,ex,el0){const sh=shuffle(deck),n=CFG.hand.size,hand=[];for(const k of sh)if(hand.length<n&&!CARDS[k].noStart)hand.push(k);
+ for(const k of sh)if(hand.length<n&&!hand.includes(k))hand.push(k);const d=hand.concat(sh.filter(k=>!hand.includes(k)));ex=ex||{};const evo=EVO[ex.evo]&&deck.includes(ex.evo)?ex.evo:null,hero=HERO[ex.hero]&&deck.includes(ex.hero)&&!deck.some(k=>CARDS[k].ability)?ex.hero:null;
+ return{tm,deck:deck.slice(),hand:d.splice(0,n),queue:d,pend:[],el:el0??CFG.elixir.start,lv:lv||{},kl,champ:null,abCd:0,last:null,evo,evoN:0,hero}}
 const evoReady=(S,k)=>!!S.evo&&k===S.evo&&S.evoN>=EVO[k].cyc;
-const isAb=(S,k)=>!!CARDS[k].ability||k===S.hero;
+const isAb=(S,k)=>!!k&&(!!CARDS[k].ability||k===S.hero);
 const jumpH=u=>u.c.jump&&Math.abs(u.y-RY)<RIV+8?Math.cos((u.y-RY)/(RIV+8)*Math.PI/2)*26:0;
 const alive=o=>!!o&&o.hp>0&&!o.gone;
 const aliveT=o=>!!o&&(o.obj==='t'?o.hp>0:alive(o));
-function elRate(){if(G.mode==='triple')return 3;if(G.mode==='sudden')return G.t>=120?3:2;return G.ot?(G.otT>=60?3:2):(G.t>=120?2:1)}
+/* множитель эликсира по фазам режима (CFG.modes) */
+function elRate(){const ph=G.ot?G.mc.ot:G.mc.phases,t=G.ot?G.otT:G.t;let m=1;for(const[a,k]of ph)if(t>=a)m=k;return m}
 
 /* ---------- выставление ---------- */
-const POCKET_Y=110;
+const POCKET_Y=RY-RIV-CFG.arena.pocket*TILE; // карман: столько тайлов вглубь от реки
 function formation(key,x,y,cc){const c=cc||CARDS[key],uc=CARDS[c.unit||key],n=c.count||1,cols=n<=3?n:4,rows=Math.ceil(n/cols),sp=uc.r*2+3,P=[];
  for(let i=0;i<n;i++){const col=i%cols,row=i/cols|0,inRow=Math.min(cols,n-row*cols);P.push([x+(col-(inRow-1)/2)*sp,y+(row-(rows-1)/2)*sp])}
  return P}
@@ -38,9 +43,9 @@ function canPlace(tm,key,x,y){const c=CARDS[key];if(x<8||x>W-8||y<8||y>H-8)retur
  // внутрь башни (3×3 клетки у принцессы, 4×4 у короля) ставить нельзя
  for(const t of G.T)if(t.hp>0){const h=t.kind==='k'?40:30;if(Math.abs(x-t.x)<h&&Math.abs(y-t.y)<h)return false}
  return true}
-function cardBlocked(tm,key){const S=G.side[tm];return!!(isAb(S,key)&&S.champ&&alive(S.champ))}
-function playCard(tm,i,x,y){const S=G.side[tm],key=S.hand[i],c=CARDS[key];if(!key||S.el<c.cost||cardBlocked(tm,key)||!canPlace(tm,key,x,y))return false;
- S.el-=c.cost;G.stats[tm].spent+=c.cost;G.stats[tm].played++;S.hand[i]=S.queue.shift();if(isAb(S,key))S.champCard=key;else S.queue.push(key);S.last={x,y,key,t:G.t};
+function cardBlocked(tm,key){const S=G.side[tm];if(!key)return true;return!!(isAb(S,key)&&S.champ&&alive(S.champ))}
+function playCard(tm,i,x,y){const S=G.side[tm],key=S.hand[i],c=CARDS[key];if(G.tb||G.over||!key||S.el<c.cost||cardBlocked(tm,key)||!canPlace(tm,key,x,y))return false;
+ S.el-=c.cost;G.stats[tm].spent+=c.cost;G.stats[tm].played++;S.hand[i]=null;S.pend.push({i,key:S.queue.shift(),t:CFG.hand.delay[elRate()]||CFG.hand.delay[1]});if(isAb(S,key))S.champCard=key;else S.queue.push(key);S.last={x,y,key,t:G.t};
  let fl=null;if(key===S.evo){if(S.evoN>=EVO[key].cyc){fl={evo:1};S.evoN=0}else S.evoN++}else if(key===S.hero)fl={hero:1};
  deploy(tm,key,x,y,fl);return true}
 function deploy(tm,key,x,y,fl){const c=CARDS[key],lvl=G.side[tm].lv[key]||1;fl=fl||null;
@@ -68,8 +73,8 @@ function spawn(tm,key,x,y,lvl,fl){const c=fl&&fl.evo&&EVO[key]?evoCard(key):fl&&
 function castSpell(tm,key,x,y,lvl){const c=CARDS[key],r=c.rad*TILE,dmg=LV(c.dmg||0,lvl),tdmg=LV(c.tdmg||0,lvl);
  if(key==='fireball'){const k=G.T.find(t=>t.tm===tm&&t.kind==='k'),tt=Math.max(.35,Math.hypot(x-k.x,y-k.y)/300);
   G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,fn:()=>{areaHit(tm,x,y,r,dmg,tdmg,'ga',{knock:c.knock});boomFx(x,y,r)}});AU.sfx('shot');return}
- if(c.waves){for(let w=0;w<c.waves;w++)G.S.push({t:G.t+.45+w*.3,fn:()=>{areaHit(tm,x,y,r,dmg/c.waves,tdmg/c.waves,'ga');ring(x,y,r,'#ffffff');AU.sfx('hit');for(let i=0;i<8;i++){const a=rnd(0,6.28),d=Math.sqrt(Math.random())*r;puff(x+Math.cos(a)*d,y+Math.sin(a)*d,'#e9eef7',2,20,1.6)}}});
-  for(let i=0;i<28;i++){const a=rnd(0,6.28),d=Math.sqrt(Math.random())*r;G.FX.push({k:'rain',x:x+Math.cos(a)*d+16,y:y+Math.sin(a)*d-80,x2:x+Math.cos(a)*d,y2:y+Math.sin(a)*d,l:-rnd(0,.95),m:.3})}AU.sfx('shot');return}
+ if(c.waves){for(let w=0;w<c.waves;w++)G.S.push({t:G.t+.45+w*.3,fn:()=>{areaHit(tm,x,y,r,dmg/c.waves,tdmg/c.waves,'ga');ring(x,y,r,'#ffffff');AU.sfx('hit');for(let i=0;i<8;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;puff(x+Math.cos(a)*d,y+Math.sin(a)*d,'#e9eef7',2,20,1.6)}}});
+  for(let i=0;i<28;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;G.FX.push({k:'rain',x:x+Math.cos(a)*d+16,y:y+Math.sin(a)*d-80,x2:x+Math.cos(a)*d,y2:y+Math.sin(a)*d,l:-rnd(0,.95),m:.3})}AU.sfx('shot');return}
  if(c.freeze){areaHit(tm,x,y,r,dmg,tdmg,'ga',{freeze:c.freeze});G.Z.push({k:'freeze',tm,x,y,r,t:c.freeze,tot:c.freeze});AU.sfx('freeze');return}
  if(c.stun){areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.stun});G.FX.push({k:'zapring',x,y,r,l:0,m:.35});AU.sfx('zap');return}
  if(c.rage){G.Z.push({k:'rage',tm,x,y,r,t:c.rage,tot:c.rage});AU.sfx('rage');return}
@@ -114,7 +119,7 @@ function updUnit(u,dt){if(!alive(u))return;const c=u.c;
  u.cd-=dt;
  if(u.tg&&!aliveT(u.tg)){u.tg=null;u.lock=0}
  u.rt-=dt;
- if(!u.lock&&u.rt<=0){const nt=findTarget(u);if(nt&&nt!==u.tg){u.tg=nt;u.cd=Math.max(u.cd,hitOf(u)*.35)}u.rt=.25}
+ if(!u.lock&&u.rt<=0){const nt=findTarget(u);if(nt&&nt!==u.tg){u.tg=nt;u.cd=Math.max(u.cd,hitOf(u)*.35)}u.rt=CFG.retarget}
  const t=u.tg;if(!t)return;
  const d=dist(u,t),reach=c.rng*TILE+t.r+u.r*.6;
  if(Math.abs(t.x-u.x)>1)u.face=t.x<u.x?-1:1;
@@ -149,24 +154,40 @@ function damage(o,d,fromTm){if(G.over||d<=0)return;if(!aliveT(o))return;
  if(o.obj==='t')G.stats[fromTm].dmg+=Math.min(d,o.hp);
  o.hp-=d;o.fl=.1;
  if(o.obj==='t'){if(d>=25)floatText(o.x+rnd(-8,8),o.y-o.r-8,Math.round(d),o.tm?'#fff':'#ffd2cc');if(o.kind==='k')wakeKing(o);if(o.hp<=0){o.hp=0;towerDown(o)}}}
-function wakeKing(k){if(k.act)return;k.act=1;k.wake=1;AU.sfx('wake');floatText(k.x,k.y+(k.tm?k.r+16:-k.r-16),'Король проснулся!','#ffd27a',12)}
+function wakeKing(k){if(k.act)return;k.act=1;k.wake=CFG.tower.k.wakeAim;AU.sfx('wake');floatText(k.x,k.y+(k.tm?k.r+16:-k.r-16),'Король проснулся!','#ffd27a',12)}
 function crownsOf(tm){let c=0;for(const t of G.T)if(t.tm!==tm&&t.hp<=0)c+=t.kind==='k'?3:1;return Math.min(3,c)}
 function towerDown(t){if(t.dead)return;t.dead=1;t.hp=0;
  puff(t.x,t.y,'#8d8577',34,110,5);puff(t.x,t.y,'#3b3730',18,70,4);ring(t.x,t.y,70,'#ffd27a');G.shake=12;G.DEC.push({x:t.x,y:t.y,r:t.r+8,l:999});AU.sfx('tower');
  G.FX.push({k:'crown',x:t.x,y:t.y-24,tm:1-t.tm,n:t.kind==='k'?3:1,l:0,m:1.6});setTimeout(()=>AU.sfx(t.tm?'crown':'crownLose'),250);
  if(t.kind==='p')for(const k of G.T)if(k.tm===t.tm&&k.kind==='k')wakeKing(k);
  G.crowns=[crownsOf(0),crownsOf(1)];const win=1-t.tm;
- for(const b of G.bots)if(b&&Math.random()<.55)emote(b.tm,b.tm===t.tm?2:3);
- if(t.kind==='k'){G.crowns[win]=3;finish(win)}else if(G.ot||G.mode==='sudden')finish(win)}
-function finish(res){if(G.over)return;G.over=1;G.res=res;G.endAt=performance.now()+1500;
- if(res===0&&!G.bots[0]&&!REDUCE)for(let i=0;i<110;i++)G.CF.push({x:rnd(0,W),y:rnd(-120,-5),vx:rnd(-25,25),vy:rnd(50,130),r:rnd(0,6.28),vr:rnd(-9,9),w:rnd(3,6),c:pickR(['#ffc83d','#3da5ff','#ff5c4d','#5ef2d0','#c77dff','#ffffff']),l:0,m:rnd(2.2,3.4)});for(const b of G.bots)if(b&&Math.random()<.7)emote(b.tm,G.res===b.tm?3:1)}
-function tiebreak(){const low=tm=>Math.min(...G.T.filter(t=>t.tm===tm&&t.hp>0).map(t=>t.hp));const a=low(0),b=low(1);
- if(Math.abs(a-b)<1)return finish(2);const loser=a<b?0:1;const t=G.T.filter(t=>t.tm===loser&&t.hp>0).sort((x,y)=>x.hp-y.hp)[0];G.crowns[1-loser]=Math.min(3,G.crowns[1-loser]+1);t.hp=0;t.dead=1;puff(t.x,t.y,'#8d8577',30,100,5);AU.sfx('tower');finish(1-loser)}
+ for(const b of G.bots)if(b&&RNG()<.55)emote(b.tm,b.tm===t.tm?2:3);
+ G.downs.push({tm:t.tm,kind:t.kind})}
+function finish(res){if(G.over)return;G.over=1;G.res=res;G.endAt=(typeof performance!=='undefined'?performance.now():0)+CFG.match.endDelay*1000;
+ if(res===0&&!G.bots[0]&&!REDUCE)for(let i=0;i<110;i++)G.CF.push({x:rnd(0,W),y:rnd(-120,-5),vx:rnd(-25,25),vy:rnd(50,130),r:rnd(0,6.28),vr:rnd(-9,9),w:rnd(3,6),c:pickR(['#ffc83d','#3da5ff','#ff5c4d','#5ef2d0','#c77dff','#ffffff']),l:0,m:rnd(2.2,3.4)});for(const b of G.bots)if(b&&RNG()<.7)emote(b.tm,G.res===b.tm?3:1)}
+/* исход по упавшим за тик башням: король — сразу победа и 3 короны (оба короля — ничья);
+   в овертайме и «внезапной смерти» первая башня решает, но если обе стороны потеряли башню в один тик — бой продолжается */
+function resolveDowns(){if(!G.downs.length||G.over)return;const d=G.downs;G.downs=[];
+ const kings=[0,1].filter(tm=>d.some(x=>x.tm===tm&&x.kind==='k'));
+ if(kings.length===2)return finish(2);
+ if(kings.length===1){const lose=kings[0],win=1-lose;for(const t of G.T)if(t.tm===lose&&t.hp>0){t.hp=0;t.dead=1;puff(t.x,t.y,'#8d8577',24,90,4)}G.crowns[win]=3;return finish(win)}
+ if(G.ot||G.mc.sudden){const sides=[...new Set(d.map(x=>x.tm))];if(sides.length===1)finish(1-sides[0])}}
+/* тайбрейкер: войска исчезают, все башни синхронно теряют HP; проигрывает владелец самой слабой башни, равные — ничья */
+function startTiebreak(){for(const u of G.U)puff(u.x,u.y,'#e8e0cb',6,40,2.4);G.U=[];G.B=[];G.PR=[];G.Z=[];G.D=[];G.S=[];
+ for(const S of G.side){S.champ=null;S.pend=[]}
+ const low=tm=>Math.min(...G.T.filter(t=>t.tm===tm&&t.hp>0).map(t=>t.hp)),a=Math.round(low(0)),b=Math.round(low(1));
+ G.tb={t:0,dur:CFG.match.tiebreak,res:a===b?2:a<b?1:0,drain:Math.min(a,b)};banner('Тайбрейкер','#ffc83d')}
+function stepTiebreak(dt){const b=G.tb;b.t=Math.min(b.dur,b.t+dt);const k=dt/b.dur*b.drain;
+ for(const t of G.T)if(t.hp>0){t.hp=Math.max(1,t.hp-k);t.fl=.05}
+ if(b.t<b.dur)return;
+ if(b.res===2)return finish(2);
+ const lose=1-b.res,t=G.T.filter(t=>t.tm===lose&&t.hp>0).sort((x,y)=>x.hp-y.hp)[0];t.hp=0;t.dead=1;puff(t.x,t.y,'#8d8577',30,100,5);AU.sfx('tower');
+ G.crowns[b.res]=Math.min(3,G.crowns[b.res]+1);finish(b.res)}
 
 /* ---------- строения, башни, снаряды ---------- */
 function updTower(t,dt){t.fl=Math.max(0,t.fl-dt);if(t.hp<=0)return;
  if(t.frozenT>0){t.frozenT-=dt;return}if(t.stunT>0){t.stunT-=dt;return}
- if(t.kind==='k'){if(!t.act)return;if(t.wake>0){t.wake-=dt;return}}
+ if(t.kind==='k'){if(!t.act)return;if(t.wake>0){t.wake-=dt;if(t.wake<=0)t.cd=CFG.tower.k.wakeShot;return}}
  t.cd-=dt;let best=null;
  if(t.tg&&alive(t.tg)&&dist(t,t.tg)-t.tg.r<=t.rng)best=t.tg;
  else{let bd=t.rng;for(const u of G.U)if(u.tm!==t.tm&&alive(u)){const d=dist(t,u)-u.r;if(d<bd){bd=d;best=u}}
@@ -210,14 +231,19 @@ function banner(txt,col){G.TX.push({x:W/2,y:RY-40,t:txt,c:col||'#fff',l:0,m:2.2,
 function emote(tm,i){if(!G||G.over&&G.endAt<performance.now())return;const last=G.EM.find(e=>e.tm===tm);if(last&&last.l<1)return;G.EM=G.EM.filter(e=>e.tm!==tm);G.EM.push({tm,txt:EMOTES[i],l:0,m:2.4});AU.sfx('emote')}
 
 /* ---------- шаг ---------- */
-function step(dt){if(!G)return;if(G.over){fxStep(dt);return}
- G.t+=dt;
- if(!G.dbl&&G.t>=120&&G.mode!=='triple'){G.dbl=1;banner(G.mode==='sudden'?'Эликсир ×3':'Эликсир ×2','#e08bff')}
- if(G.mode==='sudden'&&G.t>=180)return tiebreak();
- if(!G.ot&&G.t>=180){if(G.crowns[0]!==G.crowns[1])return finish(G.crowns[0]>G.crowns[1]?0:1);G.ot=1;G.otT=0;banner('Дополнительное время','#ffc83d')}
- if(G.ot){G.otT+=dt;if(!G.tpl&&G.otT>=60){G.tpl=1;banner('Эликсир ×3','#e08bff')}if(G.otT>=120)return tiebreak()}
- const r=dt/2.8*elRate();
- for(const S of G.side){if(S.el>=10)G.stats[S.tm].leak+=r;const b=G.bots[S.tm];S.el=Math.min(10,S.el+r*(b?b.s.el:1));S.abCd=Math.max(0,S.abCd-dt)}
+/* один тик симуляции (CFG.sim.hz раз в секунду) */
+const TICK=1/CFG.sim.hz;
+function step(dt){if(!G)return;dt=dt||TICK;if(G.over){fxStep(dt);return}
+ G.tick++;
+ if(G.tb){stepTiebreak(dt);fxStep(dt);return}
+ const M=CFG.match,m0=elRate();G.t+=dt;
+ if(G.mc.sudden&&G.t>=M.len)return startTiebreak();
+ if(!G.ot&&!G.mc.sudden&&G.t>=M.len){if(G.crowns[0]!==G.crowns[1])return finish(G.crowns[0]>G.crowns[1]?0:1);G.ot=1;G.otT=0;banner('Овертайм','#ffc83d')}
+ if(G.ot){G.otT+=dt;if(G.otT>=M.ot)return startTiebreak()}
+ const m=elRate();if(m>m0)banner(m===2?'Двойной эликсир!':'Тройной эликсир!','#e08bff');
+ const r=dt/CFG.elixir.period*m,mx=CFG.elixir.max;
+ for(const S of G.side){if(S.el>=mx)G.stats[S.tm].leak+=r;const b=G.bots[S.tm];S.el=Math.min(mx,S.el+r*(b?b.s.el:1));S.abCd=Math.max(0,S.abCd-dt);
+  for(const p of S.pend){p.t-=dt;if(p.t<=0){S.hand[p.i]=p.key;p.done=1}}S.pend=S.pend.filter(p=>!p.done)}
  for(const b of G.bots)if(b)botThink(b,dt);
  updDeploys(dt);
  for(const u of G.U)updUnit(u,dt);
@@ -227,12 +253,13 @@ function step(dt){if(!G)return;if(G.over){fxStep(dt);return}
  for(const p of G.PR)updProj(p,dt);
  updZones(dt);
  for(const s of G.S)if(!s.done&&G.t>=s.t){s.done=1;s.fn()}
- for(const t of G.T)if(t.hp>0&&t.hp<t.mx*.4&&Math.random()<dt*6)G.PT.push({x:t.x+rnd(-8,8),y:t.y-10,vx:rnd(-6,6),vy:-rnd(14,28),l:0,m:rnd(.6,1.1),c:'#6e6a66',s:rnd(2,4)});
+ for(const t of G.T)if(t.hp>0&&t.hp<t.mx*.4&&RNG()<dt*6)G.PT.push({x:t.x+rnd(-8,8),y:t.y-10,vx:rnd(-6,6),vy:-rnd(14,28),l:0,m:rnd(.6,1.1),c:'#6e6a66',s:rnd(2,4)});
  for(let i=0;i<G.U.length;i++){const u=G.U[i];if(u.hp<=0&&!u.gone){u.gone=1;onDeath(u)}}
  for(const b of G.B)if(b.hp<=0&&!b.gone){b.gone=1;onDeath(b)}
  G.U=G.U.filter(u=>!u.gone);G.B=G.B.filter(b=>!b.gone);G.PR=G.PR.filter(p=>!p.done);G.S=G.S.filter(s=>!s.done);
  // чемпион вне цикла, пока жив: карта возвращается в очередь после его гибели
  for(const S of G.side)if(S.champ&&!alive(S.champ)){S.champ=null;if(S.champCard){S.queue.push(S.champCard);S.champCard=null}}
+ resolveDowns();
  fxStep(dt)}
 function fxStep(dt){for(const f of G.FX)f.l+=dt;G.FX=G.FX.filter(f=>f.l<f.m);
  for(const p of G.PT){p.l+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=40*dt}G.PT=G.PT.filter(p=>p.l<p.m);

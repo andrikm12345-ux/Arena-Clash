@@ -6,12 +6,15 @@ const ARENA_OF={guard:0,shooters:0,bones:0,imps:0,slingers:0,bomber:0,cannon:0,v
  lair:1,legion:1,wisp:1,spark:1,hammer:2,militia:2,ram:2,bats:3,freeze:3,frostsage:3,drake:4,airship:4,sorcerer:4,
  poison:5,mole:5,cry:5,thunder:6,knightrider:6,colossus:7,warlord:7};
 const arenaOf=tr=>{let a=0;ARENAS.forEach((x,i)=>{if(tr>=x.tr)a=i});return a};
-const MAXLV=9;
-/* копии для перехода на следующий уровень (со 2-го по 9-й) */
-const COPIES={common:[2,4,10,20,50,100,200,400],rare:[1,2,4,10,20,50,100,200],epic:[1,1,2,4,10,20,40,80],legendary:[1,1,1,2,4,8,12,20],champion:[1,1,1,2,3,5,8,12]};
-const UPGOLD=[10,30,70,150,300,600,1200,2400],RMUL={common:1,rare:1.5,epic:2.5,legendary:4,champion:5};
-const UPXP=[4,6,10,20,40,80,150,300];
-const KL_XP=[0,20,60,140,300,600,1100,2000,3500];
+const MAXLV=16,KL_MAX=16;
+/* уровни карт 1–16; редкость задаёт стартовый уровень (START_LV в 1-data.js).
+   Таблицы ниже — по шагу улучшения от стартового уровня: [0] — первое улучшение */
+const COPIES={common:[2,4,10,20,50,100,200,400,800,1000,1500,2500,3500,5500,7500],rare:[1,2,4,10,20,50,100,200,300,400,550,750,1000],
+ epic:[1,1,2,4,10,20,40,80,120,160],legendary:[1,1,1,2,4,8,12],champion:[1,1,1,2,3]};
+const UPGOLD=[10,30,70,150,300,600,1200,2400,4000,6000,9000,13000,18000,25000,35000],RMUL={common:1,rare:1.5,epic:2.5,legendary:4,champion:5};
+const UPXP=[4,6,10,20,40,80,150,300,500,800,1200,1700,2300,3000,4000];
+const KL_XP=[0,20,60,140,300,600,1100,2000,3500,5500,8000,11000,15000,20000,26000,33000];
+const stepOf=k=>P.cards[k].lv-START_LV[CARDS[k].rar];
 const CHESTS={
  silver:{n:'Серебряный',time:60,gold:[18,30],cards:5,col:['#dfe6f1','#8a96ab','#5b6579']},
  gold:{n:'Золотой',time:180,gold:[55,85],cards:14,rare:1,col:['#ffe08a','#d99a1e','#8a5a00']},
@@ -40,15 +43,17 @@ const CLAN_MATES=[['Варвара Клин',1],['Сыч',2],['Мирон Пуш
 /* ---------- профиль ---------- */
 const SAVE_KEY='ac3.save';
 const okDeck=d=>Array.isArray(d)&&d.length===8&&new Set(d).size===8&&d.every(k=>CARD_IDS.includes(k))&&d.filter(k=>CARDS[k].rar==='champion').length<=1;
-function freshProfile(){const cards={};for(const k of CARD_IDS)if(ARENA_OF[k]===0)cards[k]={lv:1,n:0};
- return{v:1,name:'Игрок',kl:1,xp:0,gold:150,gems:30,tr:0,best:0,cards,decks:Array.from({length:NDECKS},()=>DEF_DECK.slice()),slot:0,shards:EVO_COST,evo:[],heroes:[],tt:'archer',luck:[],clan:{req:null,next:0,don:{}},ev:{day:'',won:[]},
+function freshProfile(){const cards={};for(const k of CARD_IDS)if(ARENA_OF[k]===0)cards[k]={lv:START_LV[CARDS[k].rar],n:0};
+ return{v:2,name:'Игрок',kl:1,xp:0,gold:150,gems:30,tr:0,best:0,cards,decks:Array.from({length:NDECKS},()=>DEF_DECK.slice()),slot:0,shards:EVO_COST,evo:[],heroes:[],tt:'archer',luck:[],clan:{req:null,next:0,don:{}},ev:{day:'',won:[]},
   chests:[null,null,null,null],cyc:0,rc:[],shop:null,st:{w:0,l:0,d:0,cr:0,three:0,games:0},tut:0,train:'normal',arSeen:0,fresh:[],hints:[]}}
 function sanitize(o){const f=freshProfile();if(!o||typeof o!=='object')return f;
  const num=(v,d,a,b)=>Number.isFinite(v)?clamp(Math.floor(v),a,b):d;
- const P2=Object.assign(f,{name:typeof o.name==='string'&&o.name.trim()?o.name.trim().slice(0,16):'Игрок',kl:num(o.kl,1,1,9),xp:num(o.xp,0,0,1e7),gold:num(o.gold,150,0,1e8),gems:num(o.gems,30,0,1e6),
+ const P2=Object.assign(f,{name:typeof o.name==='string'&&o.name.trim()?o.name.trim().slice(0,16):'Игрок',kl:num(o.kl,1,1,KL_MAX),xp:num(o.xp,0,0,1e7),gold:num(o.gold,150,0,1e8),gems:num(o.gems,30,0,1e6),
   tr:num(o.tr,0,0,1e5),best:num(o.best,0,0,1e5),slot:num(o.slot,0,0,NDECKS-1),shards:num(o.shards,EVO_COST,0,1e5),tt:TT[o.tt]?o.tt:'archer',cyc:num(o.cyc,0,0,1e6),tut:num(o.tut,0,0,9),arSeen:num(o.arSeen,0,0,7),train:SKILL[o.train]?o.train:'normal'});
- P2.cards={};if(o.cards&&typeof o.cards==='object')for(const k of CARD_IDS){const c=o.cards[k];if(c&&typeof c==='object')P2.cards[k]={lv:num(c.lv,1,1,MAXLV),n:num(c.n,0,0,1e6)}}
- for(const k of CARD_IDS)if(ARENA_OF[k]===0&&!P2.cards[k])P2.cards[k]={lv:1,n:0};
+ // версия 1 хранила уровни 1–9 от единицы; версия 2 — 1–16 со стартом по редкости
+ const old=!(o.v>=2);P2.cards={};
+ if(o.cards&&typeof o.cards==='object')for(const k of CARD_IDS){const c=o.cards[k],s0=START_LV[CARDS[k].rar];if(c&&typeof c==='object'){const lv=num(c.lv,1,1,MAXLV);P2.cards[k]={lv:clamp(old?lv-1+s0:lv,s0,MAXLV),n:num(c.n,0,0,1e7)}}}
+ for(const k of CARD_IDS)if(ARENA_OF[k]===0&&!P2.cards[k])P2.cards[k]={lv:START_LV[CARDS[k].rar],n:0};
  P2.decks=Array.from({length:NDECKS},(_,i)=>{const d=o.decks&&o.decks[i];return okDeck(d)&&d.every(k=>P2.cards[k])?d.slice():DEF_DECK.slice()});
  // старые сундуки из слотов открываются сразу: таймеров больше нет
  P2.chests=[0,1,2,3].map(i=>{const c=o.chests&&o.chests[i];return c&&CHESTS[c.t]?{t:c.t,a:num(c.a,0,0,7),st:'ready',end:0}:null});
@@ -78,22 +83,22 @@ function unlockHero(k){if(!HERO[k]||!P.cards[k]||P.heroes.includes(k)||P.shards<
 function toSlot(k,i){const d=curDeck().slice(),j=d.indexOf(k);if(j<0)return false;[d[i],d[j]]=[d[j],d[i]];P.decks[P.slot]=d;saveP();return true}
 
 /* ---------- карты и уровни ---------- */
-const lvOf=k=>P.cards[k]?P.cards[k].lv:1;
-const needOf=k=>{const c=P.cards[k];return c&&c.lv<MAXLV?COPIES[CARDS[k].rar][c.lv-1]:0};
-const upCost=k=>{const c=P.cards[k];return c&&c.lv<MAXLV?Math.round(UPGOLD[c.lv-1]*RMUL[CARDS[k].rar]):0};
+const lvOf=k=>P.cards[k]?P.cards[k].lv:START_LV[CARDS[k].rar];
+const needOf=k=>{const c=P.cards[k];return c&&c.lv<MAXLV?COPIES[CARDS[k].rar][stepOf(k)]:0};
+const upCost=k=>{const c=P.cards[k];return c&&c.lv<MAXLV?Math.round(UPGOLD[stepOf(k)]*RMUL[CARDS[k].rar]):0};
 const canUp=k=>{const c=P.cards[k];return!!c&&c.lv<MAXLV&&c.n>=needOf(k)};
-function upgrade(k){if(!canUp(k)||P.gold<upCost(k))return false;const c=P.cards[k];P.gold-=upCost(k);c.n-=needOf(k);c.lv++;addXP(Math.round(UPXP[c.lv-2]*RMUL[CARDS[k].rar]));saveP();return true}
-function addXP(x){P.xp+=x;let up=false;while(P.kl<9&&P.xp>=KL_XP[P.kl]){P.kl++;up=true}if(up)toast(`Уровень короля ${P.kl}! Башни стали крепче`)}
-function giveCard(k,n){if(!P.cards[k]){P.cards[k]={lv:1,n:n-1};if(!P.fresh.includes(k))P.fresh.push(k);return true}P.cards[k].n+=n;return false}
+function upgrade(k){if(!canUp(k)||P.gold<upCost(k))return false;const c=P.cards[k];P.gold-=upCost(k);c.n-=needOf(k);c.lv++;addXP(Math.round(UPXP[stepOf(k)-1]*RMUL[CARDS[k].rar]));saveP();return true}
+function addXP(x){P.xp+=x;let up=false;while(P.kl<KL_MAX&&P.xp>=KL_XP[P.kl]){P.kl++;up=true}if(up)toast(`Уровень короля ${P.kl}! Башни стали крепче`)}
+function giveCard(k,n){if(!P.cards[k]){P.cards[k]={lv:START_LV[CARDS[k].rar],n:n-1};if(!P.fresh.includes(k))P.fresh.push(k);return true}P.cards[k].n+=n;return false}
 const levelsMap=()=>{const m={};for(const k of CARD_IDS)m[k]=lvOf(k);return m};
 
 /* ---------- сундуки ---------- */
-function rollChest(t,a){const C=CHESTS[t],m=1+.35*a,gold=Math.round(rnd(C.gold[0],C.gold[1])*(1+.3*a)),out=[];
+function rollChest(t,a){const C=CHESTS[t],m=1+.35*a,gold=Math.round(rndV(C.gold[0],C.gold[1])*(1+.3*a)),out=[];
  const pool=r=>CARD_IDS.filter(k=>CARDS[k].rar===r&&ARENA_OF[k]<=a);
- const add=(r,n)=>{const p=pool(r);if(!p.length||n<=0)return 0;const k=pickR(p),e=out.find(x=>x.k===k);if(e)e.n+=n;else out.push({k,n});return n};
- if(C.leg){const L=pool('legendary').concat(a>=7?pool('champion'):[]);if(L.length)out.push({k:pickR(L),n:1});else add('epic',2);return{gold,gems:0,cards:out}}
+ const add=(r,n)=>{const p=pool(r);if(!p.length||n<=0)return 0;const k=pickV(p),e=out.find(x=>x.k===k);if(e)e.n+=n;else out.push({k,n});return n};
+ if(C.leg){const L=pool('legendary').concat(a>=7?pool('champion'):[]);if(L.length)out.push({k:pickV(L),n:1});else add('epic',2);return{gold,gems:0,cards:out}}
  let total=Math.round(C.cards*m);
- if(Math.random()<.008*m&&pool('legendary').length){out.push({k:pickR(pool('legendary')),n:1});total--}
+ if(Math.random()<.008*m&&pool('legendary').length){out.push({k:pickV(pool('legendary')),n:1});total--}
  total-=add('epic',(C.epic||0)+(Math.random()<.06*m?1:0));
  const rr=Math.round((C.rare||0)*m)+(Math.random()<.5?1:0),r1=Math.ceil(rr/2);total-=add('rare',r1);total-=add('rare',rr-r1);
  total=Math.max(1,total);const parts=total>=6?3:total>=3?2:1;for(let i=0;i<parts;i++){const n=i===parts-1?total:Math.round(total/parts);total-=add('common',n)}
@@ -115,7 +120,7 @@ function openChest(i){const c=P.chests[i];if(!c||c.st!=='ready')return null;P.ch
 const roadReady=i=>P.tr>=ROAD[i].tr&&!P.rc.includes(i);
 function claimRoad(i){if(!roadReady(i))return null;const r=ROAD[i],a=curArena();P.rc.push(i);
  const res={t:r.ch||null,gold:r.g||0,gems:r.gm||0,shards:r.sh||0,cards:[]};P.gold+=res.gold;P.gems+=res.gems;P.shards+=res.shards;
- if(r.cd){const p=CARD_IDS.filter(k=>CARDS[k].rar===r.cd[0]&&ARENA_OF[k]<=a);if(p.length){const k=pickR(p);res.cards.push({k,n:r.cd[1],isNew:giveCard(k,r.cd[1])})}}
+ if(r.cd){const p=CARD_IDS.filter(k=>CARDS[k].rar===r.cd[0]&&ARENA_OF[k]<=a);if(p.length){const k=pickV(p);res.cards.push({k,n:r.cd[1],isNew:giveCard(k,r.cd[1])})}}
  if(r.ch){const L=applyLoot(rollChest(r.ch,a));res.gold+=L.gold;res.gems+=L.gems;res.cards.push(...L.cards)}
  saveP();return res}
 
@@ -137,24 +142,26 @@ function buy(o){if(bought(o))return null;const have=o.cur==='gold'?P.gold:P.gems
 /* ---------- подбор соперника ---------- */
 function skillFor(a){const mix=(x,y,f)=>{const o={};for(const k in x)o[k]=typeof x[k]==='number'?x[k]+(y[k]-x[k])*f:y[k];return o};
  return a<=3?mix(SKILL.easy,SKILL.normal,a/3):mix(SKILL.normal,SKILL.hard,(a-3)/4)}
-function genBotDeck(a){const ok=k=>ARENA_OF[k]<=a,pre=BOT_DECKS.filter(d=>d.every(ok));if(pre.length&&Math.random()<.55)return pickR(pre).slice();
+function genBotDeck(a){const ok=k=>ARENA_OF[k]<=a,pre=BOT_DECKS.filter(d=>d.every(ok));if(pre.length&&Math.random()<.55)return pickV(pre).slice();
  const pool=CARD_IDS.filter(ok),R=k=>ROLE[k],d=[];
  const put=k=>{if(k&&!d.includes(k)&&d.length<8&&!(CARDS[k].rar==='champion'&&d.some(x=>CARDS[x].rar==='champion')))d.push(k)};
- put(pickR(pool.filter(k=>R(k).win)));
- const sp=pool.filter(k=>R(k).spell&&CARDS[k].dmg);put(pickR(sp.filter(k=>CARDS[k].cost<=3)));put(pickR(sp.filter(k=>CARDS[k].cost>=4)));
- for(const k of shuffle(pool.filter(k=>CARDS[k].type==='troop'&&CARDS[k].tg==='ga')).slice(0,2))put(k);
- if(Math.random()<.6)put(pickR(pool.filter(k=>R(k).bld)));
- for(const k of shuffle(pool.filter(k=>!R(k).spell&&!R(k).win)))put(k);
- for(const k of shuffle(pool))put(k);
+ put(pickV(pool.filter(k=>R(k).win)));
+ const sp=pool.filter(k=>R(k).spell&&CARDS[k].dmg);put(pickV(sp.filter(k=>CARDS[k].cost<=3)));put(pickV(sp.filter(k=>CARDS[k].cost>=4)));
+ for(const k of shuffleV(pool.filter(k=>CARDS[k].type==='troop'&&CARDS[k].tg==='ga')).slice(0,2))put(k);
+ if(Math.random()<.6)put(pickV(pool.filter(k=>R(k).bld)));
+ for(const k of shuffleV(pool.filter(k=>!R(k).spell&&!R(k).win)))put(k);
+ for(const k of shuffleV(pool))put(k);
  return d}
 function botExtras(deck,a){const ex={evo:null,hero:null};
  if(a>=2&&Math.random()<.6){const i=deck.findIndex(k=>EVO[k]);if(i>=0)ex.evo=deck[i]}
  if(a>=4&&Math.random()<.5&&!deck.some(k=>CARDS[k].ability)){const i=deck.findIndex(k=>HERO[k]);if(i>=0)ex.hero=deck[i]}
  return ex}
-const botTT=a=>a<1?'archer':pickR(Object.keys(TT));
-function botSetup(a,train){const deck=genBotDeck(a),my=curDeck().map(lvOf),avg=my.reduce((s,x)=>s+x,0)/8,lv={};
- const base=train?avg:(ARENA_LV[a]+avg)/2;for(const k of deck)lv[k]=clamp(Math.round(base+(train?0:rnd(-.6,.6))),1,MAXLV);
- const kl=train?P.kl:clamp(Math.round((ARENA_LV[a]+P.kl)/2),1,9);
+const botTT=a=>a<1?'archer':pickV(Object.keys(TT));
+/* уровни бота считаются «от старта редкости»: rel 0 = стартовый уровень карты */
+const relLv=k=>lvOf(k)-START_LV[CARDS[k].rar];
+function botSetup(a,train){const deck=genBotDeck(a),avg=curDeck().reduce((s,k)=>s+relLv(k),0)/8,lv={};
+ const base=train?avg:(ARENA_LV[a]-1+avg)/2;for(const k of deck){const s0=START_LV[CARDS[k].rar];lv[k]=clamp(s0+Math.round(base+(train?0:rndV(-.6,.6))),s0,MAXLV)}
+ const kl=train?P.kl:clamp(Math.round((ARENA_LV[a]+P.kl)/2),1,KL_MAX);
  return{deck,lv,kl,skill:train?P.train:skillFor(a),ex:botExtras(deck,a),tt:botTT(a)}}
 function trophyDelta(res){const a=curArena();if(res===0)return 30+(Math.random()*3|0);if(res===1)return a===0?0:-(a<=3?12:a<=5?16:20);return 0}
 
@@ -180,7 +187,7 @@ function clanFight(){if(P.clan.req){P.clan.req.fights++;saveP()}}
 function evDay(){const d=dayKey();if(P.ev.day!==d)P.ev={day:d,won:[]};return P.ev}
 function eventReward(id){const e=evDay(),first=!e.won.includes(id),a=curArena(),g=first?40+15*a:10+3*a;P.gold+=g;let sh=0;if(first){e.won.push(id);sh=1;P.shards+=1}saveP();return{gold:g,shards:sh,first}}
 /* драфт: восемь пар карт; одну берёт игрок, другую соперник */
-function draftPairs(){const a=curArena(),pool=shuffle(CARD_IDS.filter(k=>ARENA_OF[k]<=Math.max(a,2)&&!CARDS[k].ability)),pairs=[];for(let i=0;i<8;i++)pairs.push([pool[i*2],pool[i*2+1]]);return pairs}
+function draftPairs(){const a=curArena(),pool=shuffleV(CARD_IDS.filter(k=>ARENA_OF[k]<=Math.max(a,2)&&!CARDS[k].ability)),pairs=[];for(let i=0;i<8;i++)pairs.push([pool[i*2],pool[i*2+1]]);return pairs}
 
 /* ---------- сохранение кодом ---------- */
 function exportCode(){const b=new TextEncoder().encode(JSON.stringify(P));let bin='';for(const x of b)bin+=String.fromCharCode(x);const c=btoa(bin);return'AC3-'+fnv(c).toString(36)+'-'+c}

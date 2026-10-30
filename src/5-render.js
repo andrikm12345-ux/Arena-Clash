@@ -2,7 +2,7 @@
 const C=$('#c'),X=C.getContext('2d');
 let K=1,dpr=1,BG=null,sel=null,gx=-1,gy=-1,paused=false,mode='home';
 const FONT='Nunito,system-ui,sans-serif';
-function mul(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
 /* оформление восьми арен: земля, дорожки, площадки, вода, мосты, украшения */
 const THEMES=[
  {g0:'#3a8637',g1:'#4c9b44',tile:'rgba(255,255,255,.045)',blade:'rgba(20,70,25,.4)',path:'rgba(160,126,82,.6)',path2:'rgba(214,182,130,.5)',pad:['#d4cab2','#a09883'],grout:'rgba(70,58,40,.3)',bank:'#d6c18f',bank2:'#9c855c',w0:'#226db3',w1:'#4dade8',wave:'255,255,255',dots:['#fff','#ffe36b','#ff9fd2','#b9a4ff'],deco:'bush',wood:['#a8773e','#cf9a5a']},
@@ -128,7 +128,7 @@ function drawProj(g,p){const a=Math.atan2(p.ly-p.y,p.lx-p.x);
   case 'ball':case 'king':case 'tball':oc(g,p.x,p.y,p.pk==='king'||p.pk==='tball'?4.4:3.6,'#2c3040','#8b93a8');break;
   case 'bomb':{const f=p.from,tot=Math.hypot(p.lx-f.x,p.ly-f.y)||1,done=clamp(1-Math.hypot(p.lx-p.x,p.ly-p.y)/tot,0,1),h=Math.sin(done*Math.PI)*24;
    g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(p.x,p.y+4,4,2,0,0,7);g.fill();oc(g,p.x,p.y-h,4.4,'#23262e','#697088');oc(g,p.x+3,p.y-h-4,1.3,'#ffcf5a');break}}}
-function zig(g,x1,y1,x2,y2,n,amp){g.beginPath();g.moveTo(x1,y1);for(let i=1;i<n;i++){const t=i/n;g.lineTo(x1+(x2-x1)*t+rnd(-amp,amp),y1+(y2-y1)*t+rnd(-amp,amp))}g.lineTo(x2,y2);g.stroke()}
+function zig(g,x1,y1,x2,y2,n,amp){g.beginPath();g.moveTo(x1,y1);for(let i=1;i<n;i++){const t=i/n;g.lineTo(x1+(x2-x1)*t+rndV(-amp,amp),y1+(y2-y1)*t+rndV(-amp,amp))}g.lineTo(x2,y2);g.stroke()}
 function drawFX(g,f){const t=clamp(f.l/f.m,0,1);
  switch(f.k){
   case 'ring':g.strokeStyle=f.c;g.globalAlpha=1-t;g.lineWidth=3*(1-t)+1;g.beginPath();g.ellipse(f.x,f.y,f.r*(.25+.75*t),f.r*(.25+.75*t)*.75,0,0,7);g.stroke();g.globalAlpha=1;break;
@@ -197,7 +197,7 @@ function drawEmotes(g){for(const e of G.EM){const a=Math.min(1,e.l/.15,(e.m-e.l)
 /* ---------- кадр ---------- */
 function draw(now){const g=X;g.setTransform(1,0,0,1,0,0);if(!BG||!G)return;
  g.drawImage(BG.b,0,0);
- let sx=0,sy=0;if(G.shake>0&&!REDUCE){sx=rnd(-1,1)*G.shake*.5;sy=rnd(-1,1)*G.shake*.5}
+ let sx=0,sy=0;if(G.shake>0&&!REDUCE){sx=rndV(-1,1)*G.shake*.5;sy=rndV(-1,1)*G.shake*.5}
  g.setTransform(K,0,0,K,sx*K,sy*K);
  for(const d of G.DEC){g.fillStyle=`rgba(20,12,6,${Math.min(.42,d.l*.15)})`;g.beginPath();g.ellipse(d.x,d.y,d.r,d.r*.7,0,0,7);g.fill()}
  drawRiver(g,now);

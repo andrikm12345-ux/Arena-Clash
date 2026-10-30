@@ -4,7 +4,7 @@ const SKILL={
  easy:{n:'Новичок',think:2.6,react:1.3,mist:.38,spell:.35,push:10,el:.75,acc:22,abil:.3},
  normal:{n:'Боец',think:1.2,react:.55,mist:.12,spell:.75,push:9,el:1,acc:10,abil:.7},
  hard:{n:'Легенда',think:.55,react:.22,mist:.03,spell:1,push:8,el:1,acc:4,abil:1}};
-function mkBot(tm,cfg){const s=typeof cfg==='string'?SKILL[cfg]:Object.assign({},SKILL.normal,cfg);return{tm,s,think:rnd(1.2,2.5),seen:{},plan:[],lane:Math.random()<.5?0:1,lastPush:-99,cleanT:0}}
+function mkBot(tm,cfg){const s=typeof cfg==='string'?SKILL[cfg]:Object.assign({},SKILL.normal,cfg);return{tm,s,think:rnd(1.2,2.5),seen:{},plan:[],lane:RNG()<.5?0:1,lastPush:-99,cleanT:0}}
 const fyOf=(b,y)=>b.tm?y:H-y;
 const laneOf=x=>x<W/2?0:1;
 function uval(u){const c=u.c;return(c.token?1.5:c.cost/(c.count||1))*(u.hp/u.mx)}
@@ -69,7 +69,7 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
  // способность чемпиона
  if(S.champ&&alive(S.champ)&&S.abCd<=0&&S.el>=S.champ.c.ability.cost){const u=S.champ;let n=0;for(const v of G.U)if(v.tm!==b.tm&&alive(v)&&dist(u,v)<90)n++;
   const nearT=G.T.some(t=>t.tm!==b.tm&&t.hp>0&&dist(u,t)<t.r+40);
-  if((n>=2||nearT||u.hp<u.mx*.45)&&Math.random()<s.abil*dt*3)useAbility(b.tm)}
+  if((n>=2||nearT||u.hp<u.mx*.45)&&RNG()<s.abil*dt*3)useAbility(b.tm)}
  // запланированная поддержка
  for(const p of b.plan)if(!p.done&&G.t>=p.t){p.done=1;botSupport(b,p)}
  b.plan=b.plan.filter(p=>!p.done);
@@ -77,21 +77,21 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
  b.cleanT+=1;if(b.cleanT>40){b.cleanT=0;const ids=new Set(G.U.map(u=>u.id));for(const k in b.seen)if(!ids.has(+k))delete b.seen[k]}
  const L=laneThreats(b),hand=S.hand.filter(k=>k&&S.el>=CARDS[k].cost&&!cardBlocked(b.tm,k));
  // добить башню заклинанием
- if(Math.random()<s.spell)for(const k of hand){const c=CARDS[k];if(c.type!=='spell'||!c.tdmg||c.freeze)continue;const td=LV(c.tdmg,S.lv[k]||1);
+ if(RNG()<s.spell)for(const k of hand){const c=CARDS[k];if(c.type!=='spell'||!c.tdmg||c.freeze)continue;const td=LV(c.tdmg,S.lv[k]||1);
   for(const t of G.T)if(t.tm!==b.tm&&t.hp>0&&t.hp<=td*(c.poison?.9:1)){if(botPlay(b,k,t.x,fyOf(b,t.y),true))return}}
  // оборона: самая опасная линия
  let need=null;
  for(const lane of[0,1]){const T=L[lane];if(!T.n||T.age<s.react)continue;const n=T.v-laneDef(b,lane)+(T.bt?1:0)+(T.fy<200?1:0);if(n>.6&&(!need||n>need.n))need={lane,n,T}}
- if(need&&Math.random()>s.mist*.5){const T=need.T;
+ if(need&&RNG()>s.mist*.5){const T=need.T;
   // заклинание по скоплению, если размен выгоден
-  if(Math.random()<s.spell){let best=null;for(const k of hand){const c=CARDS[k];if(c.type!=='spell')continue;const p=spellTarget(b,k,T.units);if(p&&p.val>=c.cost+.4&&(!best||p.val-c.cost>best.gain))best={k,p,gain:p.val-c.cost}}
+  if(RNG()<s.spell){let best=null;for(const k of hand){const c=CARDS[k];if(c.type!=='spell')continue;const p=spellTarget(b,k,T.units);if(p&&p.val>=c.cost+.4&&(!best||p.val-c.cost>best.gain))best={k,p,gain:p.val-c.cost}}
    if(best&&T.small>=2){const lead=CARDS[best.k].poison?0:-10;if(botPlay(b,best.k,best.p.x,fyOf(b,best.p.y)+lead,true))return}}
   // клич в обороне, когда свои уже дерутся
   const rg=hand.find(k=>CARDS[k].rage);
   if(rg&&T.v>=4){const own=G.U.filter(u=>u.tm===b.tm&&alive(u)&&laneOf(u.x)===need.lane&&fyOf(b,u.y)<360);const ov=own.reduce((a,u)=>a+uval(u),0);
    if(ov>=4){const cx=own.reduce((a,u)=>a+u.x,0)/own.length,cy=own.reduce((a,u)=>a+u.y,0)/own.length;if(botPlay(b,rg,cx,fyOf(b,cy),true))return}}
   let pick=null,ps=-1e9;
-  for(const k of hand){let sc=counterScore(k,T);if(Math.random()<s.mist)sc+=rnd(-4,4);if(sc>ps){ps=sc;pick=k}}
+  for(const k of hand){let sc=counterScore(k,T);if(RNG()<s.mist)sc+=rnd(-4,4);if(sc>ps){ps=sc;pick=k}}
   if(pick&&ps>0){const[px,py]=placeDefense(b,pick,T,need.lane);if(botPlay(b,pick,px,py))return}
   if(T.fy<130&&T.v>=3){for(const k of hand){const c=CARDS[k];if(c.type!=='spell')continue;const p=spellTarget(b,k,T.units);if(p&&p.val>=c.cost*.6&&botPlay(b,k,p.x,fyOf(b,p.y),true))return}}}
  // поддержка своей контратаки
@@ -114,7 +114,7 @@ function botThink(b,dt){const S=G.side[b.tm],s=b.s;
   const sp=hand.find(k=>CARDS[k].type==='spell'&&CARDS[k].tdmg&&!CARDS[k].freeze);
   if(sp){const t=G.T.filter(t=>t.tm!==b.tm&&t.hp>0&&t.kind==='p').sort((x,y)=>x.hp-y.hp)[0]||G.T.find(t=>t.tm!==b.tm&&t.kind==='k');if(botPlay(b,sp,t.x,fyOf(b,t.y),true))return}
   const rg=hand.find(k=>CARDS[k].rage);if(rg){const own=G.U.filter(u=>u.tm===b.tm&&alive(u));if(own.length){const u=own.sort((x,y)=>fyOf(b,y.y)-fyOf(b,x.y))[0];if(botPlay(b,rg,u.x,fyOf(b,u.y)-10,true))return}}}
- if(Math.random()<.004&&G.crowns[b.tm]>G.crowns[1-b.tm])emote(b.tm,pickR([3,4]))}
+ if(RNG()<.004&&G.crowns[b.tm]>G.crowns[1-b.tm])emote(b.tm,pickR([3,4]))}
 function botSupport(b,p){const S=G.side[b.tm];
  const lead=G.U.filter(u=>u.tm===b.tm&&alive(u)&&ROLE[u.key]?.win&&laneOf(u.x)===p.lane).sort((x,y)=>fyOf(b,y.y)-fyOf(b,x.y))[0];
  if(!lead)return;
@@ -123,7 +123,7 @@ function botSupport(b,p){const S=G.side[b.tm];
  const k=hand.sort((x,y)=>(ROLE[y].ranged+ROLE[y].splash*.7+ROLE[y].aa*.5-CARDS[y].cost*.15)-(ROLE[x].ranged+ROLE[x].splash*.7+ROLE[x].aa*.5-CARDS[x].cost*.15))[0];
  const lf=fyOf(b,lead.y);
  if(lf<290)botPlay(b,k,lead.x,Math.max(30,lf-38));else botPlay(b,k,BR[p.lane],286)}
-function botOffenseSpells(b,hand){const s=b.s;if(Math.random()>s.spell)return;
+function botOffenseSpells(b,hand){const s=b.s;if(RNG()>s.spell)return;
  for(const t of G.T){if(t.tm===b.tm||t.hp<=0)continue;
   let own=0;for(const u of G.U)if(u.tm===b.tm&&alive(u)&&dist(u,t)<t.r+70)own+=uval(u);
   if(own<4)continue;
