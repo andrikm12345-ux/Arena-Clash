@@ -114,7 +114,7 @@ const CARDS={
  roller:{n:'Каток',rar:'legendary',type:'spell',cost:2,rad:2,dmg:268,tdmg:54,roll:{len:10,spd:220},knock:28,tip:'Бревно катится вперёд на 10 клеток: бьёт и отталкивает наземных врагов, задевает башни. Летающих не трогает.'},
  shieldman:{aff:'day',n:'Щитоносец',rar:'rare',type:'troop',cost:3,hp:850,shield:560,dmg:180,hit:1.1,rng:.8,spd:'med',tg:'g',r:9,tip:'Щит принимает урон первым. Пока щит цел, отбрасывание и оглушение ему не страшны.'},
  mortar:{n:'Мортира',rar:'common',type:'building',cost:4,hp:1500,dmg:250,hit:4.5,rng:11.5,minRng:3.5,splash:1,tg:'g',r:13,life:30,siege:1,tip:'Бьёт навесом на 11,5 клетки по площади, достаёт башни. Вблизи (3,5 клетки) стрелять не может.'},
- grave:{aff:'night',n:'Погост',rar:'legendary',type:'spell',cost:5,rad:4,grave:{t:9.5,n:12,id:'bones',td:.6},tip:'9,5 с поднимает скелетов в круге: всего 12, по башням они бьют на 40% слабее. Против башни, которую некому защищать, — смертельно.'},
+ grave:{aff:'night',n:'Погост',rar:'legendary',type:'spell',cost:5,rad:4,grave:{t:9.5,n:13,id:'bones',td:.75},tip:'9,5 с поднимает скелетов в круге: всего 13, по башням они бьют на 25% слабее. Против башни, которую некому защищать, — смертельно.'},
  scorch:{n:'Жаровщица',rar:'epic',type:'troop',cost:4,hp:1000,dmg:40,hit:.4,rng:4,spd:'med',tg:'ga',r:8,beam:{dmg:[40,120,400],t:[2,2]},tip:'Луч жара: чем дольше держит цель, тем сильнее жжёт. Оглушение и смена цели сбрасывают разогрев.'},
  poison:{n:'Ядовитое облако',rar:'epic',type:'spell',cost:4,rad:3.5,dmg:580,tdmg:168,poison:8,tip:'Облако на 8 секунд: медленно жжёт и замедляет всё внутри.'},
  legion:{n:'Легион костей',rar:'epic',type:'troop',cost:3,count:12,unit:'bones',hp:84,dmg:84,hit:1,rng:.5,spd:'fast',tg:'g',r:5,tip:'Двенадцать костяшек. Сносят любого одиночку, если нет урона по площади.'},
@@ -123,7 +123,7 @@ const CARDS={
  colossus:{n:'Колосс',rar:'epic',type:'troop',cost:8,hp:5112,dmg:313,hit:2.5,rng:.8,spd:'slow',tg:'b',r:18,mass:30,dep:3,death:{dmg:313,r:2},dspawn:{id:'pebble',n:2},tip:'Каменная гора на строения. Падая, распадается на два камешка.'},
  pebble:{n:'Камешек',token:1,rar:'epic',type:'troop',cost:0,hp:1038,dmg:64,hit:2.5,rng:.8,spd:'med',tg:'b',r:10,mass:8,death:{dmg:107,r:1.5}},
  frostsage:{aff:'day',n:'Морозный мудрец',rar:'legendary',type:'troop',cost:3,hp:800,dmg:120,hit:1.7,rng:5.5,spd:'med',tg:'ga',r:8,proj:'ice',splash:1.5,slow:{f:.3,t:2.5},tip:'Слабый урон, зато замедляет всех, в кого попадает.'},
- thunder:{aff:'day',n:'Громовержец',rar:'legendary',type:'troop',cost:4,hp:680,dmg:172,hit:1.8,rng:5,spd:'med',tg:'ga',r:8,chain:2,stun:.5,zap:153,tip:'Бьёт молнией сразу двоих и оглушает. При выходе бьёт разрядом вокруг.'},
+ thunder:{aff:'day',n:'Громовержец',rar:'legendary',type:'troop',cost:4,hp:680,dmg:160,hit:1.8,rng:5,spd:'med',tg:'ga',r:8,chain:2,stun:.5,zap:125,tip:'Бьёт молнией сразу двоих и оглушает. При выходе бьёт разрядом вокруг.'},
  mole:{aff:'night',n:'Крот',rar:'legendary',type:'troop',cost:3,hp:1206,dmg:191,hit:1.2,rng:.8,spd:'fast',tg:'g',r:9,tunnel:1,td:.35,tip:'Роет ход и вылезает где угодно, даже у вражеской башни. По башням бьёт слабо.'},
  warlord:{n:'Вожак',rar:'champion',type:'troop',cost:4,hp:2289,dmg:244,hit:1.2,rng:1,spd:'med',tg:'g',r:11,mass:10,spin:1,splash:1.2,ability:{k:'horn',n:'Боевой рог',cost:2,cd:14,shield:763,rage:4,r:4},tip:'Чемпион. Способность «Боевой рог»: щит и ярость себе и соседям на 4 секунды.'}
 };
