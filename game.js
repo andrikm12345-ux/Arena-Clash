@@ -506,42 +506,49 @@ function spawn(tm,key,x,y,lvl,fl){const c=fl&&fl.evo&&EVO[key]?evoCard(key):fl&&
 function withTrade(tr,fn){const p=G.tr;G.tr=tr;try{fn()}finally{G.tr=p}}
 function tradeReport(tr,x,y){if(!tr||tr.done)return;tr.done=1;const g=Math.floor(tr.val-tr.cost+.2);if(g>=1){floatText(x,y-30,`+${g} эликсира`,tr.tm?'#ff9a8a':'#ffd84d',13);G.stats[tr.tm].trade+=g}}
 function castSpell(tm,key,x,y,lvl){const c=CARDS[key],tr={tm,cost:c.cost,val:0};withTrade(tr,()=>castSpell0(tm,key,x,y,lvl,tr));if(!G.Z.some(z=>z.tr===tr)&&!G.S.some(s=>s.tr===tr))tradeReport(tr,x,y)}
+/* эффекты заклинаний — таблица: первый подходящий по полям карты (when) накладывает эффект (cast).
+   Новое заклинание = новая строка здесь или готовое поле карты; движок не трогаем */
+const SPELL_FX={
+ fireball:{when:(c,k)=>k==='fireball',cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){const k=G.T.find(t=>t.tm===tm&&t.kind==='k'),tt=Math.max(.35,Math.hypot(x-k.x,y-k.y)/300);
+  G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg,tdmg,'ga',{knock:c.knock,br:tdmg,crater:1}));boomFx(x,y,r);G.Z.push({k:'glow',tm,x,y,r,t:CFG.cycle.light.boomT,tot:CFG.cycle.light.boomT,light:CFG.cycle.light.boom*TILE});tradeReport(tr,x,y)}});AU.sfx('shot');return}},
+ waves:{when:(c,k)=>c.waves,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){for(let w=0;w<c.waves;w++)G.S.push({t:G.t+.45+w*.3,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg/c.waves,tdmg/c.waves,'ga'));if(w===c.waves-1)tradeReport(tr,x,y);ring(x,y,r,'#ffffff');AU.sfx('hit');for(let i=0;i<8;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;puff(x+Math.cos(a)*d,y+Math.sin(a)*d,'#e9eef7',2,20,1.6)}}});
+  for(let i=0;i<28;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;G.FX.push({k:'rain',x:x+Math.cos(a)*d+16,y:y+Math.sin(a)*d-80,x2:x+Math.cos(a)*d,y2:y+Math.sin(a)*d,l:-rnd(0,.95),m:.3})}AU.sfx('shot');return}},
+ freeze:{when:(c,k)=>c.freeze,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){areaHit(tm,x,y,r,dmg,tdmg,'ga',{freeze:c.freeze});G.Z.push({k:'freeze',tm,x,y,r,t:c.freeze,tot:c.freeze});AU.sfx('freeze');return}},
+ stun:{when:(c,k)=>c.stun,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.stun});G.FX.push({k:'zapring',x,y,r,l:0,m:.35});AU.sfx('zap');return}},
+ rage:{when:(c,k)=>c.rage,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'rage',tm,x,y,r,t:c.rage,tot:c.rage});AU.sfx('rage');return}},
+ pull:{when:(c,k)=>c.pull,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'pull',tr,tm,x,y,r,t:c.pull,tot:c.pull,tick:0,dmg:dmg/4,tdmg:tdmg/4,spd:c.pullSpd});AU.sfx('poison');return}},
+ bdmg:{when:(c,k)=>c.bdmg,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){const k=G.T.find(t=>t.tm===tm&&t.kind==='k'),tt=Math.max(.35,Math.hypot(x-k.x,y-k.y)/320);G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg,tdmg,'ga',{br:c.bdmg,crater:1}));boomFx(x,y,r);tradeReport(tr,x,y)}});AU.sfx('shot');return}},
+ flash:{when:(c,k)=>c.flash,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'flash',tm,x,y,r,t:c.flash.t,tot:c.flash.t,light:c.flash.light*TILE});areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.blind});AU.sfx('zap');return}},
+ shade:{when:(c,k)=>c.shade,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'shade',tm,x,y,r,t:c.shade,tot:c.shade});AU.sfx('freeze');return}},
+ roll:{when:(c,k)=>c.roll,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){const dir=tm?1:-1;G.Z.push({k:'roll',tr,tm,x,y,r,t:99,tot:99,dir,left:c.roll.len*TILE,spd:c.roll.spd,dmg,tdmg,knock:c.knock,hit:new Set(),ang:0});AU.sfx('hit');return}},
+ grave:{when:(c,k)=>c.grave,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){const g=c.grave;G.Z.push({k:'grave',tm,x,y,r,t:g.t,tot:g.t,every:g.t/g.n,tick:.5,id:g.id,lvl});AU.sfx('ability');return}},
+ heal:{when:(c,k)=>c.heal,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'heal',tm,x,y,r,t:c.healT,tot:c.healT,hps:LV(c.heal,lvl)/c.healT});AU.sfx('ability');return}},
+ poison:{when:(c,k)=>c.poison,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'poison',tr,tm,x,y,r,t:c.poison,tot:c.poison,tick:.5,dps:dmg/c.poison,tdps:tdmg/c.poison});AU.sfx('poison')}}};
+const SPELL_ORDER=Object.keys(SPELL_FX);
 function castSpell0(tm,key,x,y,lvl,tr){const c=CARDS[key],r=c.rad*TILE,dmg=LV(c.dmg||0,lvl),tdmg=LV(c.tdmg||0,lvl);
- if(key==='fireball'){const k=G.T.find(t=>t.tm===tm&&t.kind==='k'),tt=Math.max(.35,Math.hypot(x-k.x,y-k.y)/300);
-  G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg,tdmg,'ga',{knock:c.knock,br:tdmg,crater:1}));boomFx(x,y,r);G.Z.push({k:'glow',tm,x,y,r,t:CFG.cycle.light.boomT,tot:CFG.cycle.light.boomT,light:CFG.cycle.light.boom*TILE});tradeReport(tr,x,y)}});AU.sfx('shot');return}
- if(c.waves){for(let w=0;w<c.waves;w++)G.S.push({t:G.t+.45+w*.3,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg/c.waves,tdmg/c.waves,'ga'));if(w===c.waves-1)tradeReport(tr,x,y);ring(x,y,r,'#ffffff');AU.sfx('hit');for(let i=0;i<8;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;puff(x+Math.cos(a)*d,y+Math.sin(a)*d,'#e9eef7',2,20,1.6)}}});
-  for(let i=0;i<28;i++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*r;G.FX.push({k:'rain',x:x+Math.cos(a)*d+16,y:y+Math.sin(a)*d-80,x2:x+Math.cos(a)*d,y2:y+Math.sin(a)*d,l:-rnd(0,.95),m:.3})}AU.sfx('shot');return}
- if(c.freeze){areaHit(tm,x,y,r,dmg,tdmg,'ga',{freeze:c.freeze});G.Z.push({k:'freeze',tm,x,y,r,t:c.freeze,tot:c.freeze});AU.sfx('freeze');return}
- if(c.stun){areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.stun});G.FX.push({k:'zapring',x,y,r,l:0,m:.35});AU.sfx('zap');return}
- if(c.rage){G.Z.push({k:'rage',tm,x,y,r,t:c.rage,tot:c.rage});AU.sfx('rage');return}
- if(c.pull){G.Z.push({k:'pull',tr,tm,x,y,r,t:c.pull,tot:c.pull,tick:0,dmg:dmg/4,tdmg:tdmg/4,spd:c.pullSpd});AU.sfx('poison');return}
- if(c.bdmg){const k=G.T.find(t=>t.tm===tm&&t.kind==='k'),tt=Math.max(.35,Math.hypot(x-k.x,y-k.y)/320);G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg,tdmg,'ga',{br:c.bdmg,crater:1}));boomFx(x,y,r);tradeReport(tr,x,y)}});AU.sfx('shot');return}
- if(c.flash){G.Z.push({k:'flash',tm,x,y,r,t:c.flash.t,tot:c.flash.t,light:c.flash.light*TILE});areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.blind});AU.sfx('zap');return}
- if(c.shade){G.Z.push({k:'shade',tm,x,y,r,t:c.shade,tot:c.shade});AU.sfx('freeze');return}
- if(c.roll){const dir=tm?1:-1;G.Z.push({k:'roll',tr,tm,x,y,r,t:99,tot:99,dir,left:c.roll.len*TILE,spd:c.roll.spd,dmg,tdmg,knock:c.knock,hit:new Set(),ang:0});AU.sfx('hit');return}
- if(c.grave){const g=c.grave;G.Z.push({k:'grave',tm,x,y,r,t:g.t,tot:g.t,every:g.t/g.n,tick:.5,id:g.id,lvl});AU.sfx('ability');return}
- if(c.heal){G.Z.push({k:'heal',tm,x,y,r,t:c.healT,tot:c.healT,hps:LV(c.heal,lvl)/c.healT});AU.sfx('ability');return}
- if(c.poison){G.Z.push({k:'poison',tr,tm,x,y,r,t:c.poison,tot:c.poison,tick:.5,dps:dmg/c.poison,tdps:tdmg/c.poison});AU.sfx('poison')}}
+ for(const n of SPELL_ORDER){const f=SPELL_FX[n];if(f.when(c,key)){f.cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr);return}}}
 function updZones(dt){for(const z of G.Z){const p0=G.tr;if(z.tr)G.tr=z.tr;try{updZone(z,dt)}finally{G.tr=p0}if(z.t<=0&&z.tr)tradeReport(z.tr,z.x,z.y)}
  G.Z=G.Z.filter(z=>z.t>0)}
-function updZone(z,dt){z.t-=dt;
-  if(z.k==='rage'){for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r+u.r)u.rageT=Math.max(u.rageT,.6)}
-  else if(z.k==='poison'){for(const u of G.U)if(u.tm!==z.tm&&alive(u)&&dist(u,z)<z.r+u.r*.5){u.slowT=Math.max(u.slowT,.3);u.slowF=Math.max(u.slowF,.15)}
-   z.tick-=dt;if(z.tick<=0){z.tick+=1;areaHit(z.tm,z.x,z.y,z.r,z.dps,z.tdps,'ga')}}
- else if(z.k==='pull'){ // вихрь тянет к центру; чем тяжелее юнит, тем медленнее
+/* поведение зон по типу z.k: вызывается каждый тик, пока зона жива */
+const ZONE_FX={
+ rage(z,dt){for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r+u.r)u.rageT=Math.max(u.rageT,.6)},
+ poison(z,dt){for(const u of G.U)if(u.tm!==z.tm&&alive(u)&&dist(u,z)<z.r+u.r*.5){u.slowT=Math.max(u.slowT,.3);u.slowF=Math.max(u.slowF,.15)}
+   z.tick-=dt;if(z.tick<=0){z.tick+=1;areaHit(z.tm,z.x,z.y,z.r,z.dps,z.tdps,'ga')}},
+ pull(z,dt){ // вихрь тянет к центру; чем тяжелее юнит, тем медленнее
    for(const u of G.U)if(u.tm!==z.tm&&alive(u)&&!u.dashing){const d=dist(u,z);if(d<z.r+u.r&&d>1){const s=Math.min(d,z.spd*Math.min(1,(CFG.phys.pullMass/u.mass)**1.2)*dt);u.x+=(z.x-u.x)/d*s;u.y+=(z.y-u.y)/d*s;u.lock=0;u.wu=0}}
-   z.tick-=dt;if(z.tick<=0){z.tick+=z.tot/4;areaHit(z.tm,z.x,z.y,z.r,z.dmg,z.tdmg,'ga')}}
- else if(z.k==='roll'){ // каток: катится по полю, каждого бьёт один раз и толкает вперёд по ходу
+   z.tick-=dt;if(z.tick<=0){z.tick+=z.tot/4;areaHit(z.tm,z.x,z.y,z.r,z.dmg,z.tdmg,'ga')}},
+ roll(z,dt){ // каток: катится по полю, каждого бьёт один раз и толкает вперёд по ходу
    const s=Math.min(z.left,z.spd*dt);z.y+=z.dir*s;z.left-=s;z.ang+=s/12;if(z.left<=0||z.y<8||z.y>H-8)z.t=0;
    for(const v of G.U)if(v.tm!==z.tm&&alive(v)&&!v.fly&&!z.hit.has(v)&&Math.abs(v.x-z.x)<z.r+v.r*.5&&Math.abs(v.y-z.y)<10+v.r){z.hit.add(v);damage(v,z.dmg,z.tm);
     if(v.mass<CFG.phys.knockMinMass&&!v.dashing&&!(v.shield>0)){impulse(v,0,z.dir,z.knock*CFG.phys.knockDamp);v.wu=0;v.lock=0;v.rt=0;v.beamT=0}}
    for(const o of[...G.B,...G.T])if(o.tm!==z.tm&&!z.hit.has(o)&&(o.obj==='t'?o.hp>0:alive(o))&&Math.abs(o.x-z.x)<z.r+o.r*.6&&Math.abs(o.y-z.y)<10+o.r*.6){z.hit.add(o);damage(o,o.obj==='t'?z.tdmg:z.dmg,z.tm)}
-   if(G.tick%3===0)puff(z.x+rnd(-z.r,z.r),z.y,'#c9b99a',1,30,2)}
-  else if(z.k==='grave'){z.tick-=dt;if(z.tick<=0&&z.t>.3){z.tick+=z.every;for(let n=0;n<8;n++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*z.r*.9,px=clamp(z.x+Math.cos(a)*d,10,W-10),py=z.y+Math.sin(a)*d;
-     if(Math.abs(py-RY)<RIV+4||G.T.some(t=>t.hp>0&&dist(t,{x:px,y:py})<t.r+4))continue;const u=mkUnit(z.tm,z.id,px,py,z.lvl);G.U.push(u);puff(px,py,'#6b5a7a',6,30,2.2);break}}}
-  else if(z.k==='crater'){for(const u of G.U)if(alive(u)&&!u.fly&&dist(u,z)<z.r+u.r*.3)u.mudT=.2}
-  else if(z.k==='heal'){for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r+u.r*.5)u.hp=Math.min(u.mx,u.hp+z.hps*dt)}
-  else if(z.k==='aura'){if(alive(z.u)){z.x=z.u.x;z.y=z.u.y}for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r)u.rageT=Math.max(u.rageT,.5)}}
+   if(G.tick%3===0)puff(z.x+rnd(-z.r,z.r),z.y,'#c9b99a',1,30,2)},
+ grave(z,dt){z.tick-=dt;if(z.tick<=0&&z.t>.3){z.tick+=z.every;for(let n=0;n<8;n++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*z.r*.9,px=clamp(z.x+Math.cos(a)*d,10,W-10),py=z.y+Math.sin(a)*d;
+     if(Math.abs(py-RY)<RIV+4||G.T.some(t=>t.hp>0&&dist(t,{x:px,y:py})<t.r+4))continue;const u=mkUnit(z.tm,z.id,px,py,z.lvl);G.U.push(u);puff(px,py,'#6b5a7a',6,30,2.2);break}}},
+ crater(z,dt){for(const u of G.U)if(alive(u)&&!u.fly&&dist(u,z)<z.r+u.r*.3)u.mudT=.2},
+ heal(z,dt){for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r+u.r*.5)u.hp=Math.min(u.mx,u.hp+z.hps*dt)},
+ aura(z,dt){if(alive(z.u)){z.x=z.u.x;z.y=z.u.y}for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r)u.rageT=Math.max(u.rageT,.5)}};
+function updZone(z,dt){z.t-=dt;const f=ZONE_FX[z.k];if(f)f(z,dt)}
 function useAbility(tm){const R0=RNG;RNG=G.simR;let ok;try{ok=doAbility(tm)}finally{RNG=R0}if(ok)G.log.push({k:'a',tk:G.tick,ph:G.inBots?1:0,tm});return ok}
 function applyReplay(ph){const L=G.replay;while(G.rpi<L.length&&L[G.rpi].tk===G.tick&&L[G.rpi].ph===ph){const c=L[G.rpi++];if(c.k==='p')doPlay(c.tm,c.i,c.x,c.y);else doAbility(c.tm)}}
 function doAbility(tm){const S=G.side[tm],u=S.champ;if(!alive(u))return false;const a=u.c.ability;if(S.abCd>0||S.el<a.cost)return false;
