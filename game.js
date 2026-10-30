@@ -1241,6 +1241,12 @@ const US3=1.65;
 const HEIGHT={bats:1.9,drake:2.2,airship:3.1,wisp:.5};
 
 /* спаять части персонажа в одну модель на общем скелете: один вызов отрисовки вместо десятка */
+/* мультяшный свет: три ступени освещённости вместо плавного затенения (на «Экономии» — обычный материал) */
+let TOONG=null;const TOONM={};
+function toonGrad(){if(TOONG)return TOONG;const d=new Uint8Array([105,105,105,255,175,175,175,255,235,235,235,255,255,255,255,255]);TOONG=new T.DataTexture(d,4,1,T.RGBAFormat);TOONG.minFilter=TOONG.magFilter=T.NearestFilter;TOONG.needsUpdate=true;return TOONG}
+function toonOf(m){if(qualKey()==='eco'||!m||m.isMeshToonMaterial)return m;if(TOONM[m.uuid])return TOONM[m.uuid];
+ const t=new T.MeshToonMaterial({map:m.map||null,color:m.color?m.color.clone():new T.Color('#fff'),gradientMap:toonGrad(),emissive:m.emissive?m.emissive.clone():new T.Color(0),emissiveIntensity:m.emissiveIntensity??1,emissiveMap:m.emissiveMap||null,transparent:m.transparent,opacity:m.opacity});
+ return TOONM[m.uuid]=t}
 let OUTM=null;
 function outlineMat(){if(OUTM)return OUTM;OUTM=new T.MeshBasicMaterial({color:'#20182a',side:T.BackSide});
  OUTM.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>','vec3 transformed=vec3(position)+normal*.028;')};return OUTM}
@@ -1252,7 +1258,7 @@ const monNode=n=>A3.mon.children.find(c=>c.name==='M_'+n);
 function bakeMonster(key,tm,V){const src=monNode(V.q),tpl=T3.SkeletonUtils.clone(src);tpl.position.set(0,0,0);tpl.rotation.set(0,0,0);tpl.scale.set(1,1,1);
  tpl.updateMatrixWorld(true);const box=new T.Box3().setFromObject(tpl),h=Math.max(.01,box.max.y-box.min.y),wd=Math.max(.01,box.max.x-box.min.x,box.max.z-box.min.z),k=Math.min(V.hh/h,(V.wd||9)/wd);
  const add=[];tpl.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.frustumCulled=false;
-  const m=o.material.clone();m.metalness=0;m.roughness=.75;if(V.col)m.color=new T.Color(V.col);if(V.emi){m.emissive=new T.Color(V.emi);m.emissiveIntensity=.6}o.material=m;
+  const m=o.material.clone();m.metalness=0;m.roughness=.75;if(V.col)m.color=new T.Color(V.col);if(V.emi){m.emissive=new T.Color(V.emi);m.emissiveIntensity=.6}o.material=toonOf(m);
   if(o.isSkinnedMesh&&SET.fx!=='low')add.push(o)});
  for(const o of add){const om=new T.SkinnedMesh(o.geometry,outlineTeam(tm));om.frustumCulled=false;om.userData.outline=1;o.parent.add(om);om.bind(o.skeleton,o.bindMatrix)}
  const w=new T.Group();w.add(tpl);tpl.scale.setScalar(k);tpl.position.y=-box.min.y*k;w.userData.V=Object.assign({},V,{hh:h*k,s:h*k/2.47/US3});return w}
@@ -1284,7 +1290,7 @@ function bake(key,tm){const id=key+tm;if(A3.tpl[id])return A3.tpl[id];if(VIS[key
  const bm={};tpl.traverse(o=>{if(o.isBone)bm[o.name]=o});const tb=bones.map(b=>bm[b.name]);
  const mk=(gs,mat)=>{const m=new T.SkinnedMesh(T3.BufferGeometryUtils.mergeGeometries(gs),mat);m.castShadow=true;m.frustumCulled=false;tpl.add(m);m.bind(new T.Skeleton(tb,bones.map(x=>x.matrixWorld.clone().invert())),new T.Matrix4());return m};
  tpl.updateMatrixWorld(true);
- const body=mk(geos,palette(V.m,tm,V.tint));
+ const body=mk(geos,toonOf(palette(V.m,tm,V.tint)));
  // мультяшная обводка: та же сетка, раздутая по нормалям и вывернутая наизнанку
  if(SET.fx!=='low'){const om=new T.SkinnedMesh(body.geometry,outlineMat());om.frustumCulled=false;om.userData.outline=1;tpl.add(om);om.bind(body.skeleton,body.bindMatrix)}
  if(glow.length)mk(glow.map(geo),new T.MeshStandardMaterial({color:'#ffd27a',emissive:tm?'#ff5a3c':'#7fd4ff',emissiveIntensity:2.2}));
@@ -1310,7 +1316,9 @@ function r3Setup(){const R=S3.R,sc=new T.Scene();S3.scene=sc;
  S3.dyn=new T.Group();sc.add(S3.dyn);
  S3.parts=particles();sc.add(S3.parts.add.pts,S3.parts.norm.pts);
  S3.waterN=waterNormals();S3.soft=softTex();
- if(false&&T3.EffectComposer){const c=new T3.EffectComposer(R);c.addPass(new T3.RenderPass(sc,cam));c.addPass(new T3.UnrealBloomPass(new T.Vector2(256,456),.38,.35,1.15));c.addPass(new T3.OutputPass());S3.comp=c}}
+ S3.windU={value:0}}
+/* свечение ярких мест (заклинания, огонь, снаряды) — только на «Высоком» качестве, порог высокий, чтобы не было дымки */
+function makeComp(){if(!T3.EffectComposer)return null;const rt=new T.WebGLRenderTarget(4,4,{type:T.HalfFloatType,samples:4});const c=new T3.EffectComposer(S3.R,rt);c.addPass(new T3.RenderPass(S3.scene,S3.cam));c.addPass(new T3.UnrealBloomPass(new T.Vector2(256,456),.7,.35,1.6));c.addPass(new T3.OutputPass());return c}
 function softTex(){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d'),r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.45,'rgba(255,255,255,.55)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);return new T.CanvasTexture(c)}
 function waterNormals(){const N=128,cv=document.createElement('canvas');cv.width=cv.height=N;const g=cv.getContext('2d'),im=g.createImageData(N,N),d=im.data,hgt=new Float32Array(N*N);
  const waves=[[1,2,.9],[3,-1,.5],[-2,3,.35],[5,1,.22],[-4,-5,.15],[7,-3,.1]];
@@ -1355,6 +1363,10 @@ function buildArena(th){if(S3.arena){S3.scene.remove(S3.arena)}const A=new T.Gro
  const lines=waveLines();lines.repeat.set(10,1);
  const water=new T.Mesh(new T.PlaneGeometry(88,2.1),new T.MeshStandardMaterial(Object.assign({color:'#38c6ec',roughness:.25,metalness:0,normalMap:wn,normalScale:new T.Vector2(.25,.25),emissive:'#ffffff',emissiveMap:lines,emissiveIntensity:.22,envMapIntensity:.8},TH3.water)));
  water.rotation.x=-Math.PI/2;water.position.y=.05;A.add(water);S3.water=water;
+ // пена у берегов: полупрозрачные полосы с бегущей рябью
+ S3.foam=[];const ft=foamTex();for(const z of[-1,1]){const t=ft.clone();t.needsUpdate=true;t.repeat.set(22,1);const f=new T.Mesh(new T.PlaneGeometry(88,.42),new T.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,opacity:.85}));
+  f.rotation.x=-Math.PI/2;f.rotation.z=z>0?0:Math.PI;f.position.set(0,.06,z*.86);A.add(f);S3.foam.push(t)}
+ if(qualKey()!=='eco')A.add(grassTufts(rng,TH3));
  for(let i=0;i<34;i++){const x=rng()*40-20;if(Math.abs(Math.abs(x)-5.5)<1.6)continue;const r=propClone('rock_'+'ABCDE'[i%5],.18+rng()*.16);r.position.set(x,.02,(rng()<.5?-1:1)*(1.05+rng()*.25));r.rotation.y=rng()*6.28;A.add(r)}
  const planks=pbr('planks',1,1.6,{color:'#c69a6a'}),beam=pbr('planks',.4,2,{color:'#7a5232'});
  for(const bx of[-5.5,5.5]){const b=new T.Group();
@@ -1491,6 +1503,7 @@ function r3Frame(now){const dt=Math.min(.05,(now-S3.last)/1000||0);S3.last=now;c
  // тряска камеры
  const sh=G.shake>0&&!REDUCE?G.shake*SHAKE_K[SET.shake]*.02:0;cam.position.set(S3.cam0.x+rndV(-1,1)*sh,S3.cam0.y+rndV(-1,1)*sh,S3.cam0.z);cam.lookAt(S3.look);
  if(S3.water){const m=S3.water.material;for(const n of[m.normalMap,m.map])if(n){n.offset.x=(now/1000*.03)%1;n.offset.y=(now/1000*.05)%1}}
+ if(S3.foam)for(const t of S3.foam){t.offset.x=(now/1000*.04)%1;t.offset.y=Math.sin(now/900)*.08}if(S3.windU)S3.windU.value=now/1000;
  syncTowers(dt,now);syncUnits(dt,now);syncBuildings(dt,now);syncProj(dt);syncFx(dt,now);syncZones(now);syncPending(now);syncGhost(now);syncParticles(dt);
  stepDebris(dt);stepLights(dt);if(S3.hype>0)S3.hype-=dt;crowdStep(now);if(Math.random()<.5)towerSmoke();weather(dt);autoQ(dt);
  if(S3.comp)S3.comp.render();else S3.R.render(sc,cam);overlay(now)}
@@ -1800,10 +1813,23 @@ function r3Thumb(cv,a){if(!R3.ready||!r3HasTheme(a))return false;if(S3.theme!==a
 const QUAL={hi:{n:'Высокое',dpr:2.5,sh:2048},mid:{n:'Среднее',dpr:1.8,sh:1024},eco:{n:'Экономия',dpr:1.3,sh:0}};
 const qualKey=()=>{const k=store.get('ac.qual','hi');return QUAL[k]?k:'hi'};
 function setShadows(on){const R=S3.R;if(!R||R.shadowMap.enabled===on)return;R.shadowMap.enabled=on;if(S3.scene)S3.scene.traverse(o=>{if(o.material){const m=Array.isArray(o.material)?o.material:[o.material];m.forEach(x=>x.needsUpdate=true)}})}
-function applyQual(){const Q=QUAL[qualKey()];S3.q.dpr=Q.dpr;S3.ql=0;S3.fa=1/60;S3.qt=-6;if(S3.R)setShadows(!!Q.sh);if(R3.ready||S3.R)fit()}
+function applyQual(){const Q=QUAL[qualKey()];S3.q.dpr=Q.dpr;S3.comp=qualKey()==='hi'&&S3.scene?(S3.compHi||(S3.compHi=makeComp())):null;S3.ql=0;S3.fa=1/60;S3.qt=-6;if(S3.R)setShadows(!!Q.sh);if(R3.ready||S3.R)fit()}
 function autoQ(dt){S3.fa=(S3.fa||0)*.97+dt*.03;S3.qt=(S3.qt||0)+dt;if(S3.qt<4)return;S3.qt=0;if(S3.fa<.036||S3.ql>=3)return;
- const q=S3.ql=(S3.ql||0)+1;if(q===1){S3.q.dpr=Math.max(1.6,S3.q.dpr-.6);fit()}else if(q===2)setShadows(false);else{S3.q.dpr=Math.max(1.3,S3.q.dpr-.4);fit()}S3.fa=1/60}
+ const q=S3.ql=(S3.ql||0)+1;if(q===1){S3.comp=null;S3.q.dpr=Math.max(1.6,S3.q.dpr-.6);fit()}else if(q===2)setShadows(false);else{S3.q.dpr=Math.max(1.3,S3.q.dpr-.4);fit()}S3.fa=1/60}
 
+/* пена: рваная белая кромка, по краю гуще */
+function foamTex(){const c=document.createElement('canvas');c.width=256;c.height=32;const g=c.getContext('2d');const r=mul(91);
+ for(let i=0;i<260;i++){const x=r()*256,y=Math.pow(r(),1.8)*30,s=1+r()*3.5;g.fillStyle=`rgba(255,255,255,${.35+r()*.6})`;g.beginPath();g.ellipse(x,y,s*1.6,s,0,0,7);g.fill()}
+ const t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.colorSpace=T.SRGBColorSpace;return t}
+/* пучки травы вдоль бортика и берегов, колышутся от ветра (сдвиг вершин по высоте в шейдере) */
+function grassTufts(rng,TH3){if(!TH3||TH3.g!=='grass')return new T.Group();
+ const blade=new T.ConeGeometry(.075,.36,4);blade.translate(0,.21,0);
+ const m=new T.MeshLambertMaterial({color:TH3.c3||'#9ed86a',emissive:TH3.c1||'#5fbf3f',emissiveIntensity:.45});m.onBeforeCompile=sh=>{sh.uniforms.uT=S3.windU;sh.vertexShader='uniform float uT;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+  'vec3 transformed=vec3(position);float h=max(position.y,0.);vec4 wp=instanceMatrix*vec4(0.,0.,0.,1.);transformed.x+=sin(uT*2.2+wp.x*.8+wp.z*.6)*.09*h*h*6.;transformed.z+=cos(uT*1.7+wp.z*.9)*.05*h*h*6.;')};
+ const pts=[];for(let i=0;i<300;i++){const side=rng();let x,z;if(side<.5){x=(rng()<.5?-1:1)*(8.4+rng()*.6);z=rng()*31-15.5}else{x=rng()*18-9;z=(rng()<.5?-1:1)*(1.25+rng()*.35);if(BR.some(b=>Math.abs(W3(b)-x)<1.1))continue}pts.push([x,z])}
+ const im=new T.InstancedMesh(blade,m,pts.length*3),M=new T.Matrix4(),q=new T.Quaternion(),e=new T.Euler();let n=0;
+ for(const[x,z]of pts)for(let k=0;k<3;k++){e.set((rng()-.5)*.5,rng()*6.28,(rng()-.5)*.5);q.setFromEuler(e);const s=.6+rng()*.7;M.compose(new T.Vector3(x+(rng()-.5)*.25,0,z+(rng()-.5)*.25),q,new T.Vector3(s,s,s));im.setMatrixAt(n++,M)}
+ im.count=n;im.receiveShadow=true;return im}
 /* блики на воде */
 function waveLines(){const c=document.createElement('canvas');c.width=256;c.height=128;const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,256,128);
  g.strokeStyle='#fff';g.lineCap='round';for(let i=0;i<9;i++){g.lineWidth=2+(i%3);g.globalAlpha=.35+(i%2)*.3;const y=8+i*13,x=(i*53)%256;g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+18,y-5,x+40,y);g.stroke();g.beginPath();g.moveTo(x-256,y);g.quadraticCurveTo(x-238,y-5,x-216,y);g.stroke()}
