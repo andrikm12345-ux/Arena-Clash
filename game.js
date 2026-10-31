@@ -525,8 +525,8 @@ const SPELL_FX={
  rage:{when:(c,k)=>c.rage,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'rage',tm,x,y,r,t:c.rage,tot:c.rage});AU.sfx('rage');return}},
  pull:{when:(c,k)=>c.pull,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'pull',tr,tm,x,y,r,t:c.pull,tot:c.pull,tick:0,dmg:dmg/4,tdmg:tdmg/4,spd:c.pullSpd});AU.sfx('poison');return}},
  bdmg:{when:(c,k)=>c.bdmg,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){const k=G.T.find(t=>t.tm===tm&&t.kind==='k'),tt=Math.max(.35,Math.hypot(x-k.x,y-k.y)/320);G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg,tdmg,'ga',{br:c.bdmg,crater:1}));boomFx(x,y,r);tradeReport(tr,x,y)}});AU.sfx('shot');return}},
- force:{when:(c,k)=>c.force,cast(c,tm){G.force={k:c.force.k,t:c.force.t,tot:c.force.t};banner(c.force.k?'Затмение!':'Рассвет!',c.force.k?'#9fb4ff':'#ffd27a');AU.sfx('phase')}},
- flash:{when:(c,k)=>c.flash,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'flash',tm,x,y,r,t:c.flash.t,tot:c.flash.t,light:c.flash.light*TILE});areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.blind});AU.sfx('zap');return}},
+ force:{when:(c,k)=>c.force,cast(c,tm){G.force={k:c.force.k,t:c.force.t,tot:c.force.t};banner(c.force.k?'Затмение!':'Рассвет!',c.force.k?'#9fb4ff':'#ffd27a');G.FX.push({k:'sky',n:c.force.k,l:0,m:c.force.t});AU.sfx('phase')}},
+ flash:{when:(c,k)=>c.flash,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'flash',tm,x,y,r,t:c.flash.t,tot:c.flash.t,light:c.flash.light*TILE});G.FX.push({k:'flashfx',x,y,r,l:0,m:.7});areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.blind});AU.sfx('zap');return}},
  shade:{when:(c,k)=>c.shade,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'shade',tm,x,y,r,t:c.shade,tot:c.shade});AU.sfx('freeze');return}},
  roll:{when:(c,k)=>c.roll,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){const dir=tm?1:-1;G.Z.push({k:'roll',tr,tm,x,y,r,t:99,tot:99,dir,left:c.roll.len*TILE,spd:c.roll.spd,dmg,tdmg,knock:c.knock,hit:new Set(),ang:0});AU.sfx('hit');return}},
  grave:{when:(c,k)=>c.grave,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){const g=c.grave;G.Z.push({k:'grave',tm,x,y,r,t:g.t,tot:g.t,every:g.t/g.n,tick:.5,id:g.id,lvl,cc:g.td?Object.assign({},CARDS[g.id],{td:g.td}):null});AU.sfx('ability');return}},
@@ -552,7 +552,7 @@ const ZONE_FX={
    for(const o of[...G.B,...G.T])if(o.tm!==z.tm&&!z.hit.has(o)&&(o.obj==='t'?o.hp>0:alive(o))&&Math.abs(o.x-z.x)<z.r+o.r*.6&&Math.abs(o.y-z.y)<10+o.r*.6){z.hit.add(o);damage(o,o.obj==='t'?z.tdmg:z.dmg,z.tm)}
    if(G.tick%3===0)puff(z.x+rnd(-z.r,z.r),z.y,'#c9b99a',1,30,2)},
  grave(z,dt){z.tick-=dt;if(z.tick<=0&&z.t>.3){z.tick+=z.every;for(let n=0;n<8;n++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*z.r*.9,px=clamp(z.x+Math.cos(a)*d,10,W-10),py=z.y+Math.sin(a)*d;
-     if(Math.abs(py-RY)<RIV+4||G.T.some(t=>t.hp>0&&dist(t,{x:px,y:py})<t.r+TILE))continue;const u=mkUnit(z.tm,z.id,px,py,z.lvl,z.cc);G.U.push(u);puff(px,py,'#6b5a7a',6,30,2.2);break}}},
+     if(Math.abs(py-RY)<RIV+4||G.T.some(t=>t.hp>0&&dist(t,{x:px,y:py})<t.r+TILE))continue;const u=mkUnit(z.tm,z.id,px,py,z.lvl,z.cc);G.U.push(u);G.FX.push({k:'gravefx',x:px,y:py,l:0,m:.8});puff(px,py,'#6b5a7a',6,30,2.2);break}}},
  crater(z,dt){for(const u of G.U)if(alive(u)&&!u.fly&&dist(u,z)<z.r+u.r*.3)u.mudT=.2},
  heal(z,dt){for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r+u.r*.5)u.hp=Math.min(u.mx,u.hp+z.hps*dt)},
  aura(z,dt){if(alive(z.u)){z.x=z.u.x;z.y=z.u.y}for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r)u.rageT=Math.max(u.rageT,.5)}};
@@ -1705,7 +1705,10 @@ function r3Begin(arena){if(!R3.ready)return false;applyQual();
 /* ---------- кадр ---------- */
 function r3Frame(now){const dt=Math.min(.05,(now-S3.last)/1000||0);S3.last=now;const sc=S3.scene,cam=S3.cam;
  // тряска камеры
- const sh=G.shake>0&&!REDUCE?G.shake*SHAKE_K[SET.shake]*.02:0;cam.position.set(S3.cam0.x+rndV(-1,1)*sh,S3.cam0.y+rndV(-1,1)*sh,S3.cam0.z);cam.lookAt(S3.look);
+ // конец боя: камера плавно подлетает к упавшему королю (только при победе или поражении башней)
+ const kd=G.over&&G.res!==2&&!REDUCE?G.T.find(t=>t.kind==='k'&&t.hp<=0):null;S3.zk=kd?Math.min(1,(S3.zk||0)+dt/.9):Math.max(0,(S3.zk||0)-dt*3);
+ const zk=S3.zk*S3.zk*(3-2*S3.zk),kx=kd?W3(kd.x):0,kz=kd?Z3(kd.y):0;
+ const sh=G.shake>0&&!REDUCE?G.shake*SHAKE_K[SET.shake]*.02:0;cam.position.set(S3.cam0.x+(kx*.55-S3.cam0.x)*zk+rndV(-1,1)*sh,S3.cam0.y*(1-.4*zk)+rndV(-1,1)*sh,S3.cam0.z+(kz*.4+12-S3.cam0.z)*zk);if(zk>0)cam.lookAt(S3.look.x+(kx-S3.look.x)*zk,0,S3.look.z+(kz-S3.look.z)*zk);else cam.lookAt(S3.look);
  if(S3.water){const m=S3.water.material;for(const n of[m.normalMap,m.map])if(n){n.offset.x=(now/1000*.03)%1;n.offset.y=(now/1000*.05)%1}}
  if(S3.foam)for(const t of S3.foam){t.offset.x=(now/1000*.04)%1;t.offset.y=Math.sin(now/900)*.08}if(S3.windU)S3.windU.value=now/1000;
  syncTowers(dt,now);syncUnits(dt,now);syncBuildings(dt,now);syncProj(dt);syncFx(dt,now);syncZones(now);syncPending(now);syncGhost(now);syncParticles(dt);
@@ -1742,8 +1745,9 @@ function syncUnits(dt,now){const seen=new Set();
   v.root.position.set(X,y,Z);
   const hid=!!(G.vis&&u.tm===1&&!G.vis[0].has(u));if(hid!==!!v.hid){v.hid=hid;v.ring.visible=!hid;v.root.traverse(o=>{if(!o.isMesh)return;if(hid){o.userData.m0=o.material;o.material=S3.silMat||o.material}else if(o.userData.m0){o.material=o.userData.m0}})}
   // реакция на удар: короткое «сплющивание» и искры (сильнее на тяжёлых ударах)
-  if(u.fl>.07&&!(v.hitT>0)){v.hitT=.12;const hv=u.mx>1500;for(let i=0;i<(hv?7:4);i++)S3.parts.add.emit(X+rndV(-.25,.25),y+.6+(v.h?0:.4)+rndV(0,.5),Z+rndV(-.25,.25),rndV(-1.4,1.4),rndV(.6,2),rndV(-1.4,1.4),i%2?'#ffffff':'#ffd27a',hv?.32:.24,.28)}
-  if(v.hitT>0){v.hitT-=dt;const q=Math.max(0,v.hitT)/.12;const sq=1-.12*q;v.root.scale.y=(v.sy||(v.sy=v.root.scale.y))*sq;v.root.scale.x=(v.sx0||(v.sx0=v.root.scale.x))*(1+.08*q);v.root.scale.z=(v.sz0||(v.sz0=v.root.scale.z))*(1+.08*q)}
+  if(u.spawnT>0)v.wasSp=1;else if(v.wasSp){v.wasSp=0;if(u.mass>=8&&!u.fly){v.hitT=.22;v.heavy=1;burst(u.x,u.y,.3,'#cdbf9f',10,1.6,.5,0)}}
+  if(u.fl>.07&&!(v.hitT>0)){v.hitT=.12;const hv=u.mx>1500;for(let i=0;i<(hv?7:4);i++)S3.parts.add.emit(X+rndV(-.25,.25),y+.6+(v.h?0:.4)+rndV(0,.5),Z+rndV(-.25,.25),rndV(-1.4,1.4),rndV(.6,2),rndV(-1.4,1.4),u.shield>0?(i%2?'#cfe8ff':'#8fc4ff'):i%2?'#ffffff':'#ffd27a',hv?.32:.24,.28)}
+  if(v.hitT>0){v.hitT-=dt;const q=Math.max(0,v.hitT)/(v.heavy?.22:.12);const sq=1-(v.heavy?.2:.12)*q;if(v.hitT<=0)v.heavy=0;v.root.scale.y=(v.sy||(v.sy=v.root.scale.y))*sq;v.root.scale.x=(v.sx0||(v.sx0=v.root.scale.x))*(1+.08*q);v.root.scale.z=(v.sz0||(v.sz0=v.root.scale.z))*(1+.08*q)}
   else if(v.sy){v.root.scale.set(v.sx0,v.sy,v.sz0)}v.ring.position.set(X,.03,Z);
   // поворот: к цели, если бьёт, иначе по ходу
   let want=v.yaw;if(u.tg&&u.lock&&(alive(u.tg)||u.tg.obj==='t'))want=Math.atan2(u.tg.x-u.x,u.tg.y-u.y);else if(Math.hypot(v.vx,v.vy)>.06)want=Math.atan2(v.vx,v.vy);
@@ -1763,9 +1767,12 @@ function syncUnits(dt,now){const seen=new Set();
   v.ring.material.color.set(still&&u.frozenT>0?'#bfe9ff':u.rageT>0?'#ff5a8a':u.evo?'#c77dff':u.hero?'#ffd84d':TEAM[u.tm].m);
   if((u.evo||u.hero)&&Math.random()<dt*6)S3.parts.add.emit(X+rndV(-.4,.4),.2+rndV(0,1),Z+rndV(-.4,.4),0,.6,0,u.evo?'#c77dff':'#ffd84d',.22,.7)}
  for(const[u,v]of S3.units)if(!seen.has(u)){S3.units.delete(u);dieView(v)}
- for(const v of S3.dying){v.d+=dt;if(v.inst)v.inst.mixer.update(dt);if(v.d>1.1)v.root.position.y-=dt*.8;if(v.d>2.4){S3.dyn.remove(v.root);v.dead=1}}
+ for(const v of S3.dying){v.d+=dt;
+  if(v.dis){const k=Math.max(0,1-v.d/.45);v.root.scale.set(v.s0*(.4+.6*k),v.s0*(1+.5*(1-k)),v.s0*(.4+.6*k));v.root.position.y+=dt*1.2;if(Math.random()<.7)S3.parts.add.emit(v.root.position.x+rndV(-.3,.3),v.root.position.y+.4,v.root.position.z+rndV(-.3,.3),0,1.2,0,'#e8e0cb',.16,.5);if(v.d>.45){S3.dyn.remove(v.root);v.dead=1}continue}
+  if(v.inst)v.inst.mixer.update(dt);if(v.d>1.1)v.root.position.y-=dt*.8;if(v.d>2.4){S3.dyn.remove(v.root);v.dead=1}}
  S3.dying=S3.dying.filter(v=>!v.dead)}
 function dieView(v){S3.dyn.remove(v.ring);v.d=0;burst(v.u.x,v.u.y,.6+v.h,'#cfc5b0',8,1,.6,v.h);if(v.inst&&!v.u.nodeath){v.inst.mixer.timeScale=1;v.inst.play(v.inst.V.death||(Math.random()<.5?'Death_A':'Death_B'),{once:true,ts:1.4,fade:.05});S3.dying.push(v)}
+ else if(v.proc&&!v.u.nodeath&&qualKey()!=='eco'){v.s0=v.root.scale.x;v.dis=1;S3.dying.push(v);burst(v.u.x,v.u.y,.6+v.h,'#cfc5b0',10,1.2,.9,v.h)}
  else{S3.dyn.remove(v.root);burst(v.u.x,v.u.y,.6+v.h,'#cfc5b0',10,1.2,.9,v.h)}}
 function procAnim(v,u,dt,now,moved,still){const p=v.parts,t=still?0:now/1000;
  if(p.wings)for(let i=0;i<2;i++)p.wings[i].rotation.z=(i?-1:1)*Math.sin(t*(u.key==='bats'?22:9))*.7;
@@ -1789,12 +1796,17 @@ function projModel(pk,tm){let m;
  if(pk==='bomb'){m=propClone('bomb',1.6);return m}
  const mat=pk==='orb'||pk==='flame'?new T.MeshStandardMaterial({color:'#ffcf6a',emissive:'#ff6a1a',emissiveIntensity:3}):pk==='ice'?new T.MeshStandardMaterial({color:'#dff6ff',emissive:'#5fc8ff',emissiveIntensity:1.6,roughness:.15}):pk==='stone'?flat('#8e8a83'):new T.MeshStandardMaterial({color:'#2c2f36',metalness:.9,roughness:.35});
  m=new T.Mesh(pk==='ice'?new T.OctahedronGeometry(.16):new T.SphereGeometry(pk==='stone'?.09:pk==='king'||pk==='tball'?.17:pk==='orb'?.17:.14,12,8),mat);m.castShadow=true;return m}
+/* следы снарядов: цвет, размер, слой частиц, подъём, жизнь */
+const TRAIL={arrow:['#efe3c4',.09,'norm',0,.2],bolt:['#cfeaff',.12,'add',0,.22],stone:['#c9bfae',.1,'norm',0,.25],bomb:['#6b6460',.2,'norm',.3,.45],ball:['#ffb347',.14,'add',0,.22],king:['#ffd27a',.16,'add',0,.25],tball:['#ffb347',.14,'add',0,.22],tower:['#ffe9a8',.1,'add',0,.18]};
 function syncProj(dt){const seen=new Set();
  for(const p of G.PR){let v=S3.proj.get(p);if(!v){const fromT=!!p.tw;v={p,m:projModel(p.pk,p.tm),sx:p.x,sy:p.y,sh:fromT?(p.pk==='king'?3.6:3.4):1.1,
    tot:Math.max(1,Math.hypot(p.lx-p.x,p.ly-p.y)),arc:p.hi?4.5:p.pk==='bomb'||p.pk==='stone'?1.6:p.pk==='ball'||p.pk==='king'||p.pk==='tball'?.4:.6,px:W3(p.x),pz:Z3(p.y),py:0};S3.dyn.add(v.m);S3.proj.set(p,v)}
   seen.add(p);const rem=Math.hypot(p.lx-p.x,p.ly-p.y),k=clamp(1-rem/v.tot,0,1),eh=p.fly?2.3:.75,y=v.sh+(eh-v.sh)*k+Math.sin(k*Math.PI)*v.arc;
   const X=W3(IX(p)),Z=Z3(IY(p));v.m.position.set(X,y,Z);
   if(v.m.children.length){const d=new T.Vector3(X-v.px,y-v.py,Z-v.pz);if(d.lengthSq()>1e-6)v.m.lookAt(X+d.x,y+d.y,Z+d.z)}
+  // следы: цепочка частиц между прошлой и нынешней позицией — выходит сплошная лента даже у быстрых стрел
+  const TR=TRAIL[p.pk];if(TR&&qualKey()!=='eco'&&(!v.th||(v.th=!v.th)||qualKey()==='hi')){const n=Math.min(4,1+Math.ceil(Math.hypot(X-v.px,Z-v.pz)/.35));for(let i=0;i<n;i++){const f=(i+1)/n;S3.parts[TR[2]].emit(v.px+(X-v.px)*f,v.py+(y-v.py)*f,v.pz+(Z-v.pz)*f,rndV(-.05,.05),TR[3],rndV(-.05,.05),TR[0],TR[1],TR[4])}}
+  v.th=!v.th;
   if(p.pk==='orb'||p.pk==='flame')S3.parts.add.emit(X,y,Z,0,.2,0,'#ff8a2a',.28,.35);
   if(p.pk==='ice')S3.parts.add.emit(X,y,Z,0,.1,0,'#9fe0ff',.2,.3);
   v.px=X;v.py=y;v.pz=Z}
@@ -1808,6 +1820,16 @@ function syncFx(dt,now){for(const f of G.FX){if(f._3)continue;f._3=1;S3.fx.push(
  for(const[d,v]of S3.decals)if(d.l<=0||!G.DEC.includes(d)){S3.dyn.remove(v);S3.decals.delete(d)}}
 function fxView(f){const e={l:0,m:f.m||.4,o:null,up(){}},X=W3(f.x||0),Z=Z3(f.y||0);
  switch(f.k){
+  case 'flashfx':{if(qualKey()==='eco')break;const r=f.r/TILE,A=S3.parts.add;for(let i=0;i<26;i++){const a=Math.random()*6.28,s=1+Math.random()*3;A.emit(X,.6,Z,Math.cos(a)*s,1.5+Math.random()*2.5,Math.sin(a)*s,i%3?'#fff6c0':'#ffffff',.3,.6)}
+   const o=new T.Mesh(new T.RingGeometry(.7,1,48),new T.MeshBasicMaterial({color:'#fff6c0',transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide}));o.rotation.x=-Math.PI/2;o.position.set(X,.1,Z);S3.dyn.add(o);e.o=o;
+   e.up=t=>{const s=r*.4+r*1.3*t;o.scale.set(s,s,s);o.material.opacity=(1-t)**1.5};break}
+  case 'gravefx':{if(qualKey()==='eco'){burst(f.x,f.y,.4,'#4a3a52',6,1,.3,0);break}burst(f.x,f.y,.5,'#5b4a62',10,1.4,.34,0);burst(f.x,f.y,.3,'#8a7a70',8,1.1,.26,0);
+   const m=new T.Mesh(new T.SphereGeometry(.34,10,6),new T.MeshStandardMaterial({color:'#3a2c2c',roughness:1}));m.scale.y=.4;m.position.set(X,0,Z);S3.dyn.add(m);e.o=m;
+   e.up=t=>{m.position.y=-.1+Math.sin(Math.min(1,t*1.4)*Math.PI)*.18;const s=1-Math.max(0,t-.6)/.4;m.scale.set(s,.4*s,s)};break}
+  case 'bridge':{const bx=BR[f.i];for(let i=0;i<22;i++){const a=Math.random()*6.28,s=Math.random()*2.4;S3.parts.norm.emit(W3(bx)+Math.cos(a)*.8,.3,Z3(RY)+Math.sin(a)*.5,Math.cos(a)*s,2+Math.random()*3,Math.sin(a)*s*.5,i%2?'#cfefff':'#7a5232',.22,1.1)}
+   for(let i=0;i<10;i++)S3.parts.add.emit(W3(bx)+rndV(-1,1),.2,Z3(RY)+rndV(-.5,.5),rndV(-.6,.6),3+Math.random()*3,rndV(-.4,.4),'#e8f8ff',.18,.8);break}
+  case 'sky':{const el=document.getElementById('skyfx');if(!el)break;el.className=f.n===1?'ecl':'dwn';
+   e.up=t=>{const a=Math.min(1,t*f.m/1.6,(1-t)*f.m/1.6);el.style.opacity=Math.max(0,a).toFixed(2)};break}
   case 'ring':{const o=new T.Mesh(new T.RingGeometry(.86,1,40),new T.MeshBasicMaterial({color:f.c,transparent:true,depthWrite:false,side:T.DoubleSide}));o.rotation.x=-Math.PI/2;o.position.set(X,.06,Z);S3.dyn.add(o);e.o=o;const r=f.r/TILE;
    e.up=t=>{const s=r*(.25+.75*t);o.scale.set(s,s,s);o.material.opacity=1-t};break}
   case 'meteor':{const o=new T.Mesh(new T.SphereGeometry(.38,16,12),new T.MeshStandardMaterial({color:'#ffd27a',emissive:'#ff6a1a',emissiveIntensity:4}));S3.dyn.add(o);e.o=o;const X2=W3(f.x2),Z2=Z3(f.y2);

@@ -139,6 +139,9 @@ h2.sec{margin:0;font-size:12px;letter-spacing:.14em;color:var(--mute);font-weigh
 #tm{font-family:var(--display);font-size:30px;font-weight:400;font-variant-numeric:tabular-nums}
 #dn{display:block;font-size:10px;color:#ffd27a;height:12px;white-space:nowrap;margin-top:1px}#dn.n{color:#b8c4ff}
 #ph{display:block;font-size:10.5px;letter-spacing:.08em;color:var(--gold);height:12px;white-space:nowrap}
+#skyfx{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:1;border-radius:inherit}
+#skyfx.ecl{background:radial-gradient(circle at 50% -2%,#000 0 7%,#ffd9a0 7.4%,#ff9a3a66 10%,#0000 22%),radial-gradient(120% 90% at 50% 0%,#02030e99,#02030e22 55%,#0000 80%)}
+#skyfx.dwn{background:conic-gradient(from 0deg at 50% -3%,#ffe38a00 0deg,#ffe38a88 8deg,#ffe38a00 16deg,#ffe38a00 26deg,#ffe38a88 34deg,#ffe38a00 42deg,#ffe38a00 55deg,#ffe38a77 63deg,#ffe38a00 72deg,#ffe38a00 360deg),radial-gradient(circle at 50% -2%,#fff6c0 0 6%,#ffd27acc 9%,#0000 28%)}
 #stage{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
 #wrap{position:relative;border-radius:14px;overflow:hidden;box-shadow:0 0 0 3px #0a0f1c,0 0 0 5px var(--line),0 14px 40px #000a}
 canvas#c{position:relative;display:block;width:100%;height:100%}
@@ -424,6 +427,10 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
 .dk.no .art::after{content:'';position:absolute;inset:0;background:#0b1224a8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23dfe6ff' d='M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 0 1 6 0v3z'/%3E%3C/svg%3E") center 38%/34% no-repeat}
 .dk.no .lvr{color:#9eaacb;background:#1b2644}.dk.no .gem{filter:grayscale(1) brightness(.7)}
 .dk.indeck .art::before{content:'✔ В колоде';position:absolute;left:0;right:0;bottom:0;z-index:2;background:#2f8f4acc;color:#fff;font-size:10px;line-height:15px;text-align:center;font-weight:900}
+@keyframes upg{0%,100%{box-shadow:0 0 0 #7fe05a00}50%{box-shadow:0 0 11px #7fe05acc}}
+.dk .pgr.up{animation:upg 1.7s ease-in-out infinite;border-radius:7px}
+.dk{transition:transform .12s}.dk:active{transform:scale(.96)}
+@media (prefers-reduced-motion:reduce){.dk .pgr.up{animation:none}.dk{transition:none}}
 .lockhd{grid-column:1/-1;margin:10px 0 2px;font:400 13px var(--display);color:var(--mute);letter-spacing:.06em;border-top:1px solid var(--line);padding-top:8px}
 .dk.pick .art{outline:3px solid var(--gold);outline-offset:2px}
 .dk.new::after{content:'Новая';position:absolute;right:-2px;top:8px;z-index:3;background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:6px}
@@ -481,6 +488,7 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
     <div id="stage">
       <div id="wrap">
         <canvas id="c"></canvas>
+        <div id="skyfx" aria-hidden="true"></div>
         <button class="ib" id="bp" aria-label="Пауза"><svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></button>
         <button class="ib" id="bm" aria-label="Звук"><svg viewBox="0 0 24 24"><path id="mi" d="M3 9v6h4l5 4V5L7 9z"/></svg></button>
         <button class="ib" id="be" aria-label="Эмоции"><svg viewBox="0 0 24 24"><path d="M4 4h16v11H9l-5 4z"/></svg></button>
@@ -502,7 +510,7 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
   <div id="toasts" aria-live="polite"></div>
 </div>
 <script>window.AC_SITE=1</script>
-<script src="game.js?v=18f898060c"></script>
+<script src="game.js?v=40860858ff"></script>
 <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js","three/addons/":"./vendor/three/addons/"}}</script>
 <script type="module">
 const T3={};Promise.all([import("three"),import("three/addons/loaders/GLTFLoader.js"),import("three/addons/loaders/RGBELoader.js"),import("three/addons/utils/SkeletonUtils.js"),import("three/addons/utils/BufferGeometryUtils.js"),import("three/addons/postprocessing/EffectComposer.js"),import("three/addons/postprocessing/RenderPass.js"),import("three/addons/postprocessing/UnrealBloomPass.js"),import("three/addons/postprocessing/OutputPass.js")]).then(m=>{T3.GLTFLoader=m[1].GLTFLoader;T3.RGBELoader=m[2].RGBELoader;T3.SkeletonUtils=m[3];T3.BufferGeometryUtils=m[4];T3.EffectComposer=m[5].EffectComposer;T3.RenderPass=m[6].RenderPass;T3.UnrealBloomPass=m[7].UnrealBloomPass;T3.OutputPass=m[8].OutputPass;window.T3=T3;window.THREE=m[0];dispatchEvent(new Event("three-ready"))}).catch(e=>dispatchEvent(new CustomEvent("three-fail",{detail:String(e&&e.message||e)})));

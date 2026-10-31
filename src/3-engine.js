@@ -92,8 +92,8 @@ const SPELL_FX={
  rage:{when:(c,k)=>c.rage,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'rage',tm,x,y,r,t:c.rage,tot:c.rage});AU.sfx('rage');return}},
  pull:{when:(c,k)=>c.pull,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'pull',tr,tm,x,y,r,t:c.pull,tot:c.pull,tick:0,dmg:dmg/4,tdmg:tdmg/4,spd:c.pullSpd});AU.sfx('poison');return}},
  bdmg:{when:(c,k)=>c.bdmg,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){const k=G.T.find(t=>t.tm===tm&&t.kind==='k'),tt=Math.max(.35,Math.hypot(x-k.x,y-k.y)/320);G.FX.push({k:'meteor',x:k.x,y:k.y-30,x2:x,y2:y,l:0,m:tt});G.S.push({t:G.t+tt,tr,fn:()=>{withTrade(tr,()=>areaHit(tm,x,y,r,dmg,tdmg,'ga',{br:c.bdmg,crater:1}));boomFx(x,y,r);tradeReport(tr,x,y)}});AU.sfx('shot');return}},
- force:{when:(c,k)=>c.force,cast(c,tm){G.force={k:c.force.k,t:c.force.t,tot:c.force.t};banner(c.force.k?'Затмение!':'Рассвет!',c.force.k?'#9fb4ff':'#ffd27a');AU.sfx('phase')}},
- flash:{when:(c,k)=>c.flash,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'flash',tm,x,y,r,t:c.flash.t,tot:c.flash.t,light:c.flash.light*TILE});areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.blind});AU.sfx('zap');return}},
+ force:{when:(c,k)=>c.force,cast(c,tm){G.force={k:c.force.k,t:c.force.t,tot:c.force.t};banner(c.force.k?'Затмение!':'Рассвет!',c.force.k?'#9fb4ff':'#ffd27a');G.FX.push({k:'sky',n:c.force.k,l:0,m:c.force.t});AU.sfx('phase')}},
+ flash:{when:(c,k)=>c.flash,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'flash',tm,x,y,r,t:c.flash.t,tot:c.flash.t,light:c.flash.light*TILE});G.FX.push({k:'flashfx',x,y,r,l:0,m:.7});areaHit(tm,x,y,r,dmg,tdmg,'ga',{stun:c.blind});AU.sfx('zap');return}},
  shade:{when:(c,k)=>c.shade,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){G.Z.push({k:'shade',tm,x,y,r,t:c.shade,tot:c.shade});AU.sfx('freeze');return}},
  roll:{when:(c,k)=>c.roll,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){const dir=tm?1:-1;G.Z.push({k:'roll',tr,tm,x,y,r,t:99,tot:99,dir,left:c.roll.len*TILE,spd:c.roll.spd,dmg,tdmg,knock:c.knock,hit:new Set(),ang:0});AU.sfx('hit');return}},
  grave:{when:(c,k)=>c.grave,cast(c,tm,key,x,y,r,dmg,tdmg,lvl,tr){const g=c.grave;G.Z.push({k:'grave',tm,x,y,r,t:g.t,tot:g.t,every:g.t/g.n,tick:.5,id:g.id,lvl,cc:g.td?Object.assign({},CARDS[g.id],{td:g.td}):null});AU.sfx('ability');return}},
@@ -119,7 +119,7 @@ const ZONE_FX={
    for(const o of[...G.B,...G.T])if(o.tm!==z.tm&&!z.hit.has(o)&&(o.obj==='t'?o.hp>0:alive(o))&&Math.abs(o.x-z.x)<z.r+o.r*.6&&Math.abs(o.y-z.y)<10+o.r*.6){z.hit.add(o);damage(o,o.obj==='t'?z.tdmg:z.dmg,z.tm)}
    if(G.tick%3===0)puff(z.x+rnd(-z.r,z.r),z.y,'#c9b99a',1,30,2)},
  grave(z,dt){z.tick-=dt;if(z.tick<=0&&z.t>.3){z.tick+=z.every;for(let n=0;n<8;n++){const a=rnd(0,6.28),d=Math.sqrt(RNG())*z.r*.9,px=clamp(z.x+Math.cos(a)*d,10,W-10),py=z.y+Math.sin(a)*d;
-     if(Math.abs(py-RY)<RIV+4||G.T.some(t=>t.hp>0&&dist(t,{x:px,y:py})<t.r+TILE))continue;const u=mkUnit(z.tm,z.id,px,py,z.lvl,z.cc);G.U.push(u);puff(px,py,'#6b5a7a',6,30,2.2);break}}},
+     if(Math.abs(py-RY)<RIV+4||G.T.some(t=>t.hp>0&&dist(t,{x:px,y:py})<t.r+TILE))continue;const u=mkUnit(z.tm,z.id,px,py,z.lvl,z.cc);G.U.push(u);G.FX.push({k:'gravefx',x:px,y:py,l:0,m:.8});puff(px,py,'#6b5a7a',6,30,2.2);break}}},
  crater(z,dt){for(const u of G.U)if(alive(u)&&!u.fly&&dist(u,z)<z.r+u.r*.3)u.mudT=.2},
  heal(z,dt){for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r+u.r*.5)u.hp=Math.min(u.mx,u.hp+z.hps*dt)},
  aura(z,dt){if(alive(z.u)){z.x=z.u.x;z.y=z.u.y}for(const u of G.U)if(u.tm===z.tm&&alive(u)&&dist(u,z)<z.r)u.rageT=Math.max(u.rageT,.5)}};
