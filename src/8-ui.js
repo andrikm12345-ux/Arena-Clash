@@ -348,10 +348,18 @@ function openSettings(){const sh=$('#sheet');let armed=false;
 /* ---------- бой ---------- */
 const TIPS={full:'Эликсир полон — трать его, иначе он пропадает',enemy:'Враг перешёл реку — поставь защитника у него на пути',spell:'Заклинание можно бросить в любое место поля',
  tower:'Башня пала! Теперь войска можно ставить и на её стороне реки',king:'Король проснулся — теперь он тоже стреляет',double:'Последняя минута: эликсир копится вдвое быстрее',
- champ:'Чемпион на поле — нажми кнопку способности в гуще боя',ot:'Овертайм: кто первым сломает башню, тот и победил'};
+ champ:'Чемпион на поле — нажми кнопку способности в гуще боя',ot:'Овертайм: кто первым сломает башню, тот и победил',
+ night:'Скоро ночь: видно только то, что освещено. Свет дают башни, факелы и вспышки',dark:'Враг в темноте! Поставь рядом свою карту или кинь Вспышку, чтобы его увидеть',
+ light:'У тебя есть карта света: ночью она открывает врагов для твоих стрелков и башен',bridge:'Мост рухнул: наземные войска пойдут через другой. Через 20 секунд он вернётся'};
+const NIGHT_TIPS=['night','dark','light','bridge'];
 let tipT=0;
-function tip(k){if(P.st.games>=3||P.hints.includes(k)||!$('#tip').hidden||!$('#help').hidden)return;P.hints.push(k);saveP();const e=$('#tip');e.querySelector('span').textContent=TIPS[k];e.hidden=false;clearTimeout(tipT);tipT=setTimeout(()=>{e.hidden=true},4200)}
-function tips(){if(P.st.games>=3||G.over)return;const S=G.side[0];
+function tip(k){if(P.st.games>=(NIGHT_TIPS.includes(k)?6:3)||P.hints.includes(k)||!$('#tip').hidden||!$('#help').hidden)return;P.hints.push(k);saveP();const e=$('#tip');e.querySelector('span').textContent=TIPS[k];e.hidden=false;clearTimeout(tipT);tipT=setTimeout(()=>{e.hidden=true},4200)}
+function tips(){if(P.st.games>=6||G.over)return;const S=G.side[0];
+ if(G.cyc&&!G.night){const C=cycOf();if((G.t%(C.day+C.night))>C.day-12&&G.t<C.day+C.night)tip('night')}
+ if(G.vis&&G.U.some(u=>u.tm===1&&alive(u)&&!G.vis[0].has(u))&&G.U.some(u=>u.tm===0&&alive(u)))tip('dark');
+ if(G.cyc&&S.hand.some(k=>k&&((CARDS[CARDS[k].unit||k].light)||CARDS[k].flash)))tip('light');
+ if(G.bridges.some(b=>b.down>0))tip('bridge');
+ if(P.st.games>=3)return;
  if(S.el>=10)tip('full');if(G.U.some(u=>u.tm===1&&u.y>RY+RIV))tip('enemy');if(sel!=null&&S.hand[sel]&&CARDS[S.hand[sel]].type==='spell')tip('spell');
  if(G.T.some(t=>t.tm===1&&t.kind==='p'&&t.hp<=0))tip('tower');if(G.T.some(t=>t.tm===1&&t.kind==='k'&&t.act))tip('king');
  if(elRate()>=2&&!G.ot)tip('double');if(G.ot)tip('ot');if(S.champ&&alive(S.champ))tip('champ')}

@@ -34,7 +34,7 @@ const CARDS={
  shooters:{n:'Стрелки',rar:'common',type:'troop',cost:3,count:2,hp:290,dmg:100,hit:1,rng:5,spd:'med',tg:'ga',r:7,proj:'arrow',tip:'Двое стреляют издалека, в том числе по воздуху.'},
  bones:{aff:'night',n:'Костяшки',rar:'common',type:'troop',cost:1,count:3,hp:84,dmg:84,hit:1,rng:.5,spd:'fast',tg:'g',r:5,tip:'Три костяшки за один эликсир. Отвлекают тяжёлых и рвут одиночек.'},
  imps:{n:'Шныри',rar:'common',type:'troop',cost:2,count:3,hp:206,dmg:122,hit:1.1,rng:.5,spd:'vfast',tg:'g',r:6,tip:'Очень быстрые. Если их не встретить, сносят башню за секунды.'},
- slingers:{n:'Пращники',rar:'common',type:'troop',cost:2,count:3,hp:118,dmg:84,hit:1.6,rng:5,spd:'vfast',tg:'ga',r:6,proj:'stone',tip:'Три стрелка с пращами. Дёшево сбивают летунов.'},
+ slingers:{n:'Пращники',rar:'common',type:'troop',cost:2,count:3,hp:118,dmg:78,hit:1.6,rng:5,spd:'vfast',tg:'ga',r:6,proj:'stone',tip:'Три стрелка с пращами. Дёшево сбивают летунов.'},
  bomber:{aff:'night',n:'Бомбардир',rar:'common',type:'troop',cost:2,hp:320,dmg:195,hit:1.9,rng:4.5,spd:'med',tg:'g',r:7,proj:'bomb',splash:1.5,tip:'Бомбы по площади. Против стай на земле, но не достаёт воздух.'},
  cannon:{n:'Пушка',rar:'common',type:'building',cost:3,hp:950,dmg:214,hit:.9,rng:5.5,tg:'g',r:13,life:35,proj:'ball',tip:'Строение на 35 секунд. Поставь в центр — и любители строений свернут к ней.'},
  volley:{n:'Залп',rar:'common',type:'spell',cost:3,rad:3.5,dmg:366,tdmg:95,waves:3,tip:'Три волны стрел по большой площади. Чистит стаи.'},
@@ -56,16 +56,16 @@ const CARDS={
  vortex:{n:'Вихрь',rar:'epic',type:'spell',cost:3,rad:5.5,dmg:160,tdmg:50,pull:1.1,pullSpd:150,tip:'Затягивает всех врагов к центру и слегка ранит. Сбивает в кучу под удар и задевает королевскую башню — она проснётся.'},
  spring:{n:'Родник',rar:'rare',type:'building',cost:6,hp:1070,tg:'g',r:13,life:70,elx:{every:9,n:1},noStart:1,tip:'Добывает эликсир: +1 каждые 9 секунд, пока стоит. Окупается, если его не сломают. Не бывает в стартовой руке.'},
  raider:{aff:'night',n:'Налётчица',rar:'legendary',type:'troop',cost:3,hp:906,dmg:193,hit:1,rng:.75,spd:'fast',tg:'g',r:8,dash:{min:3.5,max:6,spd:500,mul:2},tip:'Рывком сокращает дистанцию до цели в 3,5–6 клеток. Во время рывка неуязвима, первый удар — двойной.'},
- mend:{n:'Целебный звон',rar:'rare',type:'spell',cost:2,rad:3,heal:420,healT:2,tip:'Две секунды лечит своих бойцов в круге. Спасает пуш, который вот-вот развалится.'},
+ mend:{n:'Целебный звон',rar:'rare',type:'spell',cost:2,rad:3,heal:540,healT:2,tip:'Две секунды лечит своих бойцов в круге. Спасает пуш, который вот-вот развалится.'},
  sapper:{n:'Подрыв',rar:'epic',type:'spell',cost:2,rad:2,dmg:190,tdmg:55,bdmg:2000,crater:1,tip:'Взрыв обрушивает мост, если попасть по нему: 20 с наземные идут через другой. Юниты на мосту падают на берег и оглушены. По юнитам — 150 урона.'},
  shadowblade:{aff:'night',n:'Тень',rar:'epic',type:'troop',cost:3,hp:690,dmg:230,hit:1,rng:.7,spd:'fast',tg:'g',r:7,stealth:1,tip:'Ночью её видно, только вблизи 2,5 клеток: свет не помогает. Днём обычная ловкая убийца.'},
  priest:{aff:'day',n:'Страж рассвета',rar:'rare',type:'troop',cost:4,hp:900,dmg:150,hit:1.2,rng:5,spd:'med',tg:'ga',r:8,proj:'orb',light:4,tip:'Дальний боец с собственным светом на 4 клетки. Днём бьёт сильнее; ночью освещает стрелков и открывает врагов.'},
  eclipse:{n:'Затмение',rar:'legendary',type:'spell',cost:3,rad:0,force:{k:1,t:14},tip:'14 секунд — ночь для всех, где бы ты ни был. Ночные карты и Тени сильнее, дневные слабее, дальний бой слепнет.'},
  dawn:{n:'Рассвет',rar:'epic',type:'spell',cost:2,rad:0,force:{k:0,t:12},tip:'12 секунд — день для всех. Ночь отменяется, дальний бой снова видит поле, дневные карты сильнее.'},
- torchman:{n:'Факелоносец',rar:'common',type:'troop',cost:2,hp:640,dmg:130,hit:1.1,rng:.7,spd:'fast',tg:'g',r:7,light:3.5,tip:'Несёт факел: свет 3,5 клетки вокруг себя. Ночью — глаза для твоих стрелков и башен.'},
- lantern:{n:'Фонарь',rar:'common',type:'building',cost:2,hp:520,tg:'g',r:10,life:55,light:6,tip:'Свет 6 клеток на 55 с. Сам не бьёт, но ночью открывает врагов у моста и притягивает «только здания».'},
+ torchman:{n:'Факелоносец',rar:'common',type:'troop',cost:2,hp:720,dmg:145,hit:1.1,rng:.7,spd:'fast',tg:'g',r:7,light:3.5,tip:'Несёт факел: свет 3,5 клетки вокруг себя. Ночью — глаза для твоих стрелков и башен.'},
+ lantern:{n:'Фонарь',rar:'common',type:'building',cost:1,hp:520,tg:'g',r:10,life:55,light:6,tip:'Свет 6 клеток на 55 с. Сам не бьёт, но ночью открывает врагов у моста и притягивает «только здания».'},
  flash:{n:'Вспышка',rar:'rare',type:'spell',cost:1,rad:2.5,dmg:96,tdmg:29,blind:1,flash:{light:5,t:6},tip:'Яркий свет на 5 клеток на 6 с; враги в центре (2,5 клетки) обожжены и ослеплены: 1 с не двигаются и не атакуют.'},
- shade:{n:'Сумрак',rar:'epic',type:'spell',cost:3,rad:4,shade:8,tip:'8 с внутри круга не действует никакой свет — даже днём. Враг видит там только тех, кто ближе 2,5 клетки. Укрой стрелков у вражеской башни.'},
+ shade:{n:'Сумрак',rar:'epic',type:'spell',cost:2,rad:4,shade:8,tip:'8 с внутри круга не действует никакой свет — даже днём. Враг видит там только тех, кто ближе 2,5 клетки. Укрой стрелков у вражеской башни.'},
  roller:{n:'Каток',rar:'legendary',type:'spell',cost:2,rad:2,dmg:300,tdmg:60,roll:{len:10,spd:220},knock:28,tip:'Бревно катится вперёд на 10 клеток: бьёт и отталкивает наземных врагов, задевает башни. Летающих не трогает.'},
  shieldman:{aff:'day',n:'Щитоносец',rar:'rare',type:'troop',cost:3,hp:850,shield:560,dmg:180,hit:1.1,rng:.8,spd:'med',tg:'g',r:9,tip:'Щит принимает урон первым. Пока щит цел, отбрасывание и оглушение ему не страшны.'},
  mortar:{n:'Мортира',rar:'common',type:'building',cost:4,hp:1600,dmg:290,hit:4,rng:11.5,minRng:3.5,splash:1,tg:'g',r:13,life:30,siege:1,tip:'Бьёт навесом на 11,5 клетки по площади, достаёт башни. Вблизи (3,5 клетки) стрелять не может.'},
@@ -160,6 +160,12 @@ const AU={c:null,mute:!!store.get('ac.mute',false),nb:null,last:{},
    case 'wake':this.t(220,.3,'triangle',.08,120);break;
    case 'tick':this.t(1200,.05,'square',.03);break;
    case 'phase':[440,554,659].forEach((f,i)=>this.t(f,.18,'triangle',.07,0,i*.08));break;
+   case 'eclipse':this.t(110,1.4,'sawtooth',.09,-50);this.t(55,1.6,'sine',.14,-20);this.n(1.2,.05,300);this.t(330,1.2,'triangle',.03,-120,.1);break;
+   case 'dawn':[523,659,784,988,1318].forEach((f,i)=>this.t(f,.5,'triangle',.06,0,i*.09));this.n(.6,.03,7000,.1);break;
+   case 'flash':this.n(.2,.12,9000);this.t(1800,.28,'sine',.07,-600);this.t(2600,.2,'triangle',.03,-900,.03);break;
+   case 'grave':this.t(70,.7,'sawtooth',.09,-20);this.n(.5,.08,350);[300,240,190].forEach((f,i)=>this.t(f,.1,'square',.025,-60,.15+i*.1));break;
+   case 'bridge':this.n(.7,.3,600);this.t(80,.5,'sine',.2,-40);for(let i=0;i<5;i++)this.t(200+Math.random()*300,.06,'square',.04,-100,.05+i*.07);this.n(.5,.1,4000,.2);break;
+   case 'shade':this.t(240,.8,'sine',.06,-150);this.n(.7,.04,900);break;
    case 'crown':[659,784,988,1318].forEach((f,i)=>this.t(f,.22,'triangle',.08,0,i*.07));break;
    case 'crownLose':this.t(180,.5,'sawtooth',.06,-80);this.t(120,.6,'triangle',.08,-40,.1);break;
    case 'pop':this.t(520+Math.random()*200,.07,'sine',.04,-300);break;
