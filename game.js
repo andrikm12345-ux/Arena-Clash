@@ -1,4 +1,13 @@
 'use strict';
+/* совместимость со старыми iOS (до 16): нет roundRect у 2D-холста — делаем сами через arcTo */
+if(typeof CanvasRenderingContext2D!=='undefined'&&!CanvasRenderingContext2D.prototype.roundRect){
+ CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){let a=Array.isArray(r)?r.slice():[r||0];a=a.map(v=>Math.max(0,+v||0));
+  const[tl,tr,br,bl]=a.length===1?[a[0],a[0],a[0],a[0]]:a.length===2?[a[0],a[1],a[0],a[1]]:a.length===3?[a[0],a[1],a[2],a[1]]:a;
+  const k=Math.min(1,w/Math.max(1e-6,Math.max(tl+tr,bl+br)),h/Math.max(1e-6,Math.max(tl+bl,tr+br))),T=tl*k,R=tr*k,B=br*k,L=bl*k;
+  this.moveTo(x+T,y);this.lineTo(x+w-R,y);this.arcTo(x+w,y,x+w,y+R,R);this.lineTo(x+w,y+h-B);this.arcTo(x+w,y+h,x+w-B,y+h,B);
+  this.lineTo(x+L,y+h);this.arcTo(x,y+h,x,y+h-L,L);this.lineTo(x,y+T);this.arcTo(x,y,x+T,y,T);this.closePath()}}
+/* любой необработанный сбой — коротким сообщением на экране, чтобы причину было видно со скриншота */
+if(typeof addEventListener==='function'&&typeof document!=='undefined'){let n=0;addEventListener('error',e=>{if(n++>=2||!document.body)return;const d=document.createElement('div');d.textContent='Сбой: '+(e.message||'ошибка')+' ('+(String(e.filename||'').split('/').pop()||'')+':'+(e.lineno||0)+')';d.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:99;background:#6a1414f0;color:#fff;font:12px/1.3 sans-serif;padding:6px 8px;border-radius:8px;pointer-events:none';document.body.appendChild(d);setTimeout(()=>d.remove(),9000)})}
 /* ================= КОНФИГ: числа правил, арены, башен и режимов =================
    Все времена — в секундах, расстояния — в тайлах, если не сказано иное.
    Характеристики карт — в таблице CARDS (1-data.js), прогресс — в 7-meta.js. */
@@ -2951,10 +2960,12 @@ function fit(){if($('#battle').hidden)return;const st=$('#stage'),w=st.clientWid
  r3Resize(cw,ch)}
 new ResizeObserver(()=>requestAnimationFrame(fit)).observe($('#stage'));
 let lastT=0,acc=0;
-function loop(ts){const dt=Math.min(.05,(ts-lastT)/1000||0);lastT=ts;
+/* один сбой в кадре не должен убивать игру: ошибка один раз показывается на экране, цикл идёт дальше */
+let loopErr=0;
+function loop(ts){try{loopBody(ts)}catch(e){if(loopErr++<2){console.warn('сбой кадра',e);const d=document.createElement('div');d.textContent='Сбой кадра: '+(e&&e.message||e);d.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:99;background:#6a1414f0;color:#fff;font:12px/1.3 sans-serif;padding:6px 8px;border-radius:8px;pointer-events:none';document.body.appendChild(d);setTimeout(()=>d.remove(),9000)}}requestAnimationFrame(loop)}
+function loopBody(ts){const dt=Math.min(.05,(ts-lastT)/1000||0);lastT=ts;
  if(G&&(mode==='play'||mode==='end'||mode==='replay')&&!paused){let sd=dt*(mode==='replay'?rspeed:1);if(G.slowmo>0){G.slowmo-=dt;sd*=CFG.juice.slowScale}if(G.hitstop>0){G.hitstop-=dt;sd=0}acc+=sd;let n=0;while(acc>=TICK&&n<4){step(TICK);acc-=TICK;n++}if(n===4)acc=0;ALPHA=clamp(acc/TICK,0,1);
   if(mode==='play'&&G.over&&performance.now()>G.endAt)endScreen();if(mode==='replay'&&G.over&&performance.now()>G.endAt&&!OV.classList.contains('on'))replayDone()}
- if(G&&!$('#battle').hidden&&$('#loot').hidden){if(R3.on){try{r3Frame(ts)}catch(e){r3Fail('ошибка 3D: '+(e&&e.message||e));draw(ts)}}else draw(ts);hud()}
- requestAnimationFrame(loop)}
+ if(G&&!$('#battle').hidden&&$('#loot').hidden){if(R3.on){try{r3Frame(ts)}catch(e){r3Fail('ошибка 3D: '+(e&&e.message||e));draw(ts)}}else draw(ts);hud()}}
 ['#cp0','#cp1'].forEach(s=>{$(s+' .pips').innerHTML=crownSVG.repeat(3)});
 TH=THEMES[curArena()];tickChests();micon();renderHome();requestAnimationFrame(loop);
