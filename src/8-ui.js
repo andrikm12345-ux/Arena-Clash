@@ -380,7 +380,7 @@ function tips(){if(P.st.games>=6||G.over)return;const S=G.side[0];
 const OV=$('#ov');
 function showOv(html){OV.innerHTML=html;OV.classList.add('on')}
 function hideOv(){OV.classList.remove('on');OV.innerHTML=''}
-function showView(v){$('#home').hidden=v==='battle';$('#battle').hidden=v!=='battle';if(v==='battle')requestAnimationFrame(fit)}
+function showView(v){document.body.classList.toggle('inb',v==='battle');$('#home').hidden=v==='battle';$('#battle').hidden=v!=='battle';if(v==='battle')requestAnimationFrame(fit)}
 let handEls=[],hs={};
 function startBattle(train,opt){AU.init();opt=opt||null;
  const A0=curArena();if(R3.want&&!R3.failed&&(!R3.ready||!r3HasTheme(A0))){const sh=$('#sheet');if(T&&!R3.loading&&!R3.ready)r3Load();if(R3.ready)r3LoadTheme(A0);
@@ -539,10 +539,11 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='pl
 
 /* ---------- размеры и цикл ---------- */
 function fit(){if($('#battle').hidden)return;const st=$('#stage'),w=st.clientWidth,h=st.clientHeight;if(!w||!h)return;
- const k=Math.min(w/W,h/H),cw=Math.floor(W*k),ch=Math.floor(H*k),wr=$('#wrap');
- wr.style.width=cw+'px';wr.style.height=ch+'px';document.documentElement.style.setProperty('--cw',Math.max(cw,290)+'px');
- dpr=Math.min(3,window.devicePixelRatio||1);const nk=cw*dpr/W;
- if(!BG||Math.abs(nk-K)>.001){K=nk;C.width=Math.round(cw*dpr);C.height=Math.round(ch*dpr);BG=buildBG(K)}
+ // в 3D сцена занимает всю ширину экрана (по бокам продолжается арена); в запасном 2D поле остаётся по пропорции
+ const wide=R3.on||(R3.want&&R3.ready&&!R3.failed),k=Math.min(w/W,h/H),ch=Math.floor(H*k),cw=wide?w:Math.floor(W*k),wr=$('#wrap');
+ wr.style.width=cw+'px';wr.style.height=ch+'px';document.documentElement.style.setProperty('--cw',Math.min(Math.max(cw,290),440)+'px');
+ dpr=Math.min(3,window.devicePixelRatio||1);const nk=ch*dpr/H;
+ if(!BG||Math.abs(nk-K)>.001||C.width!==Math.round(cw*dpr)){K=nk;C.width=Math.round(cw*dpr);C.height=Math.round(ch*dpr);BG=buildBG(K)}
  r3Resize(cw,ch)}
 new ResizeObserver(()=>requestAnimationFrame(fit)).observe($('#stage'));
 let lastT=0,acc=0;

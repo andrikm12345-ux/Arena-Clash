@@ -143,7 +143,9 @@ h2.sec{margin:0;font-size:12px;letter-spacing:.14em;color:var(--mute);font-weigh
 #skyfx.ecl{background:radial-gradient(circle at 50% -2%,#000 0 7%,#ffd9a0 7.4%,#ff9a3a66 10%,#0000 22%),radial-gradient(120% 90% at 50% 0%,#02030e99,#02030e22 55%,#0000 80%)}
 #skyfx.dwn{background:conic-gradient(from 0deg at 50% -3%,#ffe38a00 0deg,#ffe38a88 8deg,#ffe38a00 16deg,#ffe38a00 26deg,#ffe38a88 34deg,#ffe38a00 42deg,#ffe38a00 55deg,#ffe38a77 63deg,#ffe38a00 72deg,#ffe38a00 360deg),radial-gradient(circle at 50% -2%,#fff6c0 0 6%,#ffd27acc 9%,#0000 28%)}
 #stage{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
-#wrap{position:relative;border-radius:14px;overflow:hidden;box-shadow:0 0 0 3px #0a0f1c,0 0 0 5px var(--line),0 14px 40px #000a}
+#wrap{position:relative;overflow:hidden}
+body.inb #app{padding-left:0;padding-right:0}
+body.inb #top,body.inb #deck{box-sizing:border-box;padding-inline:max(10px,env(safe-area-inset-left,0px))}
 canvas#c{position:relative;display:block;width:100%;height:100%}
 #c3{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
 .ib{position:absolute;width:36px;height:36px;border-radius:10px;border:0;background:#0b1224b3;display:grid;place-items:center;padding:0}
@@ -516,7 +518,7 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
   <div id="toasts" aria-live="polite"></div>
 </div>
 <script>window.AC_SITE=1</script>
-<script src="game.js?v=17e75c4b44"></script>
+<script src="game.js?v=661ea1da55"></script>
 <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js","three/addons/":"./vendor/three/addons/"}}</script>
 <script type="module">
 const T3={};Promise.all([import("three"),import("three/addons/loaders/GLTFLoader.js"),import("three/addons/loaders/RGBELoader.js"),import("three/addons/utils/SkeletonUtils.js"),import("three/addons/utils/BufferGeometryUtils.js"),import("three/addons/postprocessing/EffectComposer.js"),import("three/addons/postprocessing/RenderPass.js"),import("three/addons/postprocessing/UnrealBloomPass.js"),import("three/addons/postprocessing/OutputPass.js"),import("three/addons/postprocessing/ShaderPass.js")]).then(m=>{T3.GLTFLoader=m[1].GLTFLoader;T3.RGBELoader=m[2].RGBELoader;T3.SkeletonUtils=m[3];T3.BufferGeometryUtils=m[4];T3.EffectComposer=m[5].EffectComposer;T3.RenderPass=m[6].RenderPass;T3.UnrealBloomPass=m[7].UnrealBloomPass;T3.OutputPass=m[8].OutputPass;T3.ShaderPass=m[9].ShaderPass;window.T3=T3;window.THREE=m[0];dispatchEvent(new Event("three-ready"))}).catch(e=>dispatchEvent(new CustomEvent("three-fail",{detail:String(e&&e.message||e)})));
