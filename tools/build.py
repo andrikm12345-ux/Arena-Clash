@@ -9,7 +9,7 @@ SRC = ROOT / 'src'
 ORDER = ['0-config.js', '1-data.js', '2-sprites.js', '3-engine.js', '4-ai.js', '5-render.js', '6-render3d.js', '7-meta.js', '8-ui.js']
 ADDONS = [('GLTFLoader', 'loaders/GLTFLoader.js'), ('RGBELoader', 'loaders/RGBELoader.js'), ('SkeletonUtils', 'utils/SkeletonUtils.js', 1),
           ('BufferGeometryUtils', 'utils/BufferGeometryUtils.js', 1), ('EffectComposer', 'postprocessing/EffectComposer.js'),
-          ('RenderPass', 'postprocessing/RenderPass.js'), ('UnrealBloomPass', 'postprocessing/UnrealBloomPass.js'), ('OutputPass', 'postprocessing/OutputPass.js')]
+          ('RenderPass', 'postprocessing/RenderPass.js'), ('UnrealBloomPass', 'postprocessing/UnrealBloomPass.js'), ('OutputPass', 'postprocessing/OutputPass.js'), ('ShaderPass', 'postprocessing/ShaderPass.js')]
 
 def js():
     return "'use strict';\n" + ''.join((SRC / f).read_text() for f in ORDER)
