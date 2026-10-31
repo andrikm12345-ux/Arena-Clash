@@ -135,8 +135,21 @@ h2.sec{margin:0;font-size:12px;letter-spacing:.14em;color:var(--mute);font-weigh
 #skyfx.dwn{background:conic-gradient(from 0deg at 50% -3%,#ffe38a00 0deg,#ffe38a88 8deg,#ffe38a00 16deg,#ffe38a00 26deg,#ffe38a88 34deg,#ffe38a00 42deg,#ffe38a00 55deg,#ffe38a77 63deg,#ffe38a00 72deg,#ffe38a00 360deg),radial-gradient(circle at 50% -2%,#fff6c0 0 6%,#ffd27acc 9%,#0000 28%)}
 #stage{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
 #wrap{position:relative;overflow:hidden}
-body.inb #app{padding-left:0;padding-right:0}
-body.inb #top,body.inb #deck{box-sizing:border-box;padding-inline:max(10px,env(safe-area-inset-left,0px))}
+/* запасной 2D: поле в рамке по центру */
+body:not(.full3d) #wrap{border-radius:14px;box-shadow:0 0 0 3px #0a0f1c,0 0 0 5px var(--line),0 14px 40px #000a}
+/* 3D: арена на весь экран, шапка и рука лежат поверх неё */
+body.full3d #battle{position:fixed;inset:0;z-index:5;display:block;padding:0}
+body.full3d #stage{position:absolute;inset:0;display:block}
+body.full3d #wrap{position:absolute;left:0;top:0;border-radius:0;box-shadow:none}
+body.full3d #top{position:absolute;left:0;right:0;top:0;width:auto;height:auto;min-height:46px;box-sizing:border-box;z-index:1;padding:calc(env(safe-area-inset-top,0px) + 4px) max(14px,env(safe-area-inset-right,0px)) 20px max(14px,env(safe-area-inset-left,0px));background:linear-gradient(#0a1230ee,#0a123099 62%,#0a123000)}
+body.full3d #deck{position:absolute;left:0;right:0;bottom:0;width:auto;box-sizing:border-box;z-index:1;padding:8px max(10px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 8px) max(10px,env(safe-area-inset-left,0px));background:linear-gradient(#244aa0,#14307a);border-radius:20px 20px 0 0;box-shadow:0 -3px 0 #0a1a4a,0 -10px 24px #000a}
+body.full3d #eb,body.full3d #hand{width:100%;max-width:440px;margin-inline:auto;box-sizing:border-box}
+body.full3d #bp,body.full3d #bm{top:calc(var(--ti,0px) + 8px)}
+body.full3d #be,body.full3d #ab{bottom:calc(var(--bi,0px) + 8px)}
+body.full3d #emo{bottom:calc(var(--bi,0px) + 52px)}
+body.full3d #help{bottom:calc(var(--bi,0px) + 54px)}
+body.full3d #cstat{bottom:calc(var(--bi,0px) + 8px)}
+body.full3d #tip{top:calc(var(--ti,0px) + 12%)}
 canvas#c{position:relative;display:block;width:100%;height:100%}
 #c3{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
 .ib{position:absolute;width:36px;height:36px;border-radius:10px;border:0;background:#0b1224b3;display:grid;place-items:center;padding:0}

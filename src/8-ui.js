@@ -381,7 +381,7 @@ function tips(){if(NET.on||P.st.games>=6||G.over)return;const S=G.side[ME];
 const OV=$('#ov');
 function showOv(html){OV.innerHTML=html;OV.classList.add('on')}
 function hideOv(){OV.classList.remove('on');OV.innerHTML=''}
-function showView(v){document.body.classList.toggle('inb',v==='battle');$('#home').hidden=v==='battle';$('#battle').hidden=v!=='battle';if(v==='battle')requestAnimationFrame(fit)}
+function showView(v){if(v!=='battle')document.body.classList.remove('full3d');$('#home').hidden=v==='battle';$('#battle').hidden=v!=='battle';if(v==='battle')requestAnimationFrame(fit)}
 let handEls=[],hs={};
 function startBattle(train,opt){AU.init();opt=opt||null;
  const A0=curArena();if(R3.want&&!R3.failed&&(!R3.ready||!r3HasTheme(A0))){const sh=$('#sheet');if(T&&!R3.loading&&!R3.ready)r3Load();if(R3.ready)r3LoadTheme(A0);
@@ -539,14 +539,20 @@ $('#emo').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(!G)return;if(N
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='play'&&!paused&&G&&!G.over)togglePause()});
 
 /* ---------- размеры и цикл ---------- */
-function fit(){if($('#battle').hidden)return;const st=$('#stage'),w=st.clientWidth,h=st.clientHeight;if(!w||!h)return;
- // в 3D сцена занимает всю ширину экрана (по бокам продолжается арена); в запасном 2D поле остаётся по пропорции
- const wide=R3.on||(R3.want&&R3.ready&&!R3.failed),k=Math.min(w/W,h/H),ch=Math.floor(H*k),cw=wide?w:Math.floor(W*k),wr=$('#wrap');
- wr.style.width=cw+'px';wr.style.height=ch+'px';document.documentElement.style.setProperty('--cw',Math.min(Math.max(cw,290),440)+'px');
- dpr=Math.min(3,window.devicePixelRatio||1);const nk=ch*dpr/H;
- if(!BG||Math.abs(nk-K)>.001||C.width!==Math.round(cw*dpr)){K=nk;C.width=Math.round(cw*dpr);C.height=Math.round(ch*dpr);BG=buildBG(K)}
+function fit(){if($('#battle').hidden)return;const wr=$('#wrap');
+ // 3D: арена на весь экран между шапкой и рукой; запасной 2D: поле по пропорции в рамке
+ if(R3.on&&document.body.classList.contains('full3d')){
+  const w=innerWidth,h=innerHeight,rc=e=>$(e).getBoundingClientRect(),top=Math.ceil(Math.max(rc('#clock').bottom,rc('#cp0').bottom,rc('#cp1').bottom))+4,bot=Math.max(0,Math.round(h-rc('#deck').top)),A=Math.max(240,h-top-bot);
+  wr.style.width=w+'px';wr.style.height=h+'px';const rs=document.documentElement.style;rs.setProperty('--ti',top+'px');rs.setProperty('--bi',bot+'px');
+  dpr=Math.min(3,window.devicePixelRatio||1);S3.ak=A*dpr/640;C.width=Math.round(w*dpr);C.height=Math.round(h*dpr);
+  r3Resize(w,h,{top,bot,A});return}
+ const st=$('#stage'),w=st.clientWidth,h=st.clientHeight;if(!w||!h)return;
+ const k=Math.min(w/W,h/H),cw=Math.floor(W*k),ch=Math.floor(H*k);S3.ak=0;
+ wr.style.width=cw+'px';wr.style.height=ch+'px';document.documentElement.style.setProperty('--cw',Math.max(cw,290)+'px');
+ dpr=Math.min(3,window.devicePixelRatio||1);const nk=cw*dpr/W;
+ if(!BG||Math.abs(nk-K)>.001){K=nk;C.width=Math.round(cw*dpr);C.height=Math.round(ch*dpr);BG=buildBG(K)}
  r3Resize(cw,ch)}
-new ResizeObserver(()=>requestAnimationFrame(fit)).observe($('#stage'));
+new ResizeObserver(()=>requestAnimationFrame(fit)).observe($('#stage'));addEventListener('resize',()=>requestAnimationFrame(fit));
 let lastT=0,acc=0;
 /* ---------- бой с другом по сети ---------- */
 function startNetBattle(S,me,tr){

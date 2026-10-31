@@ -427,7 +427,7 @@ function r3Begin(arena){if(!R3.ready)return false;applyQual();
  if(S3.theme!==arena)buildArena(arena);
  S3.dyn.clear();S3.units=new Map();S3.blds=new Map();S3.towers=[];S3.proj=new Map();S3.fx=[];S3.dying=[];S3.decals=new Map();S3.zones=new Map();S3.pend=new Map();
  for(const t of G.T)S3.towers.push(towerView(t));
- S3.ghostKey=null;S3.zoneKey='';S3.last=performance.now();R3.on=true;return true}
+ S3.ghostKey=null;S3.zoneKey='';S3.last=performance.now();R3.on=true;document.body.classList.add('full3d');requestAnimationFrame(()=>{if(typeof fit==='function')fit()});return true}
 
 /* ---------- кадр ---------- */
 function r3Frame(now){const dt=Math.min(.05,(now-S3.last)/1000||0);S3.last=now;const sc=S3.scene,cam=S3.cam;
@@ -649,7 +649,7 @@ function burst(x,y,h,col,n,sp,size,hh){for(let i=0;i<n;i++){const a=Math.random(
 /* ---------- слой поверх 3D: полосы здоровья, надписи, эмоции ---------- */
 const _p=()=>new T.Vector3();let PV=null;
 function proj(x,y,h){if(!PV)PV=new T.Vector3();PV.set(W3(x),h,Z3(y)).project(S3.cam);return[(PV.x+1)/2*C.width,(1-PV.y)/2*C.height]}
-function overlay(now){const g=X,k=C.height/640;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,C.width,C.height);
+function overlay(now){const g=X,k=S3.ak||C.height/640;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,C.width,C.height);
  const bar=(sx,sy,w,p,tm,gold)=>{w*=k;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,gold?'#ffd84d':'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,Math.max(0,w*p),4*k,2*k,tm!==ME?'#ff6a5a':'#4cd37a')};
  for(const b of G.B){const[sx,sy]=proj(b.x,b.y,1.9);bar(sx,sy,28,b.hp/b.mx,b.tm)}
  for(const b of G.bridges||[]){if(b.down<=0&&b.hp>=b.mx)continue;const[sx,sy]=proj(b.x,RY,1.2),w=34*k,p=b.down>0?1-b.down/CFG.bridge.down:b.hp/b.mx;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,w*p,4*k,2*k,b.down>0?'#9fd8ff':b.fl>0?'#ffffff':'#ffc83d')}
@@ -675,7 +675,7 @@ function drawTexts3(g){g.textAlign='center';g.textBaseline='middle';
   if(x.big){const sc=Math.min(1,x.l/.18),al=Math.min(1,(x.m-x.l)/.4);g.save();g.globalAlpha=al;g.translate(W/2,H*.47);g.scale(.6+.4*sc,.6+.4*sc);g.font=`400 ${x.s+8}px 'Lilita One','Russo One',${FONT}`;g.lineWidth=6;g.strokeStyle='rgba(10,12,30,.85)';g.strokeText(x.t,0,0);g.fillStyle=x.c;g.fillText(x.t,0,0);g.restore();continue}
   if(x._sx==null)continue;g.globalAlpha=Math.max(0,a);g.font=`800 ${x.s}px ${FONT}`;g.lineWidth=3;g.strokeStyle='rgba(0,0,0,.7)';g.strokeText(x.t,x._sx,x._sy);g.fillStyle=x.c;g.fillText(x.t,x._sx,x._sy)}
  g.globalAlpha=1}
-function drawEmotes3(g){const k=C.height/640;for(const e of G.EM){const kt=G.T.find(t=>t.tm===e.tm&&t.kind==='k'),[sx,sy]=proj(kt.x+(e.tm?70:-70),kt.y,e.tm?3:2.4),bx=sx/k,by=sy/k,a=Math.min(1,e.l/.15,(e.m-e.l)/.3);
+function drawEmotes3(g){const k=S3.ak||C.height/640;for(const e of G.EM){const kt=G.T.find(t=>t.tm===e.tm&&t.kind==='k'),[sx,sy]=proj(kt.x+(e.tm?70:-70),kt.y,e.tm?3:2.4),bx=sx/k,by=sy/k,a=Math.min(1,e.l/.15,(e.m-e.l)/.3);
  g.globalAlpha=Math.max(0,a);g.font=`800 12px ${FONT}`;const w=g.measureText(e.txt).width+20;rr(g,bx-w/2,by-13,w,26,13,e.tm?'#ffe9e6':'#e6f3ff');
  g.fillStyle='#1b2644';g.textAlign='center';g.textBaseline='middle';g.fillText(e.txt,bx,by+.5);g.globalAlpha=1}}
 function drawCrown3(g,f,x0,y0){const p1=Math.min(1,f.l/.45),p2=clamp((f.l-.55)/(f.m-.55),0,1),tx=f.tm?24:W-24,ty=8,e=p2*p2*(3-2*p2),x=x0+(tx-x0)*e,y=y0-26*p1+(ty-(y0-26))*e,sc=(p1<1?p1*1.4:1.4-p2*.6)*(f.n>1?1.3:1);
@@ -686,10 +686,10 @@ function drawCrown3(g,f,x0,y0){const p1=Math.min(1,f.l/.45),p2=clamp((f.l-.55)/(
 function r3Pick(cx,cy){const r=S3.cv.getBoundingClientRect(),nx=(cx-r.left)/r.width*2-1,ny=-((cy-r.top)/r.height*2-1);if(nx<-1||nx>1||ny<-1||ny>1)return null;
  S3.ray.setFromCamera({x:nx,y:ny},S3.cam);const p=new T.Vector3();if(!S3.ray.ray.intersectPlane(S3.plane,p))return null;
  const x=p.x*TILE+180,y=p.z*TILE+320;return x<0||x>W||y<0||y>H?null:{x,y}}
-function r3Resize(cw,ch){if(!R3.ready)return;const d=Math.min(S3.q.dpr,devicePixelRatio||1,S3.q.coarse&&S3.comp?2:9);S3.R.setPixelRatio(d);S3.R.setSize(cw,ch,false);S3.cv.style.width=cw+'px';S3.cv.style.height=ch+'px';S3.cam.aspect=cw/ch;S3.cam.updateProjectionMatrix();if(S3.comp){S3.comp.setPixelRatio(d);S3.comp.setSize(cw,ch)}if(S3.sharp)S3.sharp.uniforms.px.value.set(1/(cw*d),1/(ch*d))}
+function r3Resize(cw,ch,ins){if(!R3.ready)return;const d=Math.min(S3.q.dpr,devicePixelRatio||1,S3.q.coarse&&S3.comp?2:9);S3.R.setPixelRatio(d);S3.R.setSize(cw,ch,false);S3.cv.style.width=cw+'px';S3.cv.style.height=ch+'px';S3.cam.aspect=cw/ch;if(ins){const f=2*Math.atan(Math.tan(36.5*Math.PI/360)*ch/ins.A)*180/Math.PI;S3.cam.fov=f;S3.cam.setViewOffset(cw,ch,0,-(ins.top-ins.bot)/2,cw,ch)}else{S3.cam.fov=36.5;S3.cam.clearViewOffset()}S3.cam.updateProjectionMatrix();if(S3.comp){S3.comp.setPixelRatio(d);S3.comp.setSize(cw,ch)}if(S3.sharp)S3.sharp.uniforms.px.value.set(1/(cw*d),1/(ch*d))}
 /* 3D сломалось на этом устройстве: дальше только 2D, бой продолжается */
 function r3Fail(why){if(R3.failed)return;R3.failed=true;R3.why=why;R3.on=false;R3.want=false;r3Stop();console.warn('3D отключено:',why);if(typeof fit==='function')fit();if(typeof toast==='function')toast('3D отключено на этом устройстве — включена упрощённая графика')}
-function r3Stop(){R3.on=false;if(S3.cv)S3.cv.style.visibility='hidden'}
+function r3Stop(){R3.on=false;document.body.classList.remove('full3d');if(S3.cv)S3.cv.style.visibility='hidden'}
 function r3Show(){if(S3.cv){S3.cv.style.visibility='visible';S3.cv.style.filter='contrast(1.07) saturate(1.1)'}}
 
 /* ---------- иконки карт из 3D-моделей ---------- */
