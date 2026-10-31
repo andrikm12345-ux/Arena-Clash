@@ -2002,7 +2002,7 @@ function drawCrown3(g,f,x0,y0){const p1=Math.min(1,f.l/.45),p2=clamp((f.l-.55)/(
 function r3Pick(cx,cy){const r=S3.cv.getBoundingClientRect(),nx=(cx-r.left)/r.width*2-1,ny=-((cy-r.top)/r.height*2-1);if(nx<-1||nx>1||ny<-1||ny>1)return null;
  S3.ray.setFromCamera({x:nx,y:ny},S3.cam);const p=new T.Vector3();if(!S3.ray.ray.intersectPlane(S3.plane,p))return null;
  const x=p.x*TILE+180,y=p.z*TILE+320;return x<0||x>W||y<0||y>H?null:{x,y}}
-function r3Resize(cw,ch,ins){if(!R3.ready)return;const d=Math.min(S3.q.dpr,devicePixelRatio||1,S3.q.coarse&&S3.comp?2:9);S3.R.setPixelRatio(d);S3.R.setSize(cw,ch,false);S3.cv.style.width=cw+'px';S3.cv.style.height=ch+'px';S3.cam.aspect=cw/ch;if(ins){const f=2*Math.atan(Math.tan(36.5*Math.PI/360)*ch/ins.A)*180/Math.PI;S3.cam.fov=f;S3.cam.setViewOffset(cw,ch,0,-(ins.top-ins.bot)/2,cw,ch)}else{S3.cam.fov=36.5;S3.cam.clearViewOffset()}S3.cam.updateProjectionMatrix();if(S3.comp){S3.comp.setPixelRatio(d);S3.comp.setSize(cw,ch)}if(S3.sharp)S3.sharp.uniforms.px.value.set(1/(cw*d),1/(ch*d))}
+function r3Resize(cw,ch,ins){if(!R3.ready)return;const d=Math.min(S3.q.dpr,devicePixelRatio||1,S3.q.coarse&&S3.comp?2:9);S3.R.setPixelRatio(d);S3.R.setSize(cw,ch,false);S3.cv.style.width=cw+'px';S3.cv.style.height=ch+'px';S3.cam.aspect=cw/ch;if(ins){const Ae=Math.min(ins.A*1.2,Math.max(ins.A,cw/.5625*.97)),f=2*Math.atan(Math.tan(36.5*Math.PI/360)*ch/Ae)*180/Math.PI;S3.cam.fov=f;S3.cam.setViewOffset(cw,ch,0,-(ins.top-ins.bot)/2,cw,ch)}else{S3.cam.fov=36.5;S3.cam.clearViewOffset()}S3.cam.updateProjectionMatrix();if(S3.comp){S3.comp.setPixelRatio(d);S3.comp.setSize(cw,ch)}if(S3.sharp)S3.sharp.uniforms.px.value.set(1/(cw*d),1/(ch*d))}
 /* 3D сломалось на этом устройстве: дальше только 2D, бой продолжается */
 function r3Fail(why){if(R3.failed)return;R3.failed=true;R3.why=why;R3.on=false;R3.want=false;r3Stop();console.warn('3D отключено:',why);if(typeof fit==='function')fit();if(typeof toast==='function')toast('3D отключено на этом устройстве — включена упрощённая графика')}
 function r3Stop(){R3.on=false;document.body.classList.remove('full3d');if(S3.cv)S3.cv.style.visibility='hidden'}
@@ -2444,7 +2444,7 @@ function importCode(code){const m=/^AC3-([0-9a-z]+)-([A-Za-z0-9+/=]+)$/.exec((co
    иначе ждёт («Ждём соперника»). Раз в NET_HASH_EVERY тиков стороны сверяют контрольную сумму состояния: расхождение — бой останавливается.
    Транспорт — любой объект {send(msg), close()}, у которого мы ставим onmsg/onclose (PeerJS в игре, заглушка в тестах). */
 let ME=0;                       // какая сторона моя: 0 — внизу, 1 — гость сети (камера развёрнута)
-const NET_BUILD='dbf7eac680';    // версия игры: у друзей должна совпадать, иначе бой разойдётся
+const NET_BUILD='2c99ac8e91';    // версия игры: у друзей должна совпадать, иначе бой разойдётся
 const NET_D=5,NET_HASH_EVERY=60;
 const NET={on:false,tr:null,me:0,in:[new Map(),new Map()],out:[],mine:new Map(),theirs:new Map(),fail:null,gone:false,waitT:0};
 /* контрольная сумма состояния: всё, что влияет на исход боя, округлено до 1e-4 */
