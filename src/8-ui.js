@@ -355,7 +355,7 @@ const NIGHT_TIPS=['night','dark','light','bridge'];
 let tipT=0;
 function tip(k){if(P.st.games>=(NIGHT_TIPS.includes(k)?6:3)||P.hints.includes(k)||!$('#tip').hidden||!$('#help').hidden)return;P.hints.push(k);saveP();const e=$('#tip');e.querySelector('span').textContent=TIPS[k];e.hidden=false;clearTimeout(tipT);tipT=setTimeout(()=>{e.hidden=true},4200)}
 function tips(){if(P.st.games>=6||G.over)return;const S=G.side[0];
- if(G.cyc&&!G.night){const C=cycOf();if((G.t%(C.day+C.night))>C.day-12&&G.t<C.day+C.night)tip('night')}
+ if(G.cyc&&!G.night&&!G.mc.night){const C=cycOf();if((G.t%(C.day+C.night))>C.day-12&&G.t<C.day+C.night)tip('night')}
  if(G.vis&&G.U.some(u=>u.tm===1&&alive(u)&&!G.vis[0].has(u))&&G.U.some(u=>u.tm===0&&alive(u)))tip('dark');
  if(G.cyc&&S.hand.some(k=>k&&((CARDS[CARDS[k].unit||k].light)||CARDS[k].flash)))tip('light');
  if(G.bridges.some(b=>b.down>0))tip('bridge');
@@ -410,7 +410,7 @@ function hud(){const S=G.side[0],e=S.el,ei=Math.floor(e);
  $('#ef').style.width=(e*10)+'%';if(ei!==hs.el){hs.el=ei;$('#en').textContent=ei;$('#eb').classList.toggle('full',ei>=10)}
  const M=CFG.match,left=G.tb?0:G.ot?M.ot-G.otT:M.len-G.t,tm=fmt(left);if(tm!==hs.tm){if(hs.tm&&left<=10&&left>0&&!G.over)AU.sfx('tick');hs.tm=tm;$('#tm').textContent=tm;$('#tm').classList.toggle('low',left<=10||!!G.ot)}
  tips();if(G.ot&&MUS.theme!=='ot')MUS.play('ot');else if(!G.ot&&!G.over&&(MUS.theme==='battle'||MUS.theme==='night')){const th=G.night?'night':'battle';if(MUS.theme!==th)MUS.play(th)}
- if(G.cyc&&!G.tb){const C=cycOf(),per=C.day+C.night,p=G.t%per,n=p>=C.day,left=Math.ceil(n?per-p:C.day-p),tx=G.force?(G.force.k?'☾ затмение ещё ':'☀ рассвет ещё ')+Math.ceil(G.force.t):(n?'☾ рассвет через ':'☀ ночь через ')+left;if(tx!==hs.dn){hs.dn=tx;const e=$('#dn');e.textContent=tx;e.classList.toggle('n',n)}}
+ if(G.cyc&&!G.tb){const C=cycOf(),per=C.day+C.night,p=G.t%per,n=p>=C.day,left=Math.ceil(n?per-p:C.day-p),tx=G.mc.night?'☾ вечная ночь':G.force?(G.force.k?'☾ затмение ещё ':'☀ рассвет ещё ')+Math.ceil(G.force.t):(n?'☾ рассвет через ':'☀ ночь через ')+left;if(tx!==hs.dn){hs.dn=tx;const e=$('#dn');e.textContent=tx;e.classList.toggle('n',n)}}
  else if(hs.dn){hs.dn='';$('#dn').textContent=''}
  const er=elRate(),ph=G.tb?'ТАЙБРЕЙКЕР':G.ot?'ОВЕРТАЙМ · ×'+er:er>1?'ЭЛИКСИР ×'+er:'ОСТАЛОСЬ';if(ph!==hs.ph){hs.ph=ph;$('#ph').textContent=ph}
  const cr=G.crowns.join();if(cr!==hs.cr){hs.cr=cr;setPips(0,G.crowns[0]);setPips(1,G.crowns[1])}
@@ -454,7 +454,7 @@ function endScreen(){mode='end';sel=null;const r=G.res,cr=G.crowns,S=G.stats[0],
  if(ev&&ev!=='challenge'&&ev!=='tutor'&&r===0)evr=eventReward(ev);if(!G.train||ev)clanFight();
  if(ev==='challenge')chr=chalResult(r===0);
  if(ev==='tutor'&&r===0){P.tutB=Math.min(CFG.tutor.battles,P.tutB+1);P.gold+=CFG.tutor.gold;saveP();tut=P.tutB}
- if(!train||ev)questProgress({wins:r===0?1:0,played:S.played,spells:S.spells,towers:cr[0],dmg:Math.round(S.dmg),battles:1,three:r===0&&cr[0]===3?1:0});
+ if(!train||ev)questProgress({wins:r===0?1:0,played:S.played,spells:S.spells,towers:cr[0],dmg:Math.round(S.dmg),battles:1,three:r===0&&cr[0]===3?1:0,bridges:S.bridges,night:S.night,mid:G.mode==='midnight'&&r===0?1:0});
  lastReplay={setup:G.setup,log:G.log.slice(),ticks:G.tick};store.set('ac.replay',lastReplay);
  if(!train){const a0=curArena(),before=P.tr;P.tr=Math.max(ARENAS[a0].tr,P.tr+trophyDelta(r));dtr=P.tr-before;P.best=Math.max(P.best,P.tr);
   if(r===0){lucky=a0;gold=8+3*a0;P.gold+=gold}

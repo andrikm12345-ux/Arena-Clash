@@ -45,6 +45,7 @@ const CFG={
   draft:{elStart:5,phases:[[0,1],[120,2]],ot:[[0,2],[60,3]]},
   double:{elStart:0,phases:[[0,2]],ot:[[0,2],[60,3]]},
   triple:{elStart:0,phases:[[0,3]],ot:[[0,3]]},
+  midnight:{elStart:5,phases:[[0,1],[120,2]],ot:[[0,2],[60,3]],night:1},          // «Полночь»: весь бой — ночь
   sudden:{elStart:0,phases:[[0,2],[120,3]],ot:[[0,3]],sudden:1},
   tutor:{elStart:7,phases:[[0,1.5]],ot:[[0,2]],cycle:0}},             // обучение: ускоренный эликсир
  tutor:{battles:3,thp:[.2,.3,.4],bot:'novice',gold:50}

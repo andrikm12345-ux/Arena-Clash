@@ -469,3 +469,18 @@ test('юнит идёт по своей дорожке: левая башня в
   s.run(`spawn(0,'giant',110,520,11);globalThis.u=G.U[0]`);
   assert.ok(s.run('findTarget(u).x<W/2'), 'пока своя башня жива — идёт на неё');
 });
+
+test('режим «Полночь»: весь бой — ночь, враг вне света не виден', () => {
+  const w = world({mode: 'midnight'});
+  assert.equal(w.run('nightK()'), 1); assert.equal(w.run('nightK(10)'), 1);
+  w.run(`spawn(1,'shooters',180,200,11);G.U.length=1;globalThis.s=G.U[0]`);
+  run(w, 1/30); assert.equal(w.run('G.night'), true); assert.equal(w.run('seen(0,s)'), false);
+});
+
+test('задания: статистика обрушенных мостов и карт, сыгранных ночью', () => {
+  const w = world();
+  w.run(`G.t=60;for(let i=0;i<3;i++)step(TICK);G.side[0].el=10;playCard(0,0,180,520)`);
+  assert.equal(w.run('G.stats[0].night'), 1);
+  w.run(`G.T.forEach(t=>t.dmg=0);castSpell(0,'sapper',BR[0],RY,11)`); run(w, 1.5);
+  assert.equal(w.run('G.stats[0].bridges'), 1); assert.equal(w.run('G.stats[1].bridges'), 0);
+});

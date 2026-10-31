@@ -11,7 +11,7 @@ function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.rand
    if(kind==='p'){const q=TT[tt[tm]]||TT.archer,t=T[T.length-1];t.hp=t.mx=Math.round(hp*q.hp);t.dmg=Math.round(t.dmg*q.dmg);t.hit*=q.hit;t.pk=q.pk;t.tt=tt[tm];if(q.mag){t.mag=t.ammo=q.mag;t.reload=q.reload}}}}
  G={seed,simR,log:[],replay:o.replay||null,rpi:0,setup:null,mc,tick:0,downs:[],tb:null,t:0,ot:0,otT:0,over:0,res:-1,endAt:0,crowns:[0,0],U:[],B:[],T,PR:[],FX:[],Z:[],D:[],S:[],PT:[],TX:[],DEC:[],EM:[],CF:[],shake:0,
   side:[0,1].map(tm=>mkSide(tm,o.decks[tm],o.lv[tm],o.kl[tm],o.ex&&o.ex[tm],mc.elStart)),mode:o.mode||'normal',bots:[0,1].map(tm=>o.bots[tm]?mkBot(tm,o.bots[tm]):null),
-  names:o.names||['Ты','Соперник'],train:!!o.train,tl:[0],tlEv:[],force:null,rules:Object.assign({},CFG.arenaRules[o.arena||0]),stormT:0,bridges:BR.map(x=>({x,hp:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),mx:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),down:0})),riv:RIVER.slice(),cyc:CFG.cycle.on&&mc.cycle!==0?1:0,night:0,vis:null,stats:[0,1].map(()=>({lost:0,trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
+  names:o.names||['Ты','Соперник'],train:!!o.train,tl:[0],tlEv:[],force:null,rules:Object.assign({},CFG.arenaRules[o.arena||0]),stormT:0,bridges:BR.map(x=>({x,hp:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),mx:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),down:0})),riv:RIVER.slice(),cyc:CFG.cycle.on&&mc.cycle!==0?1:0,night:0,vis:null,stats:[0,1].map(()=>({bridges:0,night:0,lost:0,trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
  G.side.forEach((S,tm)=>{S.elMul=o.elMul?o.elMul[tm]:G.bots[tm]?G.bots[tm].s.el:1});
  G.bots.forEach((b,tm)=>{if(b){b.r=mul(seed*31+tm+7);b.think=1.2+b.r()*1.3;b.lane=b.r()<.5?0:1}});
  G.setup={arena:o.arena||0,elMul:G.side.map(S=>S.elMul),decks:o.decks,lv:o.lv,kl:o.kl,mode:o.mode||'normal',ex:o.ex||null,tt:o.tt||null,thp:o.thp||null,seed,names:G.names,train:G.train};
@@ -51,7 +51,7 @@ function cardBlocked(tm,key){const S=G.side[tm];if(!key)return true;return!!(isA
 /* все розыгрыши и способности идут журналом команд: tk — тик, ph — 0 до тика (игрок), 1 — в фазе ботов */
 function playCard(tm,i,x,y){const R0=RNG;RNG=G.simR;let ok;try{ok=doPlay(tm,i,x,y)}finally{RNG=R0}if(ok)G.log.push({k:'p',tk:G.tick,ph:G.inBots?1:0,tm,i,x,y});return ok}
 function doPlay(tm,i,x,y){const S=G.side[tm],key=S.hand[i],c=CARDS[key];if(G.tb||G.over||!key||S.el<c.cost||cardBlocked(tm,key)||!canPlace(tm,key,x,y))return false;
- S.el-=c.cost;G.stats[tm].spent+=c.cost;G.stats[tm].played++;if(c.type==='spell')G.stats[tm].spells++;S.hand[i]=null;S.pend.push({i,key:S.queue.shift(),t:CFG.hand.delay[elRate()]||CFG.hand.delay[1]});if(isAb(S,key))S.champCard=key;else S.queue.push(key);S.last={x,y,key,t:G.t};
+ S.el-=c.cost;G.stats[tm].spent+=c.cost;G.stats[tm].played++;if(G.night)G.stats[tm].night++;if(c.type==='spell')G.stats[tm].spells++;S.hand[i]=null;S.pend.push({i,key:S.queue.shift(),t:CFG.hand.delay[elRate()]||CFG.hand.delay[1]});if(isAb(S,key))S.champCard=key;else S.queue.push(key);S.last={x,y,key,t:G.t};
  let fl=null;if(key===S.evo){if(S.evoN>=EVO[key].cyc){fl={evo:1};S.evoN=0}else S.evoN++}else if(key===S.hero)fl={hero:1};
  deploy(tm,key,x,y,fl);return true}
 function deploy(tm,key,x,y,fl){const c=CARDS[key],lvl=G.side[tm].lv[key]||1;fl=fl||null;
@@ -139,7 +139,7 @@ function doAbility(tm){const S=G.side[tm],u=S.champ;if(!alive(u))return false;co
    nightK — плавная доля ночи 0…1 (для отрисовки), isNight — ночь ли сейчас для правил */
 function cycOf(){const C=CFG.cycle,c=G.rules&&G.rules.cyc;return c?Object.assign({},C,{day:c[0],night:c[1]}):C}
 function nightK(t){if(!G||!G.cyc)return 0;const C=cycOf(),per=C.day+C.night,ph=(t??G.t)%per,f=C.fade;
- let b=ph<C.day-f?0:ph<C.day?(ph-(C.day-f))/f:ph<per-f?1:1-(ph-(per-f))/f;
+ let b=G.mc.night?1:ph<C.day-f?0:ph<C.day?(ph-(C.day-f))/f:ph<per-f?1:1-(ph-(per-f))/f;
  // принудительное время суток (Затмение, Рассвет): плавный вход и выход за 2 с
  if(t===undefined&&G.force){const F=G.force,k=clamp(Math.min(F.tot-F.t,F.t)/2,0,1);b+=(F.k-b)*k}
  return b}
@@ -198,8 +198,8 @@ const riverTile=(tx,ty)=>(G?G.riv:RIVER)[ty*GW+tx]===1;
 const onBridge=x=>BR.some((b,i)=>Math.abs(x-b)<=CFG.arena.bridgeHalf*TILE&&!(G&&G.bridges[i].down>0));
 /* ---------- разрушаемые мосты ----------
    по мосту бьют только заклинания, снаряды мортиры и взрывы при гибели (opt.br); рухнувший мост — река на bridge.down секунд */
-function bridgeHit(x,y,r,d){if(!d)return;G.bridges.forEach((b,i)=>{if(b.down>0)return;const h=CFG.arena.bridgeHalf*TILE;
- if(Math.abs(x-b.x)<h+r&&Math.abs(y-RY)<RIV+r){b.hp-=d;b.fl=.15;if(b.hp<=0)bridgeDown(i)}})}
+function bridgeHit(x,y,r,d,tm){if(!d)return;G.bridges.forEach((b,i)=>{if(b.down>0)return;const h=CFG.arena.bridgeHalf*TILE;
+ if(Math.abs(x-b.x)<h+r&&Math.abs(y-RY)<RIV+r){b.hp-=d;b.fl=.15;if(b.hp<=0){bridgeDown(i);if(tm===0||tm===1)G.stats[tm].bridges++}}})}
 function bridgeDown(i){const b=G.bridges[i],h=CFG.arena.bridgeHalf*TILE;b.hp=0;b.down=CFG.bridge.down;setRiver(i,1);
  for(const u of G.U)if(alive(u)&&!u.fly&&!u.c.jump&&Math.abs(u.x-b.x)<=h+u.r&&Math.abs(u.y-RY)<RIV+u.r){u.y=RY+(u.y<RY?-(RIV+u.r+2):RIV+u.r+2);stunObj(u,CFG.bridge.stun);puff(u.x,u.y,'#9fd8ff',6,50,2.4)}
  puff(b.x,RY,'#8a6a44',26,90,4);puff(b.x,RY,'#bfe6ff',18,70,3);G.shake=Math.max(G.shake,8);AU.sfx('bridge');floatText(b.x,RY-26,'Мост рухнул!','#ffb38a',13);G.FX.push({k:'bridge',i,l:0,m:1})}
@@ -279,7 +279,7 @@ function attack(u,t,mul){const c=u.c,am=affOn(c)?1+CFG.cycle.aff.dmg:1;let dmg=u
  puff(t.x,t.y-6,'#fff',2,30,1.8);G.FX.push({k:'slash',x:t.x,y:t.y-10-(t.fly?FLYOFF:0),a:rnd(-.7,.7),s:u.r>10?1.3:1,l:0,m:.2});AU.sfx('hit')}
 function hitTarget(src,o,dmg){if((o.obj==='t'||o.obj==='b')&&src.c&&src.c.td)dmg*=src.c.td;damage(o,dmg,src.tm)}
 function explode(u,t){areaHit(u.tm,t.x,t.y,u.c.splash*TILE,u.dmg,u.dmg,'ga');ring(t.x,t.y,u.c.splash*TILE,'#ffb347');puff(t.x,t.y,'#ff8a2a',12,70,3);AU.sfx('boom');u.hp=0;u.nodeath=1}
-function areaHit(tm,x,y,r,dmg,tdmg,tg,opt){opt=opt||{};const p={x,y};if(opt.br)bridgeHit(x,y,r,opt.br);if(opt.crater)crater(x,y,r);
+function areaHit(tm,x,y,r,dmg,tdmg,tg,opt){opt=opt||{};const p={x,y};if(opt.br)bridgeHit(x,y,r,opt.br,tm);if(opt.crater)crater(x,y,r);
  if(tg!=='b')for(const v of G.U)if(v.tm!==tm&&v!==opt.skip&&alive(v)&&!(v.fly&&tg==='g')&&dist(v,p)<r+v.r*.5){damage(v,dmg,tm);
   if(opt.stun)stunObj(v,opt.stun);if(opt.slow)slowObj(v,opt.slow);if(opt.freeze){v.frozenT=Math.max(v.frozenT,opt.freeze);v.wu=0;v.beamT=0}
   if(opt.knock&&v.mass<CFG.phys.knockMinMass&&!v.fly&&!v.dashing&&!(v.shield>0)){const d=dist(v,p)||1;impulse(v,(v.x-x)/d,(v.y-y)/d,opt.knock*CFG.phys.knockDamp);v.wu=0;v.lock=0;v.rt=0;v.beamT=0}}

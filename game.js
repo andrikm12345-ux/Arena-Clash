@@ -46,6 +46,7 @@ const CFG={
   draft:{elStart:5,phases:[[0,1],[120,2]],ot:[[0,2],[60,3]]},
   double:{elStart:0,phases:[[0,2]],ot:[[0,2],[60,3]]},
   triple:{elStart:0,phases:[[0,3]],ot:[[0,3]]},
+  midnight:{elStart:5,phases:[[0,1],[120,2]],ot:[[0,2],[60,3]],night:1},          // «Полночь»: весь бой — ночь
   sudden:{elStart:0,phases:[[0,2],[120,3]],ot:[[0,3]],sudden:1},
   tutor:{elStart:7,phases:[[0,1.5]],ot:[[0,2]],cycle:0}},             // обучение: ускоренный эликсир
  tutor:{battles:3,thp:[.2,.3,.4],bot:'novice',gold:50}
@@ -95,21 +96,21 @@ const CARDS={
  militia:{n:'Дружина',rar:'common',type:'troop',cost:5,count:4,hp:717,dmg:198,hit:1.4,rng:.8,spd:'med',tg:'g',r:8,tip:'Четверо крепких бойцов. Перемалывают танков, боятся урона по площади.'},
  wisp:{aff:'night',n:'Огонёк',rar:'common',type:'troop',cost:1,hp:229,dmg:214,hit:1,rng:2,spd:'vfast',tg:'ga',r:6,kami:1,splash:2.3,tip:'Прыгает на врага и взрывается по площади. Один эликсир.'},
  giant:{n:'Великан',rar:'rare',type:'troop',cost:5,hp:4400,dmg:270,hit:1.5,rng:1,spd:'slow',tg:'b',r:15,mass:18,tip:'Идёт только на строения и держит всё. Нужна поддержка сзади.'},
- crossbow:{n:'Арбалетчица',rar:'rare',type:'troop',cost:4,hp:700,dmg:200,hit:1.1,rng:6,spd:'med',tg:'ga',r:8,proj:'bolt',tip:'Сильный одиночный стрелок с большой дальностью.'},
+ crossbow:{n:'Арбалетчица',rar:'rare',type:'troop',cost:4,hp:700,dmg:185,hit:1.1,rng:6,spd:'med',tg:'ga',r:8,proj:'bolt',tip:'Сильный одиночный стрелок с большой дальностью.'},
  axe:{n:'Секира',rar:'rare',type:'troop',cost:4,hp:1908,dmg:267,hit:1.5,rng:1,spd:'med',tg:'g',r:9,spin:1,splash:2,tip:'Крутит топор вокруг себя: гроза стай на земле.'},
  fireball:{n:'Огненный шар',rar:'rare',type:'spell',cost:4,rad:2.5,dmg:730,tdmg:220,knock:16,tip:'Большой урон по площади и отбрасывание лёгких.'},
  hammer:{n:'Молотобоец',rar:'rare',type:'troop',cost:4,hp:1300,dmg:640,hit:1.7,rng:.8,spd:'fast',tg:'g',r:9,tip:'Огромный урон по одной цели. Ломает танков.'},
  ram:{n:'Тачка-таран',rar:'rare',type:'troop',cost:4,hp:1679,dmg:320,hit:1.6,rng:.8,spd:'vfast',tg:'b',r:11,mass:10,jump:1,tip:'Очень быстро катится к строениям и перепрыгивает реку. Главная угроза для башен.'},
  lair:{n:'Логово',rar:'rare',type:'building',cost:3,hp:794,tg:'g',r:14,life:30,spawn:{id:'bones',every:3.5,n:1},dspawn:{id:'bones',n:3},tip:'Выпускает костяшек, пока стоит, и ещё троих, когда рушится.'},
  sorcerer:{aff:'day',n:'Чародей',rar:'rare',type:'troop',cost:5,hp:690,dmg:250,hit:1.45,rng:5.5,spd:'med',tg:'ga',r:8,proj:'orb',splash:1.5,tip:'Огненные шары по площади, достаёт воздух. Хрупкий.'},
- drake:{n:'Дракончик',rar:'epic',type:'troop',cost:4,hp:1080,dmg:150,hit:1.5,rng:3.5,spd:'fast',fly:1,tg:'ga',r:10,proj:'flame',splash:1.5,tip:'Летит над рекой и дышит огнём по площади.'},
+ drake:{n:'Дракончик',rar:'epic',type:'troop',cost:4,hp:1020,dmg:150,hit:1.5,rng:3.5,spd:'fast',fly:1,tg:'ga',r:10,proj:'flame',splash:1.5,tip:'Летит над рекой и дышит огнём по площади.'},
  freeze:{n:'Заморозка',rar:'epic',type:'spell',cost:4,rad:3,dmg:114,tdmg:38,freeze:4,tip:'Всё вражеское в круге замирает на 4 секунды, даже башни.'},
- cry:{n:'Боевой клич',rar:'epic',type:'spell',cost:2,rad:4.5,rage:9,tip:'Свои в круге на 9 секунд двигаются и бьют на 35% быстрее.'},
+ cry:{n:'Боевой клич',rar:'epic',type:'spell',cost:2,rad:4.5,rage:10.5,tip:'Свои в круге на 10,5 секунды двигаются и бьют на 35% быстрее.'},
  vortex:{n:'Вихрь',rar:'epic',type:'spell',cost:3,rad:5.5,dmg:160,tdmg:50,pull:1.1,pullSpd:150,tip:'Затягивает всех врагов к центру и слегка ранит. Сбивает в кучу под удар и задевает королевскую башню — она проснётся.'},
  spring:{n:'Родник',rar:'rare',type:'building',cost:6,hp:1070,tg:'g',r:13,life:70,elx:{every:9,n:1},noStart:1,tip:'Добывает эликсир: +1 каждые 9 секунд, пока стоит. Окупается, если его не сломают. Не бывает в стартовой руке.'},
  raider:{aff:'night',n:'Налётчица',rar:'legendary',type:'troop',cost:3,hp:906,dmg:193,hit:1,rng:.75,spd:'fast',tg:'g',r:8,dash:{min:3.5,max:6,spd:500,mul:2},tip:'Рывком сокращает дистанцию до цели в 3,5–6 клеток. Во время рывка неуязвима, первый удар — двойной.'},
  mend:{n:'Целебный звон',rar:'rare',type:'spell',cost:2,rad:3,heal:540,healT:2,tip:'Две секунды лечит своих бойцов в круге. Спасает пуш, который вот-вот развалится.'},
- sapper:{n:'Подрыв',rar:'epic',type:'spell',cost:2,rad:2,dmg:190,tdmg:55,bdmg:2000,crater:1,tip:'Взрыв обрушивает мост, если попасть по нему: 20 с наземные идут через другой. Юниты на мосту падают на берег и оглушены. По юнитам — 150 урона.'},
+ sapper:{n:'Подрыв',rar:'epic',type:'spell',cost:2,rad:2,dmg:250,tdmg:80,bdmg:2000,crater:1,tip:'Взрыв обрушивает мост, если попасть по нему: 20 с наземные идут через другой. Юниты на мосту падают на берег и оглушены. По юнитам — 150 урона.'},
  shadowblade:{aff:'night',n:'Тень',rar:'epic',type:'troop',cost:3,hp:690,dmg:230,hit:1,rng:.7,spd:'fast',tg:'g',r:7,stealth:1,tip:'Ночью её видно, только вблизи 2,5 клеток: свет не помогает. Днём обычная ловкая убийца.'},
  priest:{aff:'day',n:'Страж рассвета',rar:'rare',type:'troop',cost:4,hp:900,dmg:150,hit:1.2,rng:5,spd:'med',tg:'ga',r:8,proj:'orb',light:4,tip:'Дальний боец с собственным светом на 4 клетки. Днём бьёт сильнее; ночью освещает стрелков и открывает врагов.'},
  eclipse:{n:'Затмение',rar:'legendary',type:'spell',cost:3,rad:0,force:{k:1,t:14},tip:'14 секунд — ночь для всех, где бы ты ни был. Ночные карты и Тени сильнее, дневные слабее, дальний бой слепнет.'},
@@ -118,7 +119,7 @@ const CARDS={
  lantern:{n:'Фонарь',rar:'common',type:'building',cost:1,hp:520,tg:'g',r:10,life:55,light:6,tip:'Свет 6 клеток на 55 с. Сам не бьёт, но ночью открывает врагов у моста и притягивает «только здания».'},
  flash:{n:'Вспышка',rar:'rare',type:'spell',cost:1,rad:2.5,dmg:96,tdmg:29,blind:1,flash:{light:5,t:6},tip:'Яркий свет на 5 клеток на 6 с; враги в центре (2,5 клетки) обожжены и ослеплены: 1 с не двигаются и не атакуют.'},
  shade:{n:'Сумрак',rar:'epic',type:'spell',cost:2,rad:4,shade:8,tip:'8 с внутри круга не действует никакой свет — даже днём. Враг видит там только тех, кто ближе 2,5 клетки. Укрой стрелков у вражеской башни.'},
- roller:{n:'Каток',rar:'legendary',type:'spell',cost:2,rad:2,dmg:300,tdmg:60,roll:{len:10,spd:220},knock:28,tip:'Бревно катится вперёд на 10 клеток: бьёт и отталкивает наземных врагов, задевает башни. Летающих не трогает.'},
+ roller:{n:'Каток',rar:'legendary',type:'spell',cost:2,rad:2,dmg:340,tdmg:70,roll:{len:10,spd:220},knock:28,tip:'Бревно катится вперёд на 10 клеток: бьёт и отталкивает наземных врагов, задевает башни. Летающих не трогает.'},
  shieldman:{aff:'day',n:'Щитоносец',rar:'rare',type:'troop',cost:3,hp:850,shield:560,dmg:180,hit:1.1,rng:.8,spd:'med',tg:'g',r:9,tip:'Щит принимает урон первым. Пока щит цел, отбрасывание и оглушение ему не страшны.'},
  mortar:{n:'Мортира',rar:'common',type:'building',cost:4,hp:1600,dmg:290,hit:4,rng:11.5,minRng:3.5,splash:1,tg:'g',r:13,life:30,siege:1,tip:'Бьёт навесом на 11,5 клетки по площади, достаёт башни. Вблизи (3,5 клетки) стрелять не может.'},
  grave:{aff:'night',n:'Погост',rar:'legendary',type:'spell',cost:5,rad:4,grave:{t:9.5,n:15,id:'bones',td:.8},tip:'9,5 с поднимает скелетов в круге: всего 15, по башням они бьют на 25% слабее. Против башни, которую некому защищать, — смертельно.'},
@@ -450,7 +451,7 @@ function newMatch(o){uid=0;const seed=Number.isInteger(o.seed)?o.seed:(Math.rand
    if(kind==='p'){const q=TT[tt[tm]]||TT.archer,t=T[T.length-1];t.hp=t.mx=Math.round(hp*q.hp);t.dmg=Math.round(t.dmg*q.dmg);t.hit*=q.hit;t.pk=q.pk;t.tt=tt[tm];if(q.mag){t.mag=t.ammo=q.mag;t.reload=q.reload}}}}
  G={seed,simR,log:[],replay:o.replay||null,rpi:0,setup:null,mc,tick:0,downs:[],tb:null,t:0,ot:0,otT:0,over:0,res:-1,endAt:0,crowns:[0,0],U:[],B:[],T,PR:[],FX:[],Z:[],D:[],S:[],PT:[],TX:[],DEC:[],EM:[],CF:[],shake:0,
   side:[0,1].map(tm=>mkSide(tm,o.decks[tm],o.lv[tm],o.kl[tm],o.ex&&o.ex[tm],mc.elStart)),mode:o.mode||'normal',bots:[0,1].map(tm=>o.bots[tm]?mkBot(tm,o.bots[tm]):null),
-  names:o.names||['Ты','Соперник'],train:!!o.train,tl:[0],tlEv:[],force:null,rules:Object.assign({},CFG.arenaRules[o.arena||0]),stormT:0,bridges:BR.map(x=>({x,hp:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),mx:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),down:0})),riv:RIVER.slice(),cyc:CFG.cycle.on&&mc.cycle!==0?1:0,night:0,vis:null,stats:[0,1].map(()=>({lost:0,trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
+  names:o.names||['Ты','Соперник'],train:!!o.train,tl:[0],tlEv:[],force:null,rules:Object.assign({},CFG.arenaRules[o.arena||0]),stormT:0,bridges:BR.map(x=>({x,hp:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),mx:CFG.bridge.hp*((CFG.arenaRules[o.arena||0]||{}).brHp||1),down:0})),riv:RIVER.slice(),cyc:CFG.cycle.on&&mc.cycle!==0?1:0,night:0,vis:null,stats:[0,1].map(()=>({bridges:0,night:0,lost:0,trade:0,dmg:0,spent:0,played:0,spells:0,leak:0,fullCur:0,fullN:0,fullSum:0,fullMax:0}))};
  G.side.forEach((S,tm)=>{S.elMul=o.elMul?o.elMul[tm]:G.bots[tm]?G.bots[tm].s.el:1});
  G.bots.forEach((b,tm)=>{if(b){b.r=mul(seed*31+tm+7);b.think=1.2+b.r()*1.3;b.lane=b.r()<.5?0:1}});
  G.setup={arena:o.arena||0,elMul:G.side.map(S=>S.elMul),decks:o.decks,lv:o.lv,kl:o.kl,mode:o.mode||'normal',ex:o.ex||null,tt:o.tt||null,thp:o.thp||null,seed,names:G.names,train:G.train};
@@ -490,7 +491,7 @@ function cardBlocked(tm,key){const S=G.side[tm];if(!key)return true;return!!(isA
 /* все розыгрыши и способности идут журналом команд: tk — тик, ph — 0 до тика (игрок), 1 — в фазе ботов */
 function playCard(tm,i,x,y){const R0=RNG;RNG=G.simR;let ok;try{ok=doPlay(tm,i,x,y)}finally{RNG=R0}if(ok)G.log.push({k:'p',tk:G.tick,ph:G.inBots?1:0,tm,i,x,y});return ok}
 function doPlay(tm,i,x,y){const S=G.side[tm],key=S.hand[i],c=CARDS[key];if(G.tb||G.over||!key||S.el<c.cost||cardBlocked(tm,key)||!canPlace(tm,key,x,y))return false;
- S.el-=c.cost;G.stats[tm].spent+=c.cost;G.stats[tm].played++;if(c.type==='spell')G.stats[tm].spells++;S.hand[i]=null;S.pend.push({i,key:S.queue.shift(),t:CFG.hand.delay[elRate()]||CFG.hand.delay[1]});if(isAb(S,key))S.champCard=key;else S.queue.push(key);S.last={x,y,key,t:G.t};
+ S.el-=c.cost;G.stats[tm].spent+=c.cost;G.stats[tm].played++;if(G.night)G.stats[tm].night++;if(c.type==='spell')G.stats[tm].spells++;S.hand[i]=null;S.pend.push({i,key:S.queue.shift(),t:CFG.hand.delay[elRate()]||CFG.hand.delay[1]});if(isAb(S,key))S.champCard=key;else S.queue.push(key);S.last={x,y,key,t:G.t};
  let fl=null;if(key===S.evo){if(S.evoN>=EVO[key].cyc){fl={evo:1};S.evoN=0}else S.evoN++}else if(key===S.hero)fl={hero:1};
  deploy(tm,key,x,y,fl);return true}
 function deploy(tm,key,x,y,fl){const c=CARDS[key],lvl=G.side[tm].lv[key]||1;fl=fl||null;
@@ -578,7 +579,7 @@ function doAbility(tm){const S=G.side[tm],u=S.champ;if(!alive(u))return false;co
    nightK — плавная доля ночи 0…1 (для отрисовки), isNight — ночь ли сейчас для правил */
 function cycOf(){const C=CFG.cycle,c=G.rules&&G.rules.cyc;return c?Object.assign({},C,{day:c[0],night:c[1]}):C}
 function nightK(t){if(!G||!G.cyc)return 0;const C=cycOf(),per=C.day+C.night,ph=(t??G.t)%per,f=C.fade;
- let b=ph<C.day-f?0:ph<C.day?(ph-(C.day-f))/f:ph<per-f?1:1-(ph-(per-f))/f;
+ let b=G.mc.night?1:ph<C.day-f?0:ph<C.day?(ph-(C.day-f))/f:ph<per-f?1:1-(ph-(per-f))/f;
  // принудительное время суток (Затмение, Рассвет): плавный вход и выход за 2 с
  if(t===undefined&&G.force){const F=G.force,k=clamp(Math.min(F.tot-F.t,F.t)/2,0,1);b+=(F.k-b)*k}
  return b}
@@ -637,8 +638,8 @@ const riverTile=(tx,ty)=>(G?G.riv:RIVER)[ty*GW+tx]===1;
 const onBridge=x=>BR.some((b,i)=>Math.abs(x-b)<=CFG.arena.bridgeHalf*TILE&&!(G&&G.bridges[i].down>0));
 /* ---------- разрушаемые мосты ----------
    по мосту бьют только заклинания, снаряды мортиры и взрывы при гибели (opt.br); рухнувший мост — река на bridge.down секунд */
-function bridgeHit(x,y,r,d){if(!d)return;G.bridges.forEach((b,i)=>{if(b.down>0)return;const h=CFG.arena.bridgeHalf*TILE;
- if(Math.abs(x-b.x)<h+r&&Math.abs(y-RY)<RIV+r){b.hp-=d;b.fl=.15;if(b.hp<=0)bridgeDown(i)}})}
+function bridgeHit(x,y,r,d,tm){if(!d)return;G.bridges.forEach((b,i)=>{if(b.down>0)return;const h=CFG.arena.bridgeHalf*TILE;
+ if(Math.abs(x-b.x)<h+r&&Math.abs(y-RY)<RIV+r){b.hp-=d;b.fl=.15;if(b.hp<=0){bridgeDown(i);if(tm===0||tm===1)G.stats[tm].bridges++}}})}
 function bridgeDown(i){const b=G.bridges[i],h=CFG.arena.bridgeHalf*TILE;b.hp=0;b.down=CFG.bridge.down;setRiver(i,1);
  for(const u of G.U)if(alive(u)&&!u.fly&&!u.c.jump&&Math.abs(u.x-b.x)<=h+u.r&&Math.abs(u.y-RY)<RIV+u.r){u.y=RY+(u.y<RY?-(RIV+u.r+2):RIV+u.r+2);stunObj(u,CFG.bridge.stun);puff(u.x,u.y,'#9fd8ff',6,50,2.4)}
  puff(b.x,RY,'#8a6a44',26,90,4);puff(b.x,RY,'#bfe6ff',18,70,3);G.shake=Math.max(G.shake,8);AU.sfx('bridge');floatText(b.x,RY-26,'Мост рухнул!','#ffb38a',13);G.FX.push({k:'bridge',i,l:0,m:1})}
@@ -718,7 +719,7 @@ function attack(u,t,mul){const c=u.c,am=affOn(c)?1+CFG.cycle.aff.dmg:1;let dmg=u
  puff(t.x,t.y-6,'#fff',2,30,1.8);G.FX.push({k:'slash',x:t.x,y:t.y-10-(t.fly?FLYOFF:0),a:rnd(-.7,.7),s:u.r>10?1.3:1,l:0,m:.2});AU.sfx('hit')}
 function hitTarget(src,o,dmg){if((o.obj==='t'||o.obj==='b')&&src.c&&src.c.td)dmg*=src.c.td;damage(o,dmg,src.tm)}
 function explode(u,t){areaHit(u.tm,t.x,t.y,u.c.splash*TILE,u.dmg,u.dmg,'ga');ring(t.x,t.y,u.c.splash*TILE,'#ffb347');puff(t.x,t.y,'#ff8a2a',12,70,3);AU.sfx('boom');u.hp=0;u.nodeath=1}
-function areaHit(tm,x,y,r,dmg,tdmg,tg,opt){opt=opt||{};const p={x,y};if(opt.br)bridgeHit(x,y,r,opt.br);if(opt.crater)crater(x,y,r);
+function areaHit(tm,x,y,r,dmg,tdmg,tg,opt){opt=opt||{};const p={x,y};if(opt.br)bridgeHit(x,y,r,opt.br,tm);if(opt.crater)crater(x,y,r);
  if(tg!=='b')for(const v of G.U)if(v.tm!==tm&&v!==opt.skip&&alive(v)&&!(v.fly&&tg==='g')&&dist(v,p)<r+v.r*.5){damage(v,dmg,tm);
   if(opt.stun)stunObj(v,opt.stun);if(opt.slow)slowObj(v,opt.slow);if(opt.freeze){v.frozenT=Math.max(v.frozenT,opt.freeze);v.wu=0;v.beamT=0}
   if(opt.knock&&v.mass<CFG.phys.knockMinMass&&!v.fly&&!v.dashing&&!(v.shield>0)){const d=dist(v,p)||1;impulse(v,(v.x-x)/d,(v.y-y)/d,opt.knock*CFG.phys.knockDamp);v.wu=0;v.lock=0;v.rt=0;v.beamT=0}}
@@ -2214,6 +2215,7 @@ const EVENTS=[{id:'triple',n:'Тройной эликсир',d:'Эликсир �
  {id:'sudden',n:'Внезапная смерть',d:'Кто первым сломает любую башню, тот победил. Эликсир ×2, в последнюю минуту ×3.',c:'#ff5c4d'},
  {id:'draft',n:'Драфт',d:'Колоды собираются прямо перед боем: из каждой пары карт одну берёшь ты, другая уходит сопернику. Уровни карт равные.',c:'#3da5ff'},
  {id:'challenge',n:'Испытание',d:'Играй, пока не проиграешь трижды. Каждая победа поднимает награду (до 12 побед), соперники всё сильнее.',c:'#ffc83d'},
+ {id:'midnight',n:'Полночь',d:'Весь бой — ночь. Видно только то, что освещено: берегись теней и бери свет с собой. Награда обычная.',c:'#7a8cff'},
  {id:'double',n:'Двойной эликсир',d:'Эликсир ×2 с первой секунды, старт с нуля.',c:'#e08bff'},
  {id:'random',n:'Случайные колоды',d:'Обе колоды собираются случайно из открытых карт. Уровни карт равные.',c:'#5ec8ff'},
  {id:'train',n:'Тренировка',d:'Обычный бой без кубков с ботом выбранной силы.',c:'#5fe08f'}];
@@ -2221,7 +2223,9 @@ const EVENTS=[{id:'triple',n:'Тройной эликсир',d:'Эликсир �
 const QUESTS=[{id:'win',n:'Победи в 2 боях',goal:2,stat:'wins',r:{g:60}},{id:'cards',n:'Сыграй 25 карт',goal:25,stat:'played',r:{g:40}},
  {id:'spells',n:'Сыграй 6 заклинаний',goal:6,stat:'spells',r:{gm:5}},{id:'towers',n:'Сломай 3 башни',goal:3,stat:'towers',r:{g:80}},
  {id:'dmg',n:'Нанеси башням 8000 урона',goal:8000,stat:'dmg',r:{sh:1}},{id:'battles',n:'Сыграй 3 боя',goal:3,stat:'battles',r:{g:40}},
- {id:'three',n:'Победи с тремя коронами',goal:1,stat:'three',r:{gm:10}}];
+ {id:'three',n:'Победи с тремя коронами',goal:1,stat:'three',r:{gm:10}},
+ {id:'bridge',n:'Обрушь вражеский мост',goal:1,stat:'bridges',r:{gm:8}},{id:'night',n:'Сыграй 10 карт ночью',goal:10,stat:'night',r:{g:70}},
+ {id:'mid',n:'Победи в режиме «Полночь»',goal:1,stat:'mid',r:{sh:1}}];
 /* испытание: награда по числу побед */
 const CHAL={maxWins:12,maxLoss:3,bots:['normal','normal','normal','hard','hard','hard','hard','expert','expert','expert','expert','expert'],
  reward:w=>({gold:25*w+3*w*w,gems:w>=6?10+2*(w-6):0,shards:w>=9?2:w>=4?1:0})};
@@ -2763,7 +2767,7 @@ const NIGHT_TIPS=['night','dark','light','bridge'];
 let tipT=0;
 function tip(k){if(P.st.games>=(NIGHT_TIPS.includes(k)?6:3)||P.hints.includes(k)||!$('#tip').hidden||!$('#help').hidden)return;P.hints.push(k);saveP();const e=$('#tip');e.querySelector('span').textContent=TIPS[k];e.hidden=false;clearTimeout(tipT);tipT=setTimeout(()=>{e.hidden=true},4200)}
 function tips(){if(P.st.games>=6||G.over)return;const S=G.side[0];
- if(G.cyc&&!G.night){const C=cycOf();if((G.t%(C.day+C.night))>C.day-12&&G.t<C.day+C.night)tip('night')}
+ if(G.cyc&&!G.night&&!G.mc.night){const C=cycOf();if((G.t%(C.day+C.night))>C.day-12&&G.t<C.day+C.night)tip('night')}
  if(G.vis&&G.U.some(u=>u.tm===1&&alive(u)&&!G.vis[0].has(u))&&G.U.some(u=>u.tm===0&&alive(u)))tip('dark');
  if(G.cyc&&S.hand.some(k=>k&&((CARDS[CARDS[k].unit||k].light)||CARDS[k].flash)))tip('light');
  if(G.bridges.some(b=>b.down>0))tip('bridge');
@@ -2818,7 +2822,7 @@ function hud(){const S=G.side[0],e=S.el,ei=Math.floor(e);
  $('#ef').style.width=(e*10)+'%';if(ei!==hs.el){hs.el=ei;$('#en').textContent=ei;$('#eb').classList.toggle('full',ei>=10)}
  const M=CFG.match,left=G.tb?0:G.ot?M.ot-G.otT:M.len-G.t,tm=fmt(left);if(tm!==hs.tm){if(hs.tm&&left<=10&&left>0&&!G.over)AU.sfx('tick');hs.tm=tm;$('#tm').textContent=tm;$('#tm').classList.toggle('low',left<=10||!!G.ot)}
  tips();if(G.ot&&MUS.theme!=='ot')MUS.play('ot');else if(!G.ot&&!G.over&&(MUS.theme==='battle'||MUS.theme==='night')){const th=G.night?'night':'battle';if(MUS.theme!==th)MUS.play(th)}
- if(G.cyc&&!G.tb){const C=cycOf(),per=C.day+C.night,p=G.t%per,n=p>=C.day,left=Math.ceil(n?per-p:C.day-p),tx=G.force?(G.force.k?'☾ затмение ещё ':'☀ рассвет ещё ')+Math.ceil(G.force.t):(n?'☾ рассвет через ':'☀ ночь через ')+left;if(tx!==hs.dn){hs.dn=tx;const e=$('#dn');e.textContent=tx;e.classList.toggle('n',n)}}
+ if(G.cyc&&!G.tb){const C=cycOf(),per=C.day+C.night,p=G.t%per,n=p>=C.day,left=Math.ceil(n?per-p:C.day-p),tx=G.mc.night?'☾ вечная ночь':G.force?(G.force.k?'☾ затмение ещё ':'☀ рассвет ещё ')+Math.ceil(G.force.t):(n?'☾ рассвет через ':'☀ ночь через ')+left;if(tx!==hs.dn){hs.dn=tx;const e=$('#dn');e.textContent=tx;e.classList.toggle('n',n)}}
  else if(hs.dn){hs.dn='';$('#dn').textContent=''}
  const er=elRate(),ph=G.tb?'ТАЙБРЕЙКЕР':G.ot?'ОВЕРТАЙМ · ×'+er:er>1?'ЭЛИКСИР ×'+er:'ОСТАЛОСЬ';if(ph!==hs.ph){hs.ph=ph;$('#ph').textContent=ph}
  const cr=G.crowns.join();if(cr!==hs.cr){hs.cr=cr;setPips(0,G.crowns[0]);setPips(1,G.crowns[1])}
@@ -2862,7 +2866,7 @@ function endScreen(){mode='end';sel=null;const r=G.res,cr=G.crowns,S=G.stats[0],
  if(ev&&ev!=='challenge'&&ev!=='tutor'&&r===0)evr=eventReward(ev);if(!G.train||ev)clanFight();
  if(ev==='challenge')chr=chalResult(r===0);
  if(ev==='tutor'&&r===0){P.tutB=Math.min(CFG.tutor.battles,P.tutB+1);P.gold+=CFG.tutor.gold;saveP();tut=P.tutB}
- if(!train||ev)questProgress({wins:r===0?1:0,played:S.played,spells:S.spells,towers:cr[0],dmg:Math.round(S.dmg),battles:1,three:r===0&&cr[0]===3?1:0});
+ if(!train||ev)questProgress({wins:r===0?1:0,played:S.played,spells:S.spells,towers:cr[0],dmg:Math.round(S.dmg),battles:1,three:r===0&&cr[0]===3?1:0,bridges:S.bridges,night:S.night,mid:G.mode==='midnight'&&r===0?1:0});
  lastReplay={setup:G.setup,log:G.log.slice(),ticks:G.tick};store.set('ac.replay',lastReplay);
  if(!train){const a0=curArena(),before=P.tr;P.tr=Math.max(ARENAS[a0].tr,P.tr+trophyDelta(r));dtr=P.tr-before;P.best=Math.max(P.best,P.tr);
   if(r===0){lucky=a0;gold=8+3*a0;P.gold+=gold}
