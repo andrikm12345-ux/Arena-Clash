@@ -101,6 +101,12 @@ const collLevel=()=>CARD_IDS.reduce((s,k)=>s+(P.cards[k]?P.cards[k].lv:0),0)+P.e
 function unlockEvo(k){if(!EVO[k]||!P.cards[k]||P.evo.includes(k)||P.shards<EVO_COST)return false;P.shards-=EVO_COST;P.evo.push(k);saveP();return true}
 function unlockHero(k){if(!HERO[k]||!P.cards[k]||P.heroes.includes(k)||P.shards<HERO_COST)return false;P.shards-=HERO_COST;P.heroes.push(k);saveP();return true}
 /* поставить карту в особый слот: меняется местами с тем, что там стоит */
+/* замена карты в колоде: outK — карта колоды; inK — другая карта колоды (меняются местами) или карта коллекции (встаёт вместо неё) */
+function trySwap(deck,outK,inK){const d=deck.slice(),i=d.indexOf(outK);if(i<0)return{ok:false,why:'Этой карты нет в колоде'};
+ const j=d.indexOf(inK);if(j>=0){[d[i],d[j]]=[d[j],d[i]];return{ok:true,deck:d,swap:1}}
+ if(!P.cards[inK])return{ok:false,why:'Эта карта ещё не найдена'};
+ d[i]=inK;if(d.filter(k=>CARDS[k].rar==='champion').length>1)return{ok:false,why:'В колоде может быть только один чемпион'};
+ if(!okDeck(d))return{ok:false,why:'Такую колоду собрать нельзя'};return{ok:true,deck:d}}
 function toSlot(k,i){const d=curDeck().slice(),j=d.indexOf(k);if(j<0)return false;[d[i],d[j]]=[d[j],d[i]];P.decks[P.slot]=d;saveP();return true}
 
 /* ---------- карты и уровни ---------- */

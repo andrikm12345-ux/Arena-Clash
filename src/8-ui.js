@@ -47,7 +47,7 @@ function drawChest(g,t,open,w,h){const C=CHESTS[t].col,s=Math.min(w/120,h/100);g
  g.restore()}
 
 /* ---------- шапка и вкладки ---------- */
-let tab='play',repl=null;
+let tab='play',pick=null,lastSwap=null;
 const TABS=[['shop','Магазин',NAVI.shop],['cards','Колоды',NAVI.cards],['play','Бой',NAVI.play],['clan','Клан',NAVI.clan],['events','События',NAVI.events]];
 function renderHeader(){const nx=P.kl<KL_MAX?KL_XP[P.kl]:1,pv=P.kl>1?KL_XP[P.kl-1]:0,x=P.kl<KL_MAX?clamp((P.xp-pv)/(nx-pv),0,1):1;
  const pill=(id,ic,v,plus,lab)=>`<button class="rp" id="${id}" aria-label="${lab}: ${v}"><span class="ri">${ic}</span><b>${v}</b>${plus?'<i class="plus" aria-hidden="true">+</i>':''}</button>`;
@@ -63,7 +63,7 @@ function navCounts(){const rs=reqState();return{play:ROAD.filter((_,i)=>roadRead
  cards:CARD_IDS.filter(k=>canUp(k)&&P.gold>=upCost(k)).length+P.fresh.length,shop:P.shop&&P.shop.day===dayKey()&&P.shop.bought.includes(0)?0:1}}
 function renderNav(){const n=$('#nav'),cnt=navCounts(),cur=tab==='road'?'play':tab;
  n.innerHTML=TABS.map(([id,t,ic])=>`<button data-t="${id}"${cur===id?' aria-current="page"':''} aria-label="${t}">${ic}<span>${t}</span>${cnt[id]?`<i class="dot" aria-hidden="true">${cnt[id]>9?'9+':cnt[id]}</i>`:''}</button>`).join('');
- n.querySelectorAll('button').forEach(b=>b.onclick=()=>{AU.init();if(!G)MUS.play('menu');AU.sfx('ui');tab=b.dataset.t;repl=null;renderHome()})}
+ n.querySelectorAll('button').forEach(b=>b.onclick=()=>{AU.init();if(!G)MUS.play('menu');AU.sfx('ui');tab=b.dataset.t;pick=null;renderHome()})}
 let shownTab='';
 function renderHome(){renderHeader();renderNav();const m=$('#hm'),y=m.scrollTop,same=shownTab===tab;shownTab=tab;({play:renderPlay,cards:renderCards,shop:renderShop,road:renderRoad,clan:renderClan,events:renderEvents})[tab](m);if(tab!=='road')m.scrollTop=same?y:0}
 
@@ -139,7 +139,7 @@ let ctab='deck';
 /* большая карта колоды: стоимость, ромб эво/героя, лента уровня и прогресс копий или «Макс.» */
 function dk(k,i,sp,cls){const c=CARDS[k],o=P.cards[k],lv=o?o.lv:START_LV[c.rar],nd=o?needOf(k):0,mx=!o||lv>=MAXLV,up=o&&canUp(k);
  const slot=i===0&&sp.evo===k?'s-evo':i===1&&sp.hero===k?'s-hero':'',dia=EVO[k]?(P.evo.includes(k)?'evo on':'evo'):HERO[k]?(P.heroes.includes(k)?'hero on':'hero'):'';
- return`<button class="dk ${slot} ${cls||''}${o?'':' no'}${P.fresh.includes(k)?' new':''}" data-k="${k}" data-src="${cls&&cls.includes('coll')?'c':'d'}" data-r="${c.rar}" aria-label="${c.n}, ${c.cost} эликсира, уровень ${lv}">
+ return`<button class="dk ${slot} ${cls||''}${o?'':' no'}${P.fresh.includes(k)?' new':''}" data-k="${k}" data-src="${cls&&/coll|mini/.test(cls)?'c':'d'}" data-r="${c.rar}" aria-label="${c.n}, ${c.cost} эликсира, уровень ${lv}">
   <span class="art"><canvas width="256" height="256" data-ic="${k}"></canvas></span><i class="gem">${c.cost}</i>${dia?`<i class="dia ${dia}" aria-hidden="true"></i>`:''}
   <span class="lvr">${o?lv+'-й уровень':ARENA_OF[k]>curArena()?'🔒 Арена '+(ARENA_OF[k]+1):'🔒 Не найдена'}</span>
   ${o?mx?'<span class="mxr">Макс.</span>':`<span class="pgr${up?' up':''}"><i style="width:${Math.min(100,o.n/nd*100).toFixed(0)}%"></i>${up?'<b class="arr" aria-hidden="true">▲</b>':''}<em>${fmtN(o.n)}/${fmtN(nd)}</em></span>`:'<span class="mxr no">—</span>'}</button>`}
@@ -147,9 +147,12 @@ function renderCards(m){const d=curDeck(),sp=deckSpecial(d),found=CARD_IDS.filte
  const top=`<div class="ctabs" role="tablist"><button role="tab" aria-selected="${ctab==='deck'}" data-ct="deck">Колоды</button><button role="tab" aria-selected="${ctab==='coll'}" data-ct="coll">Коллекция${ncoll?`<i class="dot">${ncoll>9?'9+':ncoll}</i>`:''}</button></div>`;
  if(ctab==='deck'){
   m.innerHTML=top+`<div class="dsel"><button class="dbtn menu" id="dmenu" aria-label="Действия с колодой">☰</button>${[...Array(NDECKS).keys()].map(i=>`<button class="dbtn${P.slot===i?' on':''}" data-s="${i}" aria-label="Колода ${i+1}">${i+1}</button>`).join('')}<button class="dbtn menu" id="dcoll" aria-label="Коллекция">${NAVI.cards}</button></div>
-   ${repl?`<p class="note hl">Нажми на карту в колоде, вместо которой встанет «${CARDS[repl].n}». <button class="link" id="rc">Отмена</button></p>`:''}
-   <div class="dgrid">${d.map((k,i)=>dk(k,i,sp,repl?'pick':'')).join('')}</div>
+   ${pick?`<div class="selbar"><span>Выбрана: <b>${CARDS[pick.k].n}</b>. ${pick.src==='d'?'Нажми другую карту колоды или карту ниже':'Нажми карту в колоде, вместо которой она встанет'}</span><button class="small" id="pinfo">Инфо</button><button class="link" id="rc">Отмена</button></div>`:`<p class="dhint2">Нажми карту, затем вторую: они поменяются. Долгое нажатие — описание</p>`}
+   <div class="dgrid">${d.map((k,i)=>dk(k,i,sp,(pick&&pick.k===k?'sel':'')+(lastSwap===k?' swap':''))).join('')}</div>
    <div class="drow"><span class="avg"><i class="drop" aria-hidden="true"></i><b>${avgCost(d)}</b></span><span class="shards" title="Осколки эволюции">${ICO.shard}<b>${P.shards}</b></span><span class="dhint">1-й слот — эволюция, 2-й — герой</span></div>
+   <h4 class="lockhd nob">Твои карты</h4>
+   <div class="filt"><div class="chips" role="group" aria-label="Фильтр">${[['all','Все'],['troop','Бойцы'],['spell','Заклинания'],['building','Строения'],['evo','Эво и герои']].map(([v,t])=>`<button data-f="${v}" aria-pressed="${cfil===v}">${t}</button>`).join('')}</div></div>
+   <div class="dgrid mini">${CARD_IDS.filter(k=>P.cards[k]&&!d.includes(k)&&(cfil==='all'||(cfil==='evo'?EVO[k]||HERO[k]:CARDS[k].type===cfil))).sort(CSORT[csort]).map(k=>dk(k,-1,sp,'mini'+(pick&&pick.k===k?' sel':'')+(lastSwap===k?' swap':''))).join('')}</div>
    <div class="tshow"><div class="tstage"><canvas width="240" height="240" data-ic="tt_king" class="tk"></canvas><button class="lvl11" id="kb" aria-label="Уровень короля ${P.kl}">${P.kl}</button></div>
     <button class="tcard" id="ttb" aria-label="Башенный боец: ${TT[P.tt].n}"><canvas width="240" height="240" data-ic="tt_${P.tt}"></canvas><span class="lvr">${TT[P.tt].n}</span><span class="mxr">Сменить</span></button></div>`}
  else{const list=CARD_IDS.filter(k=>cfil==='all'||cfil==='evo'?(cfil!=='evo'||EVO[k]||HERO[k]):CARDS[k].type===cfil).sort(CSORT[csort]);
@@ -159,16 +162,27 @@ function renderCards(m){const d=curDeck(),sp=deckSpecial(d),found=CARD_IDS.filte
    <div class="dgrid coll">${(()=>{const have=list.filter(k=>P.cards[k]),lost=list.filter(k=>!P.cards[k]);return have.map(k=>dk(k,-1,sp,'coll'+(d.includes(k)?' indeck':''))).join('')+(lost.length?`<h4 class="lockhd">Ещё не найдены · ${lost.length}</h4>`+lost.map(k=>dk(k,-1,sp,'coll')).join(''):'')})()}</div>`}
  paintIcons(m);
  m.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{AU.sfx('ui');ctab=b.dataset.ct;renderHome()});
- m.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{AU.sfx('ui');P.slot=+b.dataset.s;repl=null;saveP();renderHome()});
+ m.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{AU.sfx('ui');P.slot=+b.dataset.s;pick=null;saveP();renderHome()});
  m.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{AU.sfx('ui');cfil=b.dataset.f;renderHome()});
  if($('#cso'))$('#cso').onchange=()=>{csort=$('#cso').value;renderHome()};
  if($('#ttb'))$('#ttb').onclick=openTT;if($('#dcoll'))$('#dcoll').onclick=()=>{AU.sfx('ui');ctab='coll';renderHome()};
  if($('#dmenu'))$('#dmenu').onclick=openDeckMenu;
  if($('#kb'))$('#kb').onclick=()=>{AU.init();const nx=P.kl<KL_MAX?KL_XP[P.kl]:0;toast(P.kl<KL_MAX?`Уровень короля ${P.kl}: опыт ${P.xp} из ${nx}. Опыт дают улучшения карт`:'Уровень короля максимальный')};
- if(repl&&$('#rc'))$('#rc').onclick=()=>{repl=null;renderHome()};
- m.querySelectorAll('.dk').forEach(b=>b.onclick=()=>{AU.init();const k=b.dataset.k;
-  if(repl&&b.dataset.src==='d'){const nd=d.slice();nd[nd.indexOf(k)]=repl;if(!okDeck(nd)){AU.sfx('deny');return}P.decks[P.slot]=nd;repl=null;saveP();AU.sfx('dep');renderHome();return}
-  AU.sfx('ui');openSheet(k)})}
+ if(pick&&$('#rc'))$('#rc').onclick=()=>{pick=null;renderHome()};
+ m.querySelectorAll('.dk').forEach(b=>b.onclick=()=>{AU.init();const k=b.dataset.k;AU.sfx('ui');openSheet(k)})
+ if(ctab==='deck')m.querySelectorAll('.dk').forEach(b=>{let lp=0,t=0;const stop=()=>clearTimeout(t);
+  b.addEventListener('pointerdown',()=>{lp=0;t=setTimeout(()=>{lp=1;AU.sfx('ui');openSheet(b.dataset.k)},450)});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,stop));
+  b.onclick=()=>{if(lp){lp=0;return}AU.init();cardTap(b.dataset.k,b.dataset.src)}})
+ if($('#pinfo'))$('#pinfo').onclick=()=>{AU.sfx('ui');openSheet(pick.k)}}
+/* две карты по очереди: колода+колода — меняются местами, колода+коллекция — замена; повторное касание — описание карты */
+function cardTap(k,src){
+ if(!pick){pick={k,src};AU.sfx('ui');renderHome();return}
+ if(pick.k===k){AU.sfx('ui');openSheet(k);return}
+ if(pick.src==='c'&&src==='c'){pick={k,src};AU.sfx('ui');renderHome();return}
+ const out=pick.src==='d'?pick.k:k,inn=pick.src==='d'?k:pick.k,r=trySwap(curDeck(),out,inn);
+ if(!r.ok){AU.sfx('deny');toast(r.why);return}
+ P.decks[P.slot]=r.deck;saveP();pick=null;lastSwap=inn;AU.sfx('dep');renderHome();setTimeout(()=>{lastSwap=null},800)}
 /* действия с колодой: случайная колода из найденных карт или копия другой колоды */
 function openDeckMenu(){AU.init();AU.sfx('ui');const sh=$('#sheet');
  sh.innerHTML=`<div class="sh" role="dialog" aria-modal="true" aria-labelledby="shn"><h3 class="t" id="shn">Колода ${P.slot+1}</h3>
@@ -203,7 +217,7 @@ function openSheet(k){const c=CARDS[k],o=P.cards[k],lv=o?o.lv:1,inDeck=curDeck()
  if(!o)act=`<p class="note">${ARENA_OF[k]>curArena()?`Откроется на арене ${ARENA_OF[k]+1} «${ARENAS[ARENA_OF[k]].n}».`:'Эта карта уже выпадает из сундуков твоей арены.'}</p><div class="shb"><button class="ghost" id="shx">Закрыть</button></div>`;
  else{const up=o.lv<MAXLV?canUp(k)?(P.gold>=cost?`<button class="big" id="shup">Улучшить · ${fmtN(cost)} ${ICO.gold.replace('<svg','<svg style="width:20px;height:20px;vertical-align:-3px"')}</button>`:`<button class="big" disabled>Нужно ${fmtN(cost)} золота</button>`):`<button class="big" disabled>${(m=>`${plural(m,'Нужна','Нужны','Нужно')} ещё ${m} ${plural(m,'карта','карты','карт')}`)(nd-o.n)}</button>`:'';
   act=`<div class="lbar${canUp(k)?' up':''}" style="width:100%"><i style="width:${o.lv>=MAXLV?100:Math.min(100,o.n/nd*100).toFixed(0)}%"></i><em>${o.lv>=MAXLV?'Максимальный уровень':`Карт: ${o.n} из ${nd} для уровня ${o.lv+1}`}</em></div>
-   ${up}<div class="shb"><button class="ghost" id="shx">Закрыть</button><button class="big blue" id="shu"${inDeck?' disabled':''}>${inDeck?'Уже в колоде':'В колоду'}</button></div>`}
+   ${up}<div class="shb"><button class="ghost" id="shx">Закрыть</button><button class="big blue" id="shu">${inDeck?'Заменить':'В колоду'}</button></div>`}
  sh.innerHTML=`<div class="sh" role="dialog" aria-modal="true" aria-labelledby="shn">
   <div class="shh"><canvas width="120" height="120" data-ic="${k}"></canvas><div><h3 id="shn">${c.n}</h3><div class="rar" style="color:${RAR[c.rar].c}">${RAR[c.rar].n.toUpperCase()} · ${type.toUpperCase()}${o?' · УРОВЕНЬ '+o.lv:''}</div><div class="cost"><i class="gem">${c.cost}</i>эликсира</div></div></div>
   <p class="note">${c.tip}</p>
@@ -212,7 +226,7 @@ function openSheet(k){const c=CARDS[k],o=P.cards[k],lv=o?o.lv:1,inDeck=curDeck()
   ${specHTML(k)}
   ${act}</div>`;
  paintIcons(sh);sh.hidden=false;sh.onclick=e=>{if(e.target===sh)closeSheet()};$('#shx').onclick=closeSheet;$('#shx').focus();
- if($('#shu'))$('#shu').onclick=()=>{if(inDeck)return;AU.sfx('ui');repl=k;closeSheet();tab='cards';renderHome()};
+ if($('#shu'))$('#shu').onclick=()=>{AU.sfx('ui');pick={k,src:inDeck?'d':'c'};closeSheet();tab='cards';ctab='deck';renderHome()};
  sh.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>{AU.init();const[w,x]=b.dataset.sp.split(':');let ok=false;
   if(w==='ue')ok=unlockEvo(k);else if(w==='uh')ok=unlockHero(k);else ok=toSlot(k,+x);
   if(!ok){AU.sfx('deny');return}AU.sfx(w[0]==='u'?'win':'dep');if(w==='ue')toast(`«${c.n}»: эволюция открыта`);if(w==='uh')toast(`«${c.n}»: герой открыт`);renderHeader();openSheet(k)});
@@ -223,7 +237,7 @@ function specHTML(k){const c=CARDS[k],o=P.cards[k],d=curDeck(),inD=d.includes(k)
  if(HERO[k]){const h=HERO[k],have=P.heroes.includes(k),champ=d.some(x=>CARDS[x].ability);out.push(`<div class="spec hero"><b>Герой</b><small>${h.d}. Цена способности ${h.ability.cost} эликсира. Здоровье +15%. Пока жив, карта не возвращается в руку.</small>
   ${!o?'':!have?`<button class="small" data-sp="uh"${P.shards<HERO_COST?' disabled':''}>Открыть · ${HERO_COST} ${ICO.shard.replace('<svg','<svg style="width:15px;height:15px;vertical-align:-2px"')}</button>`:champ&&inD?'<span class="ok2">В колоде чемпион: слот героя занят</span>':inD&&d[1]!==k?'<button class="small" data-sp="to:1">В слот героя</button>':inD?'<span class="ok2">В слоте героя</span>':'<span class="ok2">Открыт · добавь в колоду</span>'}</div>`)}
  return out.join('')}
-function closeSheet(){const sh=$('#sheet'),was=!sh.hidden;sh.hidden=true;sh.innerHTML='';if(was&&!$('#home').hidden&&tab==='cards'&&!repl)renderHome()}
+function closeSheet(){const sh=$('#sheet'),was=!sh.hidden;sh.hidden=true;sh.innerHTML='';if(was&&!$('#home').hidden&&tab==='cards'&&!pick)renderHome()}
 
 /* ---------- вкладка «Магазин» ---------- */
 function priceBtn(o){const done=bought(o),have=o.cur==='gold'?P.gold:P.gems;

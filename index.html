@@ -431,6 +431,12 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
 .dk .pgr.up{animation:upg 1.7s ease-in-out infinite;border-radius:7px}
 .dk{transition:transform .12s}.dk:active{transform:scale(.96)}
 @media (prefers-reduced-motion:reduce){.dk .pgr.up{animation:none}.dk{transition:none}}
+.selbar{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:8px;background:#26335af2;border:2px solid var(--gold);border-radius:12px;padding:6px 10px;margin:4px 0 8px;font-size:12.5px;line-height:1.25;box-shadow:0 6px 14px #0008}.selbar span{flex:1;min-width:0}.selbar button{flex:none}
+.dhint2{margin:2px 0 8px;color:var(--mute);font-size:11.5px;text-align:center}
+.dk.sel .art{outline:3px solid var(--gold);outline-offset:2px}.dk.sel{transform:translateY(-3px)}
+@keyframes swp{0%{filter:brightness(2.2)}100%{filter:none}}.dk.swap .art{animation:swp .7s ease-out}
+.dgrid.mini{grid-template-columns:repeat(4,1fr);gap:10px 6px}.dk.mini .pgr,.dk.mini .mxr{display:none}.dk.mini .lvr{font-size:10px}
+.lockhd.nob{border-top:0;margin-top:14px}
 .lockhd{grid-column:1/-1;margin:10px 0 2px;font:400 13px var(--display);color:var(--mute);letter-spacing:.06em;border-top:1px solid var(--line);padding-top:8px}
 .dk.pick .art{outline:3px solid var(--gold);outline-offset:2px}
 .dk.new::after{content:'Новая';position:absolute;right:-2px;top:8px;z-index:3;background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:6px}
@@ -510,7 +516,7 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
   <div id="toasts" aria-live="polite"></div>
 </div>
 <script>window.AC_SITE=1</script>
-<script src="game.js?v=80f6c211ac"></script>
+<script src="game.js?v=17e75c4b44"></script>
 <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js","three/addons/":"./vendor/three/addons/"}}</script>
 <script type="module">
 const T3={};Promise.all([import("three"),import("three/addons/loaders/GLTFLoader.js"),import("three/addons/loaders/RGBELoader.js"),import("three/addons/utils/SkeletonUtils.js"),import("three/addons/utils/BufferGeometryUtils.js"),import("three/addons/postprocessing/EffectComposer.js"),import("three/addons/postprocessing/RenderPass.js"),import("three/addons/postprocessing/UnrealBloomPass.js"),import("three/addons/postprocessing/OutputPass.js"),import("three/addons/postprocessing/ShaderPass.js")]).then(m=>{T3.GLTFLoader=m[1].GLTFLoader;T3.RGBELoader=m[2].RGBELoader;T3.SkeletonUtils=m[3];T3.BufferGeometryUtils=m[4];T3.EffectComposer=m[5].EffectComposer;T3.RenderPass=m[6].RenderPass;T3.UnrealBloomPass=m[7].UnrealBloomPass;T3.OutputPass=m[8].OutputPass;T3.ShaderPass=m[9].ShaderPass;window.T3=T3;window.THREE=m[0];dispatchEvent(new Event("three-ready"))}).catch(e=>dispatchEvent(new CustomEvent("three-fail",{detail:String(e&&e.message||e)})));

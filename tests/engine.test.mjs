@@ -484,3 +484,22 @@ test('задания: статистика обрушенных мостов и 
   w.run(`G.T.forEach(t=>t.dmg=0);castSpell(0,'sapper',BR[0],RY,11)`); run(w, 1.5);
   assert.equal(w.run('G.stats[0].bridges'), 1); assert.equal(w.run('G.stats[1].bridges'), 0);
 });
+
+// ---------- смена карт в колоде ----------
+test('trySwap: замена карты, обмен двух карт колоды, отказы', () => {
+  const w = world();
+  w.run(`for(const k of CARD_IDS)if(!P.cards[k])P.cards[k]={lv:1,n:0};globalThis.d0=['guard','giant','crossbow','axe','bones','imps','fireball','volley']`);
+  const r1 = JSON.parse(w.run(`JSON.stringify(trySwap(d0,'guard','sorcerer'))`));
+  assert.ok(r1.ok); assert.equal(r1.deck[0], 'sorcerer'); assert.equal(r1.deck.length, 8);
+  const r2 = JSON.parse(w.run(`JSON.stringify(trySwap(d0,'guard','volley'))`));
+  assert.ok(r2.ok && r2.swap); assert.equal(r2.deck[0], 'volley'); assert.equal(r2.deck[7], 'guard');
+  assert.equal(w.run('d0[0]'), 'guard', 'исходная колода не меняется');
+  const r3 = JSON.parse(w.run(`JSON.stringify(trySwap(d0.map(k=>k==='axe'?'warlord':k),'guard','warlord'))`));
+  assert.ok(r3.ok, 'карта, уже стоящая в колоде, просто меняется местами');
+  const r4 = JSON.parse(w.run(`CARDS.knightrider.rar='champion';CARDS.warlord.rar='champion';JSON.stringify(trySwap(d0.map(k=>k==='axe'?'warlord':k),'guard','knightrider'))`));
+  assert.ok(!r4.ok); assert.match(r4.why, /чемпион/);
+  const r5 = JSON.parse(w.run(`delete P.cards.sorcerer;JSON.stringify(trySwap(d0,'guard','sorcerer'))`));
+  assert.ok(!r5.ok); assert.match(r5.why, /не найдена/);
+  const r6 = JSON.parse(w.run(`JSON.stringify(trySwap(d0,'sorcerer','guard'))`));
+  assert.ok(!r6.ok);
+});
