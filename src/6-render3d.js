@@ -24,6 +24,10 @@ async function r3Load(){if(R3.loading||R3.ready||!T)return;R3.loading=true;R3.fa
   const R=new T.WebGLRenderer({canvas:cv,antialias:S3.q.aa,powerPreference:'high-performance'});
   R.outputColorSpace=T.SRGBColorSpace;R.toneMapping=T.ACESFilmicToneMapping;R.toneMappingExposure=1.05;
   R.shadowMap.enabled=true;R.shadowMap.type=T.PCFSoftShadowMap;S3.R=R;
+  // браузер может отобрать видеопамять: на время — 2D, качество вниз; не вернул за 3 с — остаёмся в 2D
+  cv.addEventListener('webglcontextlost',e=>{e.preventDefault();S3.lost=1;S3.wasOn=R3.on;R3.on=false;cv.style.visibility='hidden';store.set('ac.qual','mid');
+   clearTimeout(S3.lostT);S3.lostT=setTimeout(()=>{if(S3.lost)r3Fail('видеопамять закончилась')},3000)});
+  cv.addEventListener('webglcontextrestored',()=>{S3.lost=0;clearTimeout(S3.lostT);S3.comp=S3.compHi=null;applyQual();if(S3.wasOn&&!R3.failed&&G&&mode!=='home'){R3.on=true;r3Show()}});
   const files=['Knight','Barbarian','Mage','Rogue','Rogue_Hooded','Skeleton_Minion','Skeleton_Warrior','Skeleton_Mage','Skeleton_Rogue'];
   const texs=[];
   const total=files.length+3+texs.length*3+1;let done=0;const tick=()=>{R3.progress=++done/total};
@@ -217,7 +221,8 @@ function r3Setup(){const R=S3.R,sc=new T.Scene();S3.scene=sc;
 const sharpShader=()=>({uniforms:{tDiffuse:{value:null},px:{value:new T.Vector2(1/390,1/844)},k:{value:.35}},
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
  fragmentShader:'uniform sampler2D tDiffuse;uniform vec2 px;uniform float k;varying vec2 vUv;void main(){vec3 c=texture2D(tDiffuse,vUv).rgb;vec3 n=texture2D(tDiffuse,vUv+vec2(0.,px.y)).rgb+texture2D(tDiffuse,vUv-vec2(0.,px.y)).rgb+texture2D(tDiffuse,vUv+vec2(px.x,0.)).rgb+texture2D(tDiffuse,vUv-vec2(px.x,0.)).rgb;vec3 s=c+(c*4.-n)*k;vec3 lo=min(c,min(n*.25,c));vec3 hi=max(c,max(n*.25,c));gl_FragColor=vec4(clamp(s,lo-.04,hi+.04),1.);}'});
-function makeComp(){if(!T3.EffectComposer)return null;const rt=new T.WebGLRenderTarget(4,4,{type:T.HalfFloatType,samples:4});const c=new T3.EffectComposer(S3.R,rt);c.addPass(new T3.RenderPass(S3.scene,S3.cam));c.addPass(new T3.UnrealBloomPass(new T.Vector2(256,456),.7,.35,1.6));c.addPass(new T3.OutputPass());
+function makeComp(){if(!T3.EffectComposer)return null;const R=S3.R,hf=R.capabilities.isWebGL2&&(R.extensions.has('EXT_color_buffer_float')||R.extensions.has('EXT_color_buffer_half_float'));
+ const rt=new T.WebGLRenderTarget(4,4,{type:hf?T.HalfFloatType:T.UnsignedByteType,samples:S3.q.coarse?2:4});const c=new T3.EffectComposer(S3.R,rt);c.addPass(new T3.RenderPass(S3.scene,S3.cam));c.addPass(new T3.UnrealBloomPass(new T.Vector2(256,456),.7,.35,1.6));c.addPass(new T3.OutputPass());
  if(T3.ShaderPass){const sp=new T3.ShaderPass(sharpShader());c.addPass(sp);S3.sharp=sp}return c}
 function softTex(){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d'),r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.45,'rgba(255,255,255,.55)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);return new T.CanvasTexture(c)}
 function waterNormals(){const N=128,cv=document.createElement('canvas');cv.width=cv.height=N;const g=cv.getContext('2d'),im=g.createImageData(N,N),d=im.data,hgt=new Float32Array(N*N);
@@ -435,7 +440,7 @@ function r3Frame(now){const dt=Math.min(.05,(now-S3.last)/1000||0);S3.last=now;c
  if(S3.foam)for(const t of S3.foam){t.offset.x=(now/1000*.04)%1;t.offset.y=Math.sin(now/900)*.08}if(S3.windU)S3.windU.value=now/1000;
  syncTowers(dt,now);syncUnits(dt,now);syncBuildings(dt,now);syncProj(dt);syncFx(dt,now);syncZones(now);syncPending(now);syncGhost(now);syncParticles(dt);
  stepDebris(dt);stepLights(dt);stepNight(now);stepBridges(dt);if(S3.hype>0)S3.hype-=dt;crowdStep(now);if(Math.random()<.5)towerSmoke();weather(dt);autoQ(dt);
- if(S3.comp)S3.comp.render();else S3.R.render(sc,cam);overlay(now)}
+ if(S3.comp){S3.comp.render();if(!S3.compOk){S3.compOk=1;const gl=S3.R.getContext(),rt=S3.comp.readBuffer;S3.R.setRenderTarget(rt);const st=gl.checkFramebufferStatus(gl.FRAMEBUFFER);S3.R.setRenderTarget(null);if(st!==gl.FRAMEBUFFER_COMPLETE){console.warn('постобработка недоступна, рисую без неё');S3.comp=S3.compHi=null;S3.noComp=1;fit()}}}else S3.R.render(sc,cam);overlay(now)}
 
 /* башни: лучники и король целятся и стреляют, павшие сменяются руинами */
 function syncTowers(dt,now){for(const v of S3.towers){const t=v.t;
@@ -680,7 +685,9 @@ function drawCrown3(g,f,x0,y0){const p1=Math.min(1,f.l/.45),p2=clamp((f.l-.55)/(
 function r3Pick(cx,cy){const r=S3.cv.getBoundingClientRect(),nx=(cx-r.left)/r.width*2-1,ny=-((cy-r.top)/r.height*2-1);if(nx<-1||nx>1||ny<-1||ny>1)return null;
  S3.ray.setFromCamera({x:nx,y:ny},S3.cam);const p=new T.Vector3();if(!S3.ray.ray.intersectPlane(S3.plane,p))return null;
  const x=p.x*TILE+180,y=p.z*TILE+320;return x<0||x>W||y<0||y>H?null:{x,y}}
-function r3Resize(cw,ch){if(!R3.ready)return;const d=Math.min(S3.q.dpr,devicePixelRatio||1);S3.R.setPixelRatio(d);S3.R.setSize(cw,ch,false);S3.cv.style.width=cw+'px';S3.cv.style.height=ch+'px';S3.cam.aspect=cw/ch;S3.cam.updateProjectionMatrix();if(S3.comp){S3.comp.setPixelRatio(d);S3.comp.setSize(cw,ch)}if(S3.sharp)S3.sharp.uniforms.px.value.set(1/(cw*d),1/(ch*d))}
+function r3Resize(cw,ch){if(!R3.ready)return;const d=Math.min(S3.q.dpr,devicePixelRatio||1,S3.q.coarse&&S3.comp?2:9);S3.R.setPixelRatio(d);S3.R.setSize(cw,ch,false);S3.cv.style.width=cw+'px';S3.cv.style.height=ch+'px';S3.cam.aspect=cw/ch;S3.cam.updateProjectionMatrix();if(S3.comp){S3.comp.setPixelRatio(d);S3.comp.setSize(cw,ch)}if(S3.sharp)S3.sharp.uniforms.px.value.set(1/(cw*d),1/(ch*d))}
+/* 3D сломалось на этом устройстве: дальше только 2D, бой продолжается */
+function r3Fail(why){if(R3.failed)return;R3.failed=true;R3.why=why;R3.on=false;R3.want=false;r3Stop();console.warn('3D отключено:',why);if(typeof toast==='function')toast('3D отключено на этом устройстве — включена упрощённая графика')}
 function r3Stop(){R3.on=false;if(S3.cv)S3.cv.style.visibility='hidden'}
 function r3Show(){if(S3.cv){S3.cv.style.visibility='visible';S3.cv.style.filter='contrast(1.07) saturate(1.1)'}}
 
@@ -838,7 +845,7 @@ function r3Thumb(cv,a){if(!R3.ready||!r3HasTheme(a))return false;if(S3.theme!==a
 const QUAL={hi:{n:'Высокое',dpr:3,sh:2048},mid:{n:'Среднее',dpr:2,sh:1024},eco:{n:'Экономия',dpr:1.5,sh:0}};
 const qualKey=()=>{const k=store.get('ac.qual','hi');return QUAL[k]?k:'hi'};
 function setShadows(on){const R=S3.R;if(!R||R.shadowMap.enabled===on)return;R.shadowMap.enabled=on;if(S3.scene)S3.scene.traverse(o=>{if(o.material){const m=Array.isArray(o.material)?o.material:[o.material];m.forEach(x=>x.needsUpdate=true)}})}
-function applyQual(){const Q=QUAL[qualKey()];S3.q.dpr=Q.dpr;S3.comp=qualKey()==='hi'&&S3.scene?(S3.compHi||(S3.compHi=makeComp())):null;S3.ql=0;S3.fa=1/60;S3.qt=-6;if(S3.R)setShadows(!!Q.sh);if(R3.ready||S3.R)fit()}
+function applyQual(){const Q=QUAL[qualKey()];S3.q.dpr=Q.dpr;S3.comp=qualKey()==='hi'&&S3.scene&&!S3.noComp?(S3.compHi||(S3.compHi=makeComp())):null;S3.ql=0;S3.fa=1/60;S3.qt=-6;if(S3.R)setShadows(!!Q.sh);if(R3.ready||S3.R)fit()}
 function autoQ(dt){S3.fa=(S3.fa||0)*.97+dt*.03;S3.qt=(S3.qt||0)+dt;if(S3.qt<4)return;S3.qt=0;if(S3.fa<.030||S3.ql>=3)return;
  // сначала тени, потом постобработка, и только в самом конце — разрешение (не ниже 2)
  const q=S3.ql=(S3.ql||0)+1;if(q===1)setShadows(false);else if(q===2)S3.comp=null;else{S3.q.dpr=Math.max(2,S3.q.dpr-.5);fit()}S3.fa=1/60}
