@@ -239,7 +239,7 @@ test('вихрь тянет лёгких сильнее тяжёлых и буд
   assert.ok(w.run('k.act||k.wake>0'), 'король проснулся');
 });
 
-test('родник: +1 эликсир каждые 9,8 с, не бывает в стартовой руке', () => {
+test('родник: +1 эликсир каждые 9 с, не бывает в стартовой руке', () => {
   const w = world();
   w.run(`G.side[0].el=0;CFG.elixir.periodBak=CFG.elixir.period;CFG.elixir.period=1e9;spawn(0,'spring',180,560,11)`);
   run(w, 10);
