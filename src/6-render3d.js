@@ -240,12 +240,21 @@ function ribbon(pts,w,mat,y){const pos=[],uv=[],idx=[];let len=0;
  const m=new T.Mesh(g,mat);m.receiveShadow=true;return m}
 function edgeAlpha(){const c=document.createElement('canvas');c.width=64;c.height=4;const g=c.getContext('2d'),r=g.createLinearGradient(0,0,64,0);
  r.addColorStop(0,'rgba(0,0,0,1)');r.addColorStop(.22,'#fff');r.addColorStop(.78,'#fff');r.addColorStop(1,'rgba(0,0,0,1)');g.fillStyle=r;g.fillRect(0,0,64,4);return new T.CanvasTexture(c)}
-function buildArena(th){if(S3.arena){S3.scene.remove(S3.arena)}S3.bridgeG=[];const A=new T.Group();S3.arena=A;S3.scene.add(A);const rng=mul(17+th*31);
+/* слой «живой» земли поверх травы: крупные светлые и тёмные пятна, лёгкая клетка, травинки и цветы */
+function macroGround(P){const W0=540,H0=960,ck=document.createElement('canvas');ck.width=W0;ck.height=H0;const g=ck.getContext('2d'),r=mul(41+(S3.theme|0)*7),u=W0/18;
+ for(let y=0;y<32;y++)for(let x=0;x<18;x++){g.fillStyle=(x+y)&1?'rgba(255,255,255,.045)':'rgba(0,30,0,.05)';g.fillRect(x*u,y*u,u,u)}
+ const patch=(c,n,r0,r1,a)=>{for(let i=0;i<n;i++){const x=r()*W0,y=r()*H0,R=r0+r()*(r1-r0),gr=g.createRadialGradient(x,y,0,x,y,R);gr.addColorStop(0,c.replace('A',a));gr.addColorStop(1,c.replace('A',0));g.fillStyle=gr;g.fillRect(x-R,y-R,R*2,R*2)}};
+ patch('rgba(255,255,170,A)',46,50,150,.13);patch('rgba(0,40,10,A)',54,50,160,.14);patch('rgba(120,200,60,A)',26,40,100,.1);
+ const snow=P.g==='snow',sand=P.g==='sand'||P.g==='ash';
+ if(!sand)for(let i=0;i<2600;i++){const x=r()*W0,y=r()*H0,h=5+r()*8;g.strokeStyle=r()<.5?'rgba(20,70,10,.28)':snow?'rgba(255,255,255,.35)':'rgba(190,255,120,.3)';g.lineWidth=1.6;g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+rndV(-3,3),y-h*.6,x+rndV(-4,4),y-h);g.stroke()}
+ const cols=snow?['#ffffff','#cfe8ff']:sand?['#fff2c8','#c9a86a']:['#ffffff','#ffe95a','#ff9ad0','#b9a0ff'];
+ for(let i=0;i<(sand?60:230);i++){const x=r()*W0,y=r()*H0,c=cols[r()*cols.length|0];g.fillStyle='rgba(0,0,0,.18)';g.beginPath();g.arc(x+1,y+1.5,3,0,7);g.fill();g.fillStyle=c;g.beginPath();g.arc(x,y,2.4,0,7);g.fill();g.fillStyle='rgba(255,220,80,.9)';g.beginPath();g.arc(x,y,.9,0,7);g.fill()}
+ const t=new T.CanvasTexture(ck);t.colorSpace=T.SRGBColorSpace;t.anisotropy=ANI();return t}
+function buildArena(th){if(S3.arena){S3.scene.remove(S3.arena)}S3.bridgeG=[];S3.torches=[];const A=new T.Group();S3.arena=A;S3.scene.add(A);const rng=mul(17+th*31);
  // земля и поле
  const TH3=ATH[th]||ATH[0];S3.theme=th;applyLook(TH3);const grass=pbr('grass',20,28),gr=new T.Mesh(new T.PlaneGeometry(88,120),grass);gr.rotation.x=-Math.PI/2;gr.receiveShadow=true;A.add(gr);S3.gmats=[grass];
- const ck=document.createElement('canvas');ck.width=18;ck.height=32;const cg=ck.getContext('2d');
- for(let y=0;y<32;y++)for(let x=0;x<18;x++){cg.fillStyle=(x+y)&1?'rgba(255,255,255,.10)':'rgba(0,40,0,.10)';cg.fillRect(x,y,1,1)}
- const ct=new T.CanvasTexture(ck);ct.magFilter=T.NearestFilter;ct.minFilter=T.NearestFilter;
+ const ct=macroGround(TH3);
+
  const chk=new T.Mesh(new T.PlaneGeometry(18,32),new T.MeshBasicMaterial({map:ct,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}));chk.rotation.x=-Math.PI/2;chk.position.y=.004;A.add(chk);S3.chk=chk;
  // дорожки
  const pm=pbr('path',1,1,{alphaMap:edgeAlpha(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,color:TH3.path,side:T.DoubleSide});S3.gmats.push(pm);for(const m of S3.gmats)m.userData.c0=m.color.clone();
@@ -306,11 +315,13 @@ function crenels(gp,r,n,y,mat,sq){for(let i=0;i<n;i++){const a=i/n*Math.PI*2,b=n
   else{b.position.set(Math.cos(a)*r,y,Math.sin(a)*r);b.rotation.y=-a}b.castShadow=true;b.receiveShadow=true;gp.add(b)}}
 function towerView(t){const g=new T.Group(),k=t.kind==='k',wall=pbr('wall',k?3:2.4,k?2.2:2,{color:'#cbc2b0'}),dark=pbr('wall',2,1,{color:'#8c8273'}),roof=pbr('roof',2,1.2,{color:t.tm?'#ff6a5a':'#4aa8ff'});
  const v={t,g,k,act:-1,cd:0};
+ {const ao=new T.Mesh(new T.CircleGeometry(k?3.1:2.2,28),new T.MeshBasicMaterial({map:S3.soft,color:'#0c1806',transparent:true,opacity:.55,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-5}));ao.rotation.x=-Math.PI/2;ao.position.y=.014;g.add(ao)}
  if(k){const body=new T.Mesh(new T.BoxGeometry(3.1,1.5,3.1),wall);body.position.y=.92;g.add(body);
   for(const[x,z]of[[-1.55,-1.55],[1.55,-1.55],[-1.55,1.55],[1.55,1.55]]){const tw=new T.Mesh(new T.CylinderGeometry(.5,.56,2,10),wall);tw.position.set(x,1.17,z);g.add(tw);
    const cn=new T.Mesh(new T.ConeGeometry(.66,.8,10),roof);cn.position.set(x,2.57,z);g.add(cn)}
   const top=new T.Mesh(new T.BoxGeometry(3.3,.18,3.3),dark);top.position.y=1.73;g.add(top);crenels(g,0,16,1.98,wall,3.1);
   const gate=new T.Mesh(new T.BoxGeometry(1.05,1.3,.12),pbr('planks',1,1,{color:'#6b4a2e'}));gate.position.set(0,.62,1.56);g.add(gate);
+  for(const sx of[-1.15,1.15]){const tp=torchProp();tp.scale.setScalar(1.5);tp.position.set(sx,0,2.35);g.add(tp);(S3.torches=S3.torches||[]).push(tp.children[2])}
   const bn=new T.Mesh(new T.PlaneGeometry(.95,1.2),bannerMat(t.tm,1));bn.position.set(0,1.0,1.6);gate.position.x=1.05;gate.scale.set(.6,.7,1);g.add(bn);
   const kg=r3Inst('king',t.tm);kg.root.position.set(-.35,1.82,.15);g.add(kg.root);v.unit=kg;
   const cn=cannonModel(t.tm,.9);cn.position.set(.75,1.82,.25);g.add(cn);v.cannon=cn}
@@ -671,7 +682,7 @@ function r3Pick(cx,cy){const r=S3.cv.getBoundingClientRect(),nx=(cx-r.left)/r.wi
  const x=p.x*TILE+180,y=p.z*TILE+320;return x<0||x>W||y<0||y>H?null:{x,y}}
 function r3Resize(cw,ch){if(!R3.ready)return;const d=Math.min(S3.q.dpr,devicePixelRatio||1);S3.R.setPixelRatio(d);S3.R.setSize(cw,ch,false);S3.cv.style.width=cw+'px';S3.cv.style.height=ch+'px';S3.cam.aspect=cw/ch;S3.cam.updateProjectionMatrix();if(S3.comp){S3.comp.setPixelRatio(d);S3.comp.setSize(cw,ch)}if(S3.sharp)S3.sharp.uniforms.px.value.set(1/(cw*d),1/(ch*d))}
 function r3Stop(){R3.on=false;if(S3.cv)S3.cv.style.visibility='hidden'}
-function r3Show(){if(S3.cv)S3.cv.style.visibility='visible'}
+function r3Show(){if(S3.cv){S3.cv.style.visibility='visible';S3.cv.style.filter='contrast(1.07) saturate(1.1)'}}
 
 /* ---------- иконки карт из 3D-моделей ---------- */
 function spellModel(key){const g=new T.Group(),E=(c,e,i,o)=>new T.MeshStandardMaterial(Object.assign({color:c,emissive:e,emissiveIntensity:i,roughness:.3},o||{}));
@@ -755,7 +766,8 @@ function nightSetup(){if(S3.pools)return;NIGHT={sun:new T.Color('#8ea6ff'),hemi:
  S3.pl=[];for(let i=0;i<6;i++){const l=new T.PointLight('#ffb060',0,8,1.3);l.position.y=2;S3.scene.add(l);S3.pl.push(l)}
  S3.silMat=new T.MeshBasicMaterial({color:'#121a38'});
  const moon=new T.DirectionalLight('#a8bcff',0);moon.position.set(9,22,-8);S3.scene.add(moon,moon.target);S3.moon=moon}
-function stepNight(now){nightSetup();const k=nightK(),L=S3.pal,sc=S3.scene;if(!L)return;
+function stepTorches(now){if(!S3.torches||qualKey()==='eco')return;const v=new T.Vector3();for(const f of S3.torches){if(Math.random()<.55){f.getWorldPosition(v);S3.parts.add.emit(v.x+rndV(-.04,.04),v.y+.1,v.z+rndV(-.04,.04),rndV(-.1,.1),.7+Math.random()*.5,rndV(-.1,.1),Math.random()<.5?'#ffb040':'#ff7a1a',.2,.4)}f.scale.y=1+Math.sin(now/70+f.id)*.18}}
+function stepNight(now){stepTorches(now);nightSetup();const k=nightK(),L=S3.pal,sc=S3.scene;if(!L)return;
  if(Math.abs(k-S3.nk)>.002){S3.nk=k;const c=new T.Color();
   S3.sun.intensity=L.sun[1]*(1-.85*k);S3.moon.intensity=1.5*k;S3.sun.color.copy(c.set(L.sun[0]).lerp(NIGHT.sun,k));
   S3.hemi.color.copy(c.set(L.hemi[0]).lerp(NIGHT.hemi,k));S3.hemi.groundColor.copy(c.set(L.hemi[1]).lerp(NIGHT.gnd,k));S3.hemi.userData.base=L.hemi[2]*.6*(1-.3*k);S3.hemi.intensity=S3.hemi.userData.base;
