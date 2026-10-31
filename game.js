@@ -2501,7 +2501,7 @@ function dk(k,i,sp,cls){const c=CARDS[k],o=P.cards[k],lv=o?o.lv:START_LV[c.rar],
  const slot=i===0&&sp.evo===k?'s-evo':i===1&&sp.hero===k?'s-hero':'',dia=EVO[k]?(P.evo.includes(k)?'evo on':'evo'):HERO[k]?(P.heroes.includes(k)?'hero on':'hero'):'';
  return`<button class="dk ${slot} ${cls||''}${o?'':' no'}${P.fresh.includes(k)?' new':''}" data-k="${k}" data-src="${cls&&cls.includes('coll')?'c':'d'}" data-r="${c.rar}" aria-label="${c.n}, ${c.cost} эликсира, уровень ${lv}">
   <span class="art"><canvas width="120" height="120" data-ic="${k}"></canvas></span><i class="gem">${c.cost}</i>${dia?`<i class="dia ${dia}" aria-hidden="true"></i>`:''}
-  <span class="lvr">${o?lv+'-й уровень':ARENA_OF[k]>curArena()?'Арена '+(ARENA_OF[k]+1):'Не найдена'}</span>
+  <span class="lvr">${o?lv+'-й уровень':ARENA_OF[k]>curArena()?'🔒 Арена '+(ARENA_OF[k]+1):'🔒 Не найдена'}</span>
   ${o?mx?'<span class="mxr">Макс.</span>':`<span class="pgr${up?' up':''}"><i style="width:${Math.min(100,o.n/nd*100).toFixed(0)}%"></i>${up?'<b class="arr" aria-hidden="true">▲</b>':''}<em>${fmtN(o.n)}/${fmtN(nd)}</em></span>`:'<span class="mxr no">—</span>'}</button>`}
 function renderCards(m){const d=curDeck(),sp=deckSpecial(d),found=CARD_IDS.filter(k=>P.cards[k]).length,ncoll=CARD_IDS.filter(k=>canUp(k)).length+P.fresh.length;
  const top=`<div class="ctabs" role="tablist"><button role="tab" aria-selected="${ctab==='deck'}" data-ct="deck">Колоды</button><button role="tab" aria-selected="${ctab==='coll'}" data-ct="coll">Коллекция${ncoll?`<i class="dot">${ncoll>9?'9+':ncoll}</i>`:''}</button></div>`;
@@ -2516,7 +2516,7 @@ function renderCards(m){const d=curDeck(),sp=deckSpecial(d),found=CARD_IDS.filte
   m.innerHTML=top+`<div class="cinfo"><b>Найдено ${found} из ${CARD_IDS.length}</b><span>Уровень коллекции <b>${collLevel()}</b></span></div>
    <div class="filt"><div class="chips" role="group" aria-label="Фильтр">${[['all','Все'],['troop','Бойцы'],['spell','Заклинания'],['building','Строения'],['evo','Эво и герои']].map(([v,t])=>`<button data-f="${v}" aria-pressed="${cfil===v}">${t}</button>`).join('')}</div>
     <label class="sortl">Порядок <select id="cso"><option value="rar"${csort==='rar'?' selected':''}>по редкости</option><option value="cost"${csort==='cost'?' selected':''}>по цене</option><option value="lv"${csort==='lv'?' selected':''}>по уровню</option></select></label></div>
-   <div class="dgrid coll">${list.map(k=>dk(k,-1,sp,'coll'+(d.includes(k)?' indeck':''))).join('')}</div>`}
+   <div class="dgrid coll">${(()=>{const have=list.filter(k=>P.cards[k]),lost=list.filter(k=>!P.cards[k]);return have.map(k=>dk(k,-1,sp,'coll'+(d.includes(k)?' indeck':''))).join('')+(lost.length?`<h4 class="lockhd">Ещё не найдены · ${lost.length}</h4>`+lost.map(k=>dk(k,-1,sp,'coll')).join(''):'')})()}</div>`}
  paintIcons(m);
  m.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{AU.sfx('ui');ctab=b.dataset.ct;renderHome()});
  m.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{AU.sfx('ui');P.slot=+b.dataset.s;repl=null;saveP();renderHome()});
@@ -2750,7 +2750,7 @@ function renderHand(){const S=G.side[0],box=$('#hand');box.innerHTML='';handEls=
  S.hand.forEach((k,i)=>{if(!k){const e=document.createElement('div');e.className='card empty';e.setAttribute('aria-hidden','true');box.appendChild(e);handEls.push(e);return}
   const c=CARDS[k],b=document.createElement('button');b.className='card';b.dataset.r=c.rar;b.setAttribute('aria-label',`${c.n}, ${c.cost} эликсира`);
   if(k===S.evo)b.classList.add(evoReady(S,k)?'evo':'evo-wait');if(k===S.hero)b.classList.add('hero');
-  b.innerHTML=`<canvas width="120" height="120" data-ic="${k}"></canvas><i class="gem">${c.cost}</i>${k===S.evo?`<span class="eb">${evoReady(S,k)?'ЭВО':'эво '+S.evoN+'/'+EVO[k].cyc}</span>`:k===S.hero?'<span class="eb">ГЕРОЙ</span>':''}<span class="nm">${c.n}</span>`;
+  b.innerHTML=`<canvas width="120" height="120" data-ic="${k}"></canvas><i class="gem">${c.cost}</i>${k===S.evo?`<span class="eb">${evoReady(S,k)?'ЭВО':'эво '+S.evoN+'/'+EVO[k].cyc}</span>`:k===S.hero?'<span class="eb">ГЕРОЙ</span>':''}<i class="pb"><b></b></i><em class="need"></em><span class="nm">${c.n}</span>`;
   b.addEventListener('pointerdown',e=>{if(!G||G.over||paused||mode!=='play')return;AU.init();sel=sel===i?null:i;AU.sfx('ui');e.preventDefault();clearTimeout(lpT);lpT=setTimeout(()=>showCardStats(k),450)});
   b.addEventListener('pointerup',hideCardStats);b.addEventListener('pointerleave',hideCardStats);b.addEventListener('contextmenu',e=>e.preventDefault());
   if(i===hs.newIdx)b.classList.add('in');box.appendChild(b);handEls.push(b)});hs.newIdx=-1;
@@ -2767,7 +2767,7 @@ function hud(){const S=G.side[0],e=S.el,ei=Math.floor(e);
  const er=elRate(),ph=G.tb?'ТАЙБРЕЙКЕР':G.ot?'ОВЕРТАЙМ · ×'+er:er>1?'ЭЛИКСИР ×'+er:'ОСТАЛОСЬ';if(ph!==hs.ph){hs.ph=ph;$('#ph').textContent=ph}
  const cr=G.crowns.join();if(cr!==hs.cr){hs.cr=cr;setPips(0,G.crowns[0]);setPips(1,G.crowns[1])}
  if(S.hand.join()+'|'+S.queue[0]+'|'+S.evoN!==hs.sig)renderHand();
- handEls.forEach((b,i)=>{if(!S.hand[i])return;const c=CARDS[S.hand[i]];b.style.setProperty('--p',Math.min(1,e/c.cost).toFixed(3));b.classList.toggle('sel',sel===i);b.classList.toggle('off',cardBlocked(0,S.hand[i]))});
+ handEls.forEach((b,i)=>{if(!S.hand[i])return;const c=CARDS[S.hand[i]];b.style.setProperty('--p',Math.min(1,e/c.cost).toFixed(3));b.classList.toggle('sel',sel===i);b.classList.toggle('off',cardBlocked(0,S.hand[i]));const poor=e<c.cost;b.classList.toggle('poor',poor);const nd=b.querySelector('.need');if(nd){const t=poor?'ещё '+Math.ceil(c.cost-e-1e-9):'';if(nd.textContent!==t)nd.textContent=t}});
  const ch=!!S.champ&&alive(S.champ),ab=$('#ab');if(ab.hidden!==!ch)ab.hidden=!ch;
  if(ch){const a=S.champ.c.ability;ab.classList.toggle('cd',S.abCd>0||S.el<a.cost);const t=S.abCd>0?`${a.n} · ${Math.ceil(S.abCd)} с`:a.n;if(t!==hs.ab){hs.ab=t;$('#abn').textContent=t}}}
 function tryPlay(){const S=G.side[0],key=S.hand[sel],c=CARDS[key];if(!key||G.tb){sel=null;return}

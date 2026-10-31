@@ -173,6 +173,11 @@ canvas#c{position:relative;display:block;width:100%;height:100%}
 .card::after{content:'';position:absolute;left:0;right:0;top:0;height:calc((1 - var(--p,1)) * 100%);background:#0a0f1cb0;pointer-events:none}
 .card.sel{transform:translateY(-9px);border-color:var(--gold);box-shadow:0 0 0 2px #ffc83d55,0 8px 18px #000a}
 .card.off{filter:grayscale(1);opacity:.5}
+.card .pb,.card .need{display:none}
+.card.poor canvas{filter:grayscale(.9) brightness(.45)}.card.poor .nm{opacity:.55}.card.poor .gem{filter:grayscale(1) brightness(.65)}
+.card.poor .need{display:block;position:absolute;left:0;right:0;top:36%;text-align:center;font:400 13px/1 var(--display);font-style:normal;color:#ffb3a8;-webkit-text-stroke:3px #1a0b10;paint-order:stroke fill;z-index:2}
+.card.poor .pb{display:block;position:absolute;left:4px;right:4px;bottom:19px;height:5px;border-radius:3px;background:#0009;z-index:2;overflow:hidden}
+.card.poor .pb b{display:block;height:100%;width:calc(var(--p,0) * 100%);background:linear-gradient(90deg,#9b3dff,#e08bff)}
 .card[data-r="rare"]{border-color:#8a5a20}.card[data-r="epic"]{border-color:#6b3d8f}.card[data-r="legendary"]{border-color:#2a8a78}.card[data-r="champion"]{border-color:#9a7d1a}
 .card.sel[data-r]{border-color:var(--gold)}
 #nx{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9.5px;color:var(--mute);letter-spacing:.06em}
@@ -406,8 +411,11 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
 .dk .pgr .arr{position:absolute;left:3px;top:0;z-index:1;color:#7fe05a;font-size:12px;line-height:20px;-webkit-text-stroke:2px #0b1430;paint-order:stroke fill}
 .dk.s-evo .art{box-shadow:inset 0 0 0 3px #e3a8ff,0 0 0 3px #8a2be2,0 0 16px #c77dff,0 3px 0 #0a1230}
 .dk.s-hero .art{box-shadow:inset 0 0 0 3px #fff3a8,0 0 0 3px #d9a21e,0 0 16px #ffd84d,0 3px 0 #0a1230}
-.dk.no .art canvas{filter:grayscale(1) brightness(.55)}
-.dk.indeck{opacity:.5}
+.dk.no .art canvas{filter:grayscale(1) brightness(.4)}
+.dk.no .art::after{content:'';position:absolute;inset:0;background:#0b1224a8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23dfe6ff' d='M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 0 1 6 0v3z'/%3E%3C/svg%3E") center 38%/34% no-repeat}
+.dk.no .lvr{color:#9eaacb;background:#1b2644}.dk.no .gem{filter:grayscale(1) brightness(.7)}
+.dk.indeck .art::before{content:'✔ В колоде';position:absolute;left:0;right:0;bottom:0;z-index:2;background:#2f8f4acc;color:#fff;font-size:10px;line-height:15px;text-align:center;font-weight:900}
+.lockhd{grid-column:1/-1;margin:10px 0 2px;font:400 13px var(--display);color:var(--mute);letter-spacing:.06em;border-top:1px solid var(--line);padding-top:8px}
 .dk.pick .art{outline:3px solid var(--gold);outline-offset:2px}
 .dk.new::after{content:'Новая';position:absolute;right:-2px;top:8px;z-index:3;background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:6px}
 .dgrid.coll{gap:10px 6px}
