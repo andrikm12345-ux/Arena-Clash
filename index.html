@@ -404,7 +404,7 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
 .dgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 6px}
 .dk{position:relative;border:0;padding:0 0 4px;background:none;display:flex;flex-direction:column;align-items:stretch;gap:2px;color:#fff}
 .dk .art{position:relative;display:block;border-radius:9px;overflow:hidden;aspect-ratio:4/5;background:linear-gradient(#3a4f96,#1b2a5a);box-shadow:inset 0 0 0 3px #8aa0d8,0 3px 0 #0a1230}
-.dk .art canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.18)}
+.dk .art canvas{position:absolute;left:-7%;top:-7%;width:114%;height:114%;object-fit:cover}
 .dk[data-r="rare"] .art{box-shadow:inset 0 0 0 3px #f0a040,0 3px 0 #0a1230}
 .dk[data-r="epic"] .art{box-shadow:inset 0 0 0 3px #c77dff,0 3px 0 #0a1230}
 .dk[data-r="legendary"] .art{box-shadow:inset 0 0 0 3px #5ef2d0,0 3px 0 #0a1230}
@@ -510,7 +510,7 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
   <div id="toasts" aria-live="polite"></div>
 </div>
 <script>window.AC_SITE=1</script>
-<script src="game.js?v=40860858ff"></script>
+<script src="game.js?v=9de30114db"></script>
 <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js","three/addons/":"./vendor/three/addons/"}}</script>
 <script type="module">
 const T3={};Promise.all([import("three"),import("three/addons/loaders/GLTFLoader.js"),import("three/addons/loaders/RGBELoader.js"),import("three/addons/utils/SkeletonUtils.js"),import("three/addons/utils/BufferGeometryUtils.js"),import("three/addons/postprocessing/EffectComposer.js"),import("three/addons/postprocessing/RenderPass.js"),import("three/addons/postprocessing/UnrealBloomPass.js"),import("three/addons/postprocessing/OutputPass.js")]).then(m=>{T3.GLTFLoader=m[1].GLTFLoader;T3.RGBELoader=m[2].RGBELoader;T3.SkeletonUtils=m[3];T3.BufferGeometryUtils=m[4];T3.EffectComposer=m[5].EffectComposer;T3.RenderPass=m[6].RenderPass;T3.UnrealBloomPass=m[7].UnrealBloomPass;T3.OutputPass=m[8].OutputPass;window.T3=T3;window.THREE=m[0];dispatchEvent(new Event("three-ready"))}).catch(e=>dispatchEvent(new CustomEvent("three-fail",{detail:String(e&&e.message||e)})));

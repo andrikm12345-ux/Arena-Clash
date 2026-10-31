@@ -413,7 +413,7 @@ function drawChar(g,key,tm,x,y,o){const T=TEAM[tm],c=CARDS[key],s=o.s||1,dir=o.d
 
 /* иконки карт */
 const IC={};
-function icon(key){if(IC[key])return IC[key];const cv=document.createElement('canvas');cv.width=cv.height=120;const g=cv.getContext('2d');g.scale(2,2);
+function icon(key){if(IC[key])return IC[key];const cv=document.createElement('canvas');cv.width=cv.height=240;const g=cv.getContext('2d');g.scale(4,4);
  if(!CARDS[key]){g.fillStyle='#2b4f9a';g.beginPath();g.arc(30,30,22,0,7);g.fill();g.fillStyle='#fff';g.font='900 22px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(key==='tt_king'?'♔':'⚑',30,31);return cv}
  const c=CARDS[key],rc=RAR[c.rar].c;
  const bgc=g.createRadialGradient(30,24,4,30,30,44);bgc.addColorStop(0,c.rar==='common'?'#4a5d96':c.rar==='rare'?'#7a5a3a':c.rar==='epic'?'#5d3f8a':c.rar==='legendary'?'#2c6e6a':'#7a6420');bgc.addColorStop(1,'#141c38');g.fillStyle=bgc;g.fillRect(0,0,60,60);
@@ -1998,14 +1998,14 @@ function spellModel(key){const g=new T.Group(),E=(c,e,i,o)=>new T.MeshStandardMa
   const k=new T.Mesh(new T.SphereGeometry(.12,10,8),gold);k.position.y=-.42;g.add(k);for(let i=0;i<4;i++){const h=new T.Mesh(new T.TorusGeometry(.12,.035,6,16),E('#9fffb0','#2ad45a',2));h.position.set(-.6+i*.4,.55+(i%2)*.2,.2);g.add(h)}}
  return g}
 async function r3Icons(){if(A3.iconsDone||!R3.ready)return;A3.iconsDone=1;
- const S=240,cv=document.createElement('canvas');cv.width=cv.height=S;let IR;
+ const S=qualKey()==='eco'?256:384,cv=document.createElement('canvas');cv.width=cv.height=S;let IR;
  try{IR=new T.WebGLRenderer({canvas:cv,alpha:true,antialias:true,preserveDrawingBuffer:true})}catch(e){return}
  IR.outputColorSpace=T.SRGBColorSpace;IR.toneMapping=T.ACESFilmicToneMapping;IR.toneMappingExposure=1.1;
  const sc=new T.Scene(),pm=new T.PMREMGenerator(IR);sc.environment=pm.fromEquirectangular(A3.hdr).texture;sc.environmentIntensity=.9;
  const key=new T.DirectionalLight('#fff4e0',2.6);key.position.set(-2,4,5);sc.add(key);const rim=new T.DirectionalLight('#9fd0ff',1.6);rim.position.set(3,2,-4);sc.add(rim);
  const cam=new T.PerspectiveCamera(28,1,.05,60);
  const BGC={common:'#4a5d96',rare:'#7a5a3a',epic:'#5d3f8a',legendary:'#2c6e6a',champion:'#7a6420'};
- for(const k of CARD_IDS){const c=CARDS[k];let obj=new T.Group();
+ let made=0;for(const k of CARD_IDS){if(made++%4===3)await new Promise(r=>setTimeout(r));const c=CARDS[k];let obj=new T.Group();
   try{if(c.type==='spell')obj.add(spellModel(k));
    else{const vk=c.unit||k,n=c.count>=3?3:c.count===2?2:1;
     for(let i=0;i<n;i++){let m;if(PROC[vk]){m=procModel(vk,0)}else{const I=r3Inst(vk,0);I.play(I.V.idle||'Idle');I.mixer.update(.35+i*.3);m=I.root}
@@ -2406,7 +2406,7 @@ const fmtN=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
 const fmtT=s=>{s=Math.ceil(s);if(s>=60){const m=s/60|0,r=s%60;return r?`${m} мин ${r} с`:`${m} мин`}return`${s} с`};
 const plural=(n,a,b,c)=>{n=Math.abs(n)%100;const d=n%10;return n>10&&n<20?c:d===1?a:d>=2&&d<=4?b:c};
 const avgCost=d=>(d.reduce((s,k)=>s+CARDS[k].cost,0)/d.length).toFixed(1);
-const paintIcons=root=>{root.querySelectorAll('canvas[data-ic]').forEach(cv=>{const g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);g.drawImage(icon(cv.dataset.ic),0,0,cv.width,cv.height)});
+const paintIcons=root=>{root.querySelectorAll('canvas[data-ic]').forEach(cv=>{const g=cv.getContext('2d');g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.clearRect(0,0,cv.width,cv.height);g.drawImage(icon(cv.dataset.ic),0,0,cv.width,cv.height)});
  root.querySelectorAll('canvas[data-chest]').forEach(cv=>drawChest(cv.getContext('2d'),cv.dataset.chest,false,cv.width,cv.height))};
 const SORTED=CARD_IDS.slice().sort((a,b)=>RAR_ORDER.indexOf(CARDS[a].rar)-RAR_ORDER.indexOf(CARDS[b].rar)||CARDS[a].cost-CARDS[b].cost);
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;$('#toasts').appendChild(d);setTimeout(()=>d.remove(),3300)}
@@ -2522,7 +2522,7 @@ let ctab='deck';
 function dk(k,i,sp,cls){const c=CARDS[k],o=P.cards[k],lv=o?o.lv:START_LV[c.rar],nd=o?needOf(k):0,mx=!o||lv>=MAXLV,up=o&&canUp(k);
  const slot=i===0&&sp.evo===k?'s-evo':i===1&&sp.hero===k?'s-hero':'',dia=EVO[k]?(P.evo.includes(k)?'evo on':'evo'):HERO[k]?(P.heroes.includes(k)?'hero on':'hero'):'';
  return`<button class="dk ${slot} ${cls||''}${o?'':' no'}${P.fresh.includes(k)?' new':''}" data-k="${k}" data-src="${cls&&cls.includes('coll')?'c':'d'}" data-r="${c.rar}" aria-label="${c.n}, ${c.cost} эликсира, уровень ${lv}">
-  <span class="art"><canvas width="120" height="120" data-ic="${k}"></canvas></span><i class="gem">${c.cost}</i>${dia?`<i class="dia ${dia}" aria-hidden="true"></i>`:''}
+  <span class="art"><canvas width="256" height="256" data-ic="${k}"></canvas></span><i class="gem">${c.cost}</i>${dia?`<i class="dia ${dia}" aria-hidden="true"></i>`:''}
   <span class="lvr">${o?lv+'-й уровень':ARENA_OF[k]>curArena()?'🔒 Арена '+(ARENA_OF[k]+1):'🔒 Не найдена'}</span>
   ${o?mx?'<span class="mxr">Макс.</span>':`<span class="pgr${up?' up':''}"><i style="width:${Math.min(100,o.n/nd*100).toFixed(0)}%"></i>${up?'<b class="arr" aria-hidden="true">▲</b>':''}<em>${fmtN(o.n)}/${fmtN(nd)}</em></span>`:'<span class="mxr no">—</span>'}</button>`}
 function renderCards(m){const d=curDeck(),sp=deckSpecial(d),found=CARD_IDS.filter(k=>P.cards[k]).length,ncoll=CARD_IDS.filter(k=>canUp(k)).length+P.fresh.length;
@@ -2772,7 +2772,7 @@ function renderHand(){const S=G.side[0],box=$('#hand');box.innerHTML='';handEls=
  S.hand.forEach((k,i)=>{if(!k){const e=document.createElement('div');e.className='card empty';e.setAttribute('aria-hidden','true');box.appendChild(e);handEls.push(e);return}
   const c=CARDS[k],b=document.createElement('button');b.className='card';b.dataset.r=c.rar;b.setAttribute('aria-label',`${c.n}, ${c.cost} эликсира`);
   if(k===S.evo)b.classList.add(evoReady(S,k)?'evo':'evo-wait');if(k===S.hero)b.classList.add('hero');
-  b.innerHTML=`<canvas width="120" height="120" data-ic="${k}"></canvas><i class="gem">${c.cost}</i>${k===S.evo?`<span class="eb">${evoReady(S,k)?'ЭВО':'эво '+S.evoN+'/'+EVO[k].cyc}</span>`:k===S.hero?'<span class="eb">ГЕРОЙ</span>':''}<i class="pb"><b></b></i><em class="need"></em><span class="nm">${c.n}</span>`;
+  b.innerHTML=`<canvas width="256" height="256" data-ic="${k}"></canvas><i class="gem">${c.cost}</i>${k===S.evo?`<span class="eb">${evoReady(S,k)?'ЭВО':'эво '+S.evoN+'/'+EVO[k].cyc}</span>`:k===S.hero?'<span class="eb">ГЕРОЙ</span>':''}<i class="pb"><b></b></i><em class="need"></em><span class="nm">${c.n}</span>`;
   b.addEventListener('pointerdown',e=>{if(!G||G.over||paused||mode!=='play')return;AU.init();sel=sel===i?null:i;AU.sfx('ui');e.preventDefault();clearTimeout(lpT);lpT=setTimeout(()=>showCardStats(k),450)});
   b.addEventListener('pointerup',hideCardStats);b.addEventListener('pointerleave',hideCardStats);b.addEventListener('contextmenu',e=>e.preventDefault());
   if(i===hs.newIdx)b.classList.add('in');box.appendChild(b);handEls.push(b)});hs.newIdx=-1;

@@ -702,14 +702,14 @@ function spellModel(key){const g=new T.Group(),E=(c,e,i,o)=>new T.MeshStandardMa
   const k=new T.Mesh(new T.SphereGeometry(.12,10,8),gold);k.position.y=-.42;g.add(k);for(let i=0;i<4;i++){const h=new T.Mesh(new T.TorusGeometry(.12,.035,6,16),E('#9fffb0','#2ad45a',2));h.position.set(-.6+i*.4,.55+(i%2)*.2,.2);g.add(h)}}
  return g}
 async function r3Icons(){if(A3.iconsDone||!R3.ready)return;A3.iconsDone=1;
- const S=240,cv=document.createElement('canvas');cv.width=cv.height=S;let IR;
+ const S=qualKey()==='eco'?256:384,cv=document.createElement('canvas');cv.width=cv.height=S;let IR;
  try{IR=new T.WebGLRenderer({canvas:cv,alpha:true,antialias:true,preserveDrawingBuffer:true})}catch(e){return}
  IR.outputColorSpace=T.SRGBColorSpace;IR.toneMapping=T.ACESFilmicToneMapping;IR.toneMappingExposure=1.1;
  const sc=new T.Scene(),pm=new T.PMREMGenerator(IR);sc.environment=pm.fromEquirectangular(A3.hdr).texture;sc.environmentIntensity=.9;
  const key=new T.DirectionalLight('#fff4e0',2.6);key.position.set(-2,4,5);sc.add(key);const rim=new T.DirectionalLight('#9fd0ff',1.6);rim.position.set(3,2,-4);sc.add(rim);
  const cam=new T.PerspectiveCamera(28,1,.05,60);
  const BGC={common:'#4a5d96',rare:'#7a5a3a',epic:'#5d3f8a',legendary:'#2c6e6a',champion:'#7a6420'};
- for(const k of CARD_IDS){const c=CARDS[k];let obj=new T.Group();
+ let made=0;for(const k of CARD_IDS){if(made++%4===3)await new Promise(r=>setTimeout(r));const c=CARDS[k];let obj=new T.Group();
   try{if(c.type==='spell')obj.add(spellModel(k));
    else{const vk=c.unit||k,n=c.count>=3?3:c.count===2?2:1;
     for(let i=0;i<n;i++){let m;if(PROC[vk]){m=procModel(vk,0)}else{const I=r3Inst(vk,0);I.play(I.V.idle||'Idle');I.mixer.update(.35+i*.3);m=I.root}

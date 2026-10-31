@@ -24,7 +24,7 @@ const fmtN=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
 const fmtT=s=>{s=Math.ceil(s);if(s>=60){const m=s/60|0,r=s%60;return r?`${m} мин ${r} с`:`${m} мин`}return`${s} с`};
 const plural=(n,a,b,c)=>{n=Math.abs(n)%100;const d=n%10;return n>10&&n<20?c:d===1?a:d>=2&&d<=4?b:c};
 const avgCost=d=>(d.reduce((s,k)=>s+CARDS[k].cost,0)/d.length).toFixed(1);
-const paintIcons=root=>{root.querySelectorAll('canvas[data-ic]').forEach(cv=>{const g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);g.drawImage(icon(cv.dataset.ic),0,0,cv.width,cv.height)});
+const paintIcons=root=>{root.querySelectorAll('canvas[data-ic]').forEach(cv=>{const g=cv.getContext('2d');g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.clearRect(0,0,cv.width,cv.height);g.drawImage(icon(cv.dataset.ic),0,0,cv.width,cv.height)});
  root.querySelectorAll('canvas[data-chest]').forEach(cv=>drawChest(cv.getContext('2d'),cv.dataset.chest,false,cv.width,cv.height))};
 const SORTED=CARD_IDS.slice().sort((a,b)=>RAR_ORDER.indexOf(CARDS[a].rar)-RAR_ORDER.indexOf(CARDS[b].rar)||CARDS[a].cost-CARDS[b].cost);
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;$('#toasts').appendChild(d);setTimeout(()=>d.remove(),3300)}
@@ -140,7 +140,7 @@ let ctab='deck';
 function dk(k,i,sp,cls){const c=CARDS[k],o=P.cards[k],lv=o?o.lv:START_LV[c.rar],nd=o?needOf(k):0,mx=!o||lv>=MAXLV,up=o&&canUp(k);
  const slot=i===0&&sp.evo===k?'s-evo':i===1&&sp.hero===k?'s-hero':'',dia=EVO[k]?(P.evo.includes(k)?'evo on':'evo'):HERO[k]?(P.heroes.includes(k)?'hero on':'hero'):'';
  return`<button class="dk ${slot} ${cls||''}${o?'':' no'}${P.fresh.includes(k)?' new':''}" data-k="${k}" data-src="${cls&&cls.includes('coll')?'c':'d'}" data-r="${c.rar}" aria-label="${c.n}, ${c.cost} эликсира, уровень ${lv}">
-  <span class="art"><canvas width="120" height="120" data-ic="${k}"></canvas></span><i class="gem">${c.cost}</i>${dia?`<i class="dia ${dia}" aria-hidden="true"></i>`:''}
+  <span class="art"><canvas width="256" height="256" data-ic="${k}"></canvas></span><i class="gem">${c.cost}</i>${dia?`<i class="dia ${dia}" aria-hidden="true"></i>`:''}
   <span class="lvr">${o?lv+'-й уровень':ARENA_OF[k]>curArena()?'🔒 Арена '+(ARENA_OF[k]+1):'🔒 Не найдена'}</span>
   ${o?mx?'<span class="mxr">Макс.</span>':`<span class="pgr${up?' up':''}"><i style="width:${Math.min(100,o.n/nd*100).toFixed(0)}%"></i>${up?'<b class="arr" aria-hidden="true">▲</b>':''}<em>${fmtN(o.n)}/${fmtN(nd)}</em></span>`:'<span class="mxr no">—</span>'}</button>`}
 function renderCards(m){const d=curDeck(),sp=deckSpecial(d),found=CARD_IDS.filter(k=>P.cards[k]).length,ncoll=CARD_IDS.filter(k=>canUp(k)).length+P.fresh.length;
@@ -390,7 +390,7 @@ function renderHand(){const S=G.side[0],box=$('#hand');box.innerHTML='';handEls=
  S.hand.forEach((k,i)=>{if(!k){const e=document.createElement('div');e.className='card empty';e.setAttribute('aria-hidden','true');box.appendChild(e);handEls.push(e);return}
   const c=CARDS[k],b=document.createElement('button');b.className='card';b.dataset.r=c.rar;b.setAttribute('aria-label',`${c.n}, ${c.cost} эликсира`);
   if(k===S.evo)b.classList.add(evoReady(S,k)?'evo':'evo-wait');if(k===S.hero)b.classList.add('hero');
-  b.innerHTML=`<canvas width="120" height="120" data-ic="${k}"></canvas><i class="gem">${c.cost}</i>${k===S.evo?`<span class="eb">${evoReady(S,k)?'ЭВО':'эво '+S.evoN+'/'+EVO[k].cyc}</span>`:k===S.hero?'<span class="eb">ГЕРОЙ</span>':''}<i class="pb"><b></b></i><em class="need"></em><span class="nm">${c.n}</span>`;
+  b.innerHTML=`<canvas width="256" height="256" data-ic="${k}"></canvas><i class="gem">${c.cost}</i>${k===S.evo?`<span class="eb">${evoReady(S,k)?'ЭВО':'эво '+S.evoN+'/'+EVO[k].cyc}</span>`:k===S.hero?'<span class="eb">ГЕРОЙ</span>':''}<i class="pb"><b></b></i><em class="need"></em><span class="nm">${c.n}</span>`;
   b.addEventListener('pointerdown',e=>{if(!G||G.over||paused||mode!=='play')return;AU.init();sel=sel===i?null:i;AU.sfx('ui');e.preventDefault();clearTimeout(lpT);lpT=setTimeout(()=>showCardStats(k),450)});
   b.addEventListener('pointerup',hideCardStats);b.addEventListener('pointerleave',hideCardStats);b.addEventListener('contextmenu',e=>e.preventDefault());
   if(i===hs.newIdx)b.classList.add('in');box.appendChild(b);handEls.push(b)});hs.newIdx=-1;
