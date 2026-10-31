@@ -4,12 +4,12 @@ import vm from 'node:vm';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const SRC = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src');
-const FILES = ['0-config.js', '1-data.js', '3-engine.js', '4-ai.js', '7-meta.js'];
+const FILES = ['0-config.js', '1-data.js', '3-engine.js', '4-ai.js', '7-meta.js', '9-net.js'];
 
-export function makeWorld() {
+export function makeWorld(extra = {}) {
   const mem = new Map();
   const ctx = vm.createContext({
-    console, Math, JSON, Date, Number, Object, Array, Set, Map, String, Promise, Symbol, Error, TextEncoder, TextDecoder,
+    console, Math: extra.Math || Math, ...(extra.globals || {}), JSON, Date, Number, Object, Array, Set, Map, String, Promise, Symbol, Error, TextEncoder, TextDecoder,
     btoa: s => Buffer.from(s, 'binary').toString('base64'), atob: s => Buffer.from(s, 'base64').toString('binary'),
     matchMedia: () => ({matches: false}),
     document: {querySelector: () => null},

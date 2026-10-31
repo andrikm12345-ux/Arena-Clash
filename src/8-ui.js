@@ -72,6 +72,7 @@ function renderPlay(m){const a=curArena(),A=ARENAS[a],nx=ARENAS[a+1],d=curDeck()
  m.innerHTML=`<button class="arena-card" id="ac" aria-label="Арена ${a+1}: ${A.n}. Открыть дорогу кубков"><canvas id="thumb" role="img" aria-hidden="true"></canvas><div class="cap"><div><small>АРЕНА ${a+1}</small><b>${A.n}</b></div><small class="tr">${ICO.trophy}${fmtN(P.tr)}</small></div>${road?`<span class="badge">Награды: ${road}</span>`:''}</button>
  <button class="aprog" id="rd"><i style="width:${(pr*100).toFixed(1)}%"></i><span>${nx?`До арены «${nx.n}» — ${nx.tr-P.tr} кубков · дорога ›`:'Последняя арена · дорога кубков ›'}</span></button>
  <div class="playrow"><button class="big" id="play">${P.tutB<CFG.tutor.battles?`ОБУЧЕНИЕ ${P.tutB+1}/${CFG.tutor.battles}`:"БОЙ"}</button><button class="modes" id="modes" aria-label="Режимы и события">${ICO.events}<span>Режимы</span></button></div>
+ <button class="friendbtn" id="fr">Бой с другом</button>
  ${P.tutB<CFG.tutor.battles?'<button class="link center" id="skt">Пропустить обучение</button>':''}
  <div class="chests" id="chests"></div>
  <button class="deckrow" id="dr" aria-label="Колода ${P.slot+1}. Открыть карты">${d.map((k,i)=>`<canvas width="60" height="60" data-ic="${k}" class="${i===0&&sp.evo?'evo':i===1&&sp.hero?'hero':''}"></canvas>`).join('')}<span><small>КОЛОДА ${P.slot+1}</small><b>${avgCost(d)}</b></span></button>
@@ -80,7 +81,7 @@ function renderPlay(m){const a=curArena(),A=ARENAS[a],nx=ARENAS[a+1],d=curDeck()
  if(!(R3.want&&r3Thumb(Object.assign($('#thumb'),{width:720,height:632}),a)))drawThumb($('#thumb'),a);paintIcons(m);renderChests();
  $('#play').onclick=()=>P.tutB<CFG.tutor.battles?startBattle(false,{mode:'tutor'}):startBattle(false);if($('#skt'))$('#skt').onclick=()=>{P.tutB=CFG.tutor.battles;saveP();renderHome()};$('#dr').onclick=()=>{AU.init();AU.sfx('ui');tab='cards';renderHome()};
  $('#ac').onclick=$('#rd').onclick=()=>{AU.init();AU.sfx('ui');tab='road';renderHome()};
- $('#modes').onclick=()=>{AU.init();AU.sfx('ui');tab='events';renderHome()};$('#ttb').onclick=openTT;$('#rules').onclick=openRules}
+ $('#fr').onclick=()=>openFriend();$('#modes').onclick=()=>{AU.init();AU.sfx('ui');tab='events';renderHome()};$('#ttb').onclick=openTT;$('#rules').onclick=openRules}
 /* сундуки удачи, ждущие открытия, и старые сундуки из слотов — открываются сразу */
 function renderChests(){const box=$('#chests');if(!box)return;const L=P.luck.map((a,i)=>({lucky:1,a,i})),O=P.chests.map((c,i)=>c?{c,i}:null).filter(Boolean);
  if(!L.length&&!O.length){box.innerHTML='<p class="note center">Побеждай — после каждой победы ждёт сундук удачи</p>';return}
@@ -237,7 +238,7 @@ function specHTML(k){const c=CARDS[k],o=P.cards[k],d=curDeck(),inD=d.includes(k)
  if(HERO[k]){const h=HERO[k],have=P.heroes.includes(k),champ=d.some(x=>CARDS[x].ability);out.push(`<div class="spec hero"><b>Герой</b><small>${h.d}. Цена способности ${h.ability.cost} эликсира. Здоровье +15%. Пока жив, карта не возвращается в руку.</small>
   ${!o?'':!have?`<button class="small" data-sp="uh"${P.shards<HERO_COST?' disabled':''}>Открыть · ${HERO_COST} ${ICO.shard.replace('<svg','<svg style="width:15px;height:15px;vertical-align:-2px"')}</button>`:champ&&inD?'<span class="ok2">В колоде чемпион: слот героя занят</span>':inD&&d[1]!==k?'<button class="small" data-sp="to:1">В слот героя</button>':inD?'<span class="ok2">В слоте героя</span>':'<span class="ok2">Открыт · добавь в колоду</span>'}</div>`)}
  return out.join('')}
-function closeSheet(){const sh=$('#sheet'),was=!sh.hidden;sh.hidden=true;sh.innerHTML='';if(was&&!$('#home').hidden&&tab==='cards'&&!pick)renderHome()}
+function closeSheet(){NETL.ui=null;const sh=$('#sheet'),was=!sh.hidden;sh.hidden=true;sh.innerHTML='';if(was&&!$('#home').hidden&&tab==='cards'&&!pick)renderHome()}
 
 /* ---------- вкладка «Магазин» ---------- */
 function priceBtn(o){const done=bought(o),have=o.cur==='gold'?P.gold:P.gems;
@@ -368,7 +369,7 @@ const TIPS={full:'Эликсир полон — трать его, иначе о
 const NIGHT_TIPS=['night','dark','light','bridge'];
 let tipT=0;
 function tip(k){if(P.st.games>=(NIGHT_TIPS.includes(k)?6:3)||P.hints.includes(k)||!$('#tip').hidden||!$('#help').hidden)return;P.hints.push(k);saveP();const e=$('#tip');e.querySelector('span').textContent=TIPS[k];e.hidden=false;clearTimeout(tipT);tipT=setTimeout(()=>{e.hidden=true},4200)}
-function tips(){if(P.st.games>=6||G.over)return;const S=G.side[0];
+function tips(){if(NET.on||P.st.games>=6||G.over)return;const S=G.side[ME];
  if(G.cyc&&!G.night&&!G.mc.night){const C=cycOf();if((G.t%(C.day+C.night))>C.day-12&&G.t<C.day+C.night)tip('night')}
  if(G.vis&&G.U.some(u=>u.tm===1&&alive(u)&&!G.vis[0].has(u))&&G.U.some(u=>u.tm===0&&alive(u)))tip('dark');
  if(G.cyc&&S.hand.some(k=>k&&((CARDS[CARDS[k].unit||k].light)||CARDS[k].flash)))tip('light');
@@ -401,14 +402,14 @@ function startBattle1(train,opt){AU.sfx('ui');closeSheet();lastOpt=opt;const a=c
  if(md==='draft'||md==='random'){const eq={};for(const k of CARD_IDS)eq[k]=START_LV[CARDS[k].rar]+ARENA_LV[a];decks=md==='draft'?[opt.deck,opt.bot]:[randomDeck(),randomDeck()];lv=[eq,eq];ex=[{},{}]}
  newMatch({arena:a,decks,lv,kl:[P.kl,B.kl],bots:[null,B.skill],names:['Ты',nm],train:train||!!opt,mode:em,ex,tt:[P.tt,B.tt],thp:[1,thp]});G.event=opt?md:null;
  if(md==='tutor')G.tutor={step:P.tutB,pt:{x:BR[0]+10,y:RY+RIV+70}};
- mode='play';sel=null;gx=-1;paused=false;hideOv();$('#emo').hidden=true;$('#tip').hidden=true;
+ mode='play';sel=null;gx=-1;paused=false;hideOv();$('#emo').hidden=true;$('#tip').hidden=true;$('#bp').hidden=false;
  $('#enname').textContent=train?`Тренировка · ${SKILL[P.train].n}`:md==='tutor'?`Обучение ${P.tutB+1} из ${CFG.tutor.battles}`:opt?`${MODE_N[md]} · ${nm}`:`${nm} · ур. ${B.kl} · ${SKILL[B.skill]?SKILL[B.skill].n:''}`;
  showView('battle');if(ARENA_RULE[a]&&md!=='tutor')setTimeout(()=>{if(G&&!G.over)banner(ARENA_RULE[a],'#9fd8ff')},2600);R3.on=false;if(R3.want&&R3.ready&&r3Begin(a))r3Show();else r3Stop();hs={};renderHand();$('#help').hidden=P.tut>0&&md!=='tutor';if(md==='tutor')$('#help span').textContent=['Нажми на карту внизу, затем — на светящийся круг','Ставь защитников на пути врага, пока он у твоих башен','Набери эликсир и атакуй вместе с поддержкой'][Math.min(P.tutB,2)];banner(train?'Тренировка':opt?MODE_N[md]:'В бой!','#ffc83d');MUS.play('battle')}
 let lpT=0;
-function showCardStats(k){const S=G.side[0],lv=S.lv[k]||START_LV[CARDS[k].rar],c=CARDS[k],e=$('#cstat');
+function showCardStats(k){const S=G.side[ME],lv=S.lv[k]||START_LV[CARDS[k].rar],c=CARDS[k],e=$('#cstat');
  e.innerHTML=`<b>${c.n}</b><small>${RAR[c.rar].n} · ур. ${lv} · ${c.cost} эликсира${k===S.evo?' · эволюция':k===S.hero?' · герой':''}</small><div>${statRows(k,lv).map(([a,b,suf])=>`<span>${a}<em>${typeof b==='number'?fmtN(b):b}${suf||''}</em></span>`).join('')}</div>`;e.hidden=false}
 function hideCardStats(){clearTimeout(lpT);const e=$('#cstat');if(e)e.hidden=true}
-function renderHand(){const S=G.side[0],box=$('#hand');box.innerHTML='';handEls=[];
+function renderHand(){const S=G.side[ME],box=$('#hand');box.innerHTML='';handEls=[];
  S.hand.forEach((k,i)=>{if(!k){const e=document.createElement('div');e.className='card empty';e.setAttribute('aria-hidden','true');box.appendChild(e);handEls.push(e);return}
   const c=CARDS[k],b=document.createElement('button');b.className='card';b.dataset.r=c.rar;b.setAttribute('aria-label',`${c.n}, ${c.cost} эликсира`);
   if(k===S.evo)b.classList.add(evoReady(S,k)?'evo':'evo-wait');if(k===S.hero)b.classList.add('hero');
@@ -420,25 +421,25 @@ function renderHand(){const S=G.side[0],box=$('#hand');box.innerHTML='';handEls=
  paintIcons(box);hs.sig=S.hand.join()+'|'+S.queue[0]+'|'+S.evoN}
 const fmt=s=>{s=Math.max(0,Math.ceil(s));return(s/60|0)+':'+String(s%60).padStart(2,'0')};
 const setPips=(tm,n)=>[...$('#cp'+tm+' .pips').children].forEach((e,i)=>e.classList.toggle('on',i<n));
-function hud(){const S=G.side[0],e=S.el,ei=Math.floor(e);
+function hud(){const S=G.side[ME],e=S.el,ei=Math.floor(e);
  $('#ef').style.width=(e*10)+'%';if(ei!==hs.el){hs.el=ei;$('#en').textContent=ei;$('#eb').classList.toggle('full',ei>=10)}
  const M=CFG.match,left=G.tb?0:G.ot?M.ot-G.otT:M.len-G.t,tm=fmt(left);if(tm!==hs.tm){if(hs.tm&&left<=10&&left>0&&!G.over)AU.sfx('tick');hs.tm=tm;$('#tm').textContent=tm;$('#tm').classList.toggle('low',left<=10||!!G.ot)}
  tips();if(G.ot&&MUS.theme!=='ot')MUS.play('ot');else if(!G.ot&&!G.over&&(MUS.theme==='battle'||MUS.theme==='night')){const th=G.night?'night':'battle';if(MUS.theme!==th)MUS.play(th)}
  if(G.cyc&&!G.tb){const C=cycOf(),per=C.day+C.night,p=G.t%per,n=p>=C.day,left=Math.ceil(n?per-p:C.day-p),tx=G.mc.night?'☾ вечная ночь':G.force?(G.force.k?'☾ затмение ещё ':'☀ рассвет ещё ')+Math.ceil(G.force.t):(n?'☾ рассвет через ':'☀ ночь через ')+left;if(tx!==hs.dn){hs.dn=tx;const e=$('#dn');e.textContent=tx;e.classList.toggle('n',n)}}
  else if(hs.dn){hs.dn='';$('#dn').textContent=''}
  const er=elRate(),ph=G.tb?'ТАЙБРЕЙКЕР':G.ot?'ОВЕРТАЙМ · ×'+er:er>1?'ЭЛИКСИР ×'+er:'ОСТАЛОСЬ';if(ph!==hs.ph){hs.ph=ph;$('#ph').textContent=ph}
- const cr=G.crowns.join();if(cr!==hs.cr){hs.cr=cr;setPips(0,G.crowns[0]);setPips(1,G.crowns[1])}
+ const cr=G.crowns.join();if(cr!==hs.cr){hs.cr=cr;setPips(0,G.crowns[ME]);setPips(1,G.crowns[1-ME])}
  if(S.hand.join()+'|'+S.queue[0]+'|'+S.evoN!==hs.sig)renderHand();
- handEls.forEach((b,i)=>{if(!S.hand[i])return;const c=CARDS[S.hand[i]];b.style.setProperty('--p',Math.min(1,e/c.cost).toFixed(3));b.classList.toggle('sel',sel===i);b.classList.toggle('off',cardBlocked(0,S.hand[i]));const poor=e<c.cost;b.classList.toggle('poor',poor);const nd=b.querySelector('.need');if(nd){const t=poor?'ещё '+Math.ceil(c.cost-e-1e-9):'';if(nd.textContent!==t)nd.textContent=t}});
+ handEls.forEach((b,i)=>{if(!S.hand[i])return;const c=CARDS[S.hand[i]];b.style.setProperty('--p',Math.min(1,e/c.cost).toFixed(3));b.classList.toggle('sel',sel===i);b.classList.toggle('off',cardBlocked(ME,S.hand[i]));const poor=e<c.cost;b.classList.toggle('poor',poor);const nd=b.querySelector('.need');if(nd){const t=poor?'ещё '+Math.ceil(c.cost-e-1e-9):'';if(nd.textContent!==t)nd.textContent=t}});
  const ch=!!S.champ&&alive(S.champ),ab=$('#ab');if(ab.hidden!==!ch)ab.hidden=!ch;
  if(ch){const a=S.champ.c.ability;ab.classList.toggle('cd',S.abCd>0||S.el<a.cost);const t=S.abCd>0?`${a.n} · ${Math.ceil(S.abCd)} с`:a.n;if(t!==hs.ab){hs.ab=t;$('#abn').textContent=t}}}
-function tryPlay(){const S=G.side[0],key=S.hand[sel],c=CARDS[key];if(!key||G.tb){sel=null;return}
- if(cardBlocked(0,key))return deny(key===S.hero?'Герой уже на поле':'Чемпион уже на поле');
+function tryPlay(){const S=G.side[ME],key=S.hand[sel],c=CARDS[key];if(!key||G.tb){sel=null;return}
+ if(cardBlocked(ME,key))return deny(key===S.hero?'Герой уже на поле':'Чемпион уже на поле');
  if(S.el<c.cost)return deny('Мало эликсира');
- if(!canPlace(0,key,gx,gy))return deny(c.type==='building'&&gy>RY+RIV?'Мешает строение или башня':'Сюда нельзя');
- const idx=sel;playCard(0,sel,gx,gy);sel=null;hs.newIdx=idx;renderHand();if(!P.tut){P.tut=1;saveP();$('#help').hidden=true}}
+ if(!canPlace(ME,key,gx,gy))return deny(c.type==='building'&&gy>RY+RIV?'Мешает строение или башня':'Сюда нельзя');
+ const idx=sel;if(NET.on){netCmd({k:'p',i:sel,x:gx,y:gy});AU.sfx('dep')}else playCard(0,sel,gx,gy);sel=null;hs.newIdx=idx;renderHand();if(!P.tut){P.tut=1;saveP();$('#help').hidden=true}}
 function deny(t){AU.sfx('deny');floatText(clamp(gx,48,W-48),gy-20,t,'#ff9b8f',12)}
-function togglePause(){if(mode!=='play'||!G||G.over)return;paused=!paused;
+function togglePause(){if(NET.on||mode!=='play'||!G||G.over)return;paused=!paused;
  if(paused){showOv(`<div class="scr"><h2>Пауза</h2><button class="big" id="resume">Продолжить</button><button class="ghost" id="quit">Сдаться</button></div>`);$('#resume').onclick=togglePause;$('#quit').onclick=()=>{paused=false;hideOv();G.crowns[1]=3;finish(1)};$('#resume').focus()}
  else hideOv()}
 /* разбор боя: перевес по эликсиру (убитые враги минус свои потери) по секундам, отметки упавших башен */
@@ -464,7 +465,7 @@ function advHover(){const h=$('#advH');if(!h)return;const d=G.tl,N=d.length,svg=
   const px=x/300*r.width;tip.style.left=clamp(px,60,r.width-60)+'px'};
  const hide=()=>{tip.hidden=true;$('#advX').setAttribute('visibility','hidden');$('#advP').setAttribute('visibility','hidden')};
  h.addEventListener('pointermove',show);h.addEventListener('pointerdown',show);h.addEventListener('pointerleave',hide)}
-function endScreen(){mode='end';sel=null;const r=G.res,cr=G.crowns,S=G.stats[0],train=G.train,ev=G.event;let dtr=0,lucky=-1,gold=0,newA=-1,evr=null,chr=null,tut=null;
+function endScreen(){if(NET.on){netEnd();return}mode='end';sel=null;const r=G.res,cr=G.crowns,S=G.stats[0],train=G.train,ev=G.event;let dtr=0,lucky=-1,gold=0,newA=-1,evr=null,chr=null,tut=null;
  if(ev&&ev!=='challenge'&&ev!=='tutor'&&r===0)evr=eventReward(ev);if(!G.train||ev)clanFight();
  if(ev==='challenge')chr=chalResult(r===0);
  if(ev==='tutor'&&r===0){P.tutB=Math.min(CFG.tutor.battles,P.tutB+1);P.gold+=CFG.tutor.gold;saveP();tut=P.tutB}
@@ -507,16 +508,16 @@ function replayDone(){const r=G.res;showOv(`<div class="scr"><h2>Повтор о
 
 /* ---------- ввод ---------- */
 /* ткнул чуть дальше своей половины — карта встаёт на ближайший разрешённый край (или в открытый карман) */
-function snapPlace(key,x,y){if(!key||canPlace(0,key,x,y))return[x,y];const c=CARDS[key];if(c.type==='spell')return[x,y];
+function snapPlace(key,x,y){if(!key||canPlace(ME,key,x,y)||ME)return[x,y];const c=CARDS[key];if(c.type==='spell')return[x,y];
  const own=RY+RIV+3,cand=[];x=clamp(x,10,W-10);
  if(c.tunnel){cand.push([x,y<RY?RY-RIV-4:RY+RIV+4])}
- else{if(pocketOpen(0,x)){if(y<POCKET_Y)cand.push([x,POCKET_Y+1]);else if(Math.abs(y-RY)<RIV+3)cand.push([x,y<RY?RY-RIV-4:own])}cand.push([x,Math.max(y,own)])}
- for(const[cx,cy]of cand)for(const[dx,dy]of[[0,0],[0,8],[0,16],[-14,4],[14,4],[0,26],[-26,10],[26,10]]){const px=clamp(cx+dx,10,W-10),py=cy+dy;if(canPlace(0,key,px,py))return[px,py]}
+ else{if(pocketOpen(ME,x)){if(y<POCKET_Y)cand.push([x,POCKET_Y+1]);else if(Math.abs(y-RY)<RIV+3)cand.push([x,y<RY?RY-RIV-4:own])}cand.push([x,Math.max(y,own)])}
+ for(const[cx,cy]of cand)for(const[dx,dy]of[[0,0],[0,8],[0,16],[-14,4],[14,4],[0,26],[-26,10],[26,10]]){const px=clamp(cx+dx,10,W-10),py=cy+dy;if(canPlace(ME,key,px,py))return[px,py]}
  // внутри башни или строения — ближайшая свободная точка вокруг
- for(let r=6;r<=70;r+=4)for(let i=0;i<24;i++){const a=i/24*Math.PI*2,px=clamp(x+Math.cos(a)*r,10,W-10),py=clamp(y+Math.sin(a)*r,10,H-10);if(canPlace(0,key,px,py))return[px,py]}
+ for(let r=6;r<=70;r+=4)for(let i=0;i<24;i++){const a=i/24*Math.PI*2,px=clamp(x+Math.cos(a)*r,10,W-10),py=clamp(y+Math.sin(a)*r,10,H-10);if(canPlace(ME,key,px,py))return[px,py]}
  return[x,y]}
 function pos(e){let x,y;if(R3.on){const q=r3Pick(e.clientX,e.clientY);if(!q){gx=-1;return}x=q.x;y=q.y}else{const r=C.getBoundingClientRect();x=(e.clientX-r.left)/r.width*W;y=(e.clientY-r.top)/r.height*H;if(x<0||x>W||y<0||y>H){gx=-1;return}}
- [gx,gy]=G&&sel!=null&&mode==='play'?snapPlace(G.side[0].hand[sel],x,y):[x,y]}
+ [gx,gy]=G&&sel!=null&&mode==='play'?snapPlace(G.side[ME].hand[sel],x,y):[x,y]}
 addEventListener('pointermove',e=>{if(mode==='play')pos(e)});
 C.addEventListener('pointerdown',pos);
 addEventListener('pointerup',e=>{if(mode!=='play'||!G||G.over||paused||sel==null)return;
@@ -524,16 +525,16 @@ addEventListener('pointerup',e=>{if(mode!=='play'||!G||G.over||paused||sel==null
 addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheet').hidden){closeSheet();return}
  if(mode!=='play'||!G)return;
  if(e.key==='Escape')sel=null;
- if(e.key>='1'&&e.key<='4'){const i=+e.key-1;if(G.side[0].hand[i])sel=sel===i?null:i}
+ if(e.key>='1'&&e.key<='4'){const i=+e.key-1;if(G.side[ME].hand[i])sel=sel===i?null:i}
  if(e.key==='p'||e.key==='P'||e.key===' '){e.preventDefault();togglePause()}
- if(e.key==='q'||e.key==='Q')useAbility(0)});
+ if(e.key==='q'||e.key==='Q'){if(NET.on)netCmd({k:'a'});else useAbility(0)}});
 $('#bp').onclick=()=>{AU.init();togglePause()};
 function micon(){$('#mi').setAttribute('d',AU.mute?'M3 9v6h4l5 4V5L7 9zM16 9l5 6M21 9l-5 6':'M3 9v6h4l5 4V5L7 9zM16 8a5 5 0 0 1 0 8M19 5a9 9 0 0 1 0 14');$('#bm').setAttribute('aria-pressed',AU.mute)}
 $('#bm').onclick=()=>{AU.init();AU.mute=!AU.mute;store.set('ac.mute',AU.mute);micon();MUS.vol();AU.sfx('ui')};
-$('#ab').onclick=()=>{AU.init();if(G&&!useAbility(0))AU.sfx('deny')};
+$('#ab').onclick=()=>{AU.init();if(NET.on){netCmd({k:'a'});AU.sfx('ui')}else if(G&&!useAbility(0))AU.sfx('deny')};
 $('#emo').innerHTML=EMOTES.map((t,i)=>`<button data-e="${i}">${t}</button>`).join('');
 $('#be').onclick=()=>{AU.init();$('#emo').hidden=!$('#emo').hidden};
-$('#emo').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(!G)return;emote(0,+b.dataset.e);$('#emo').hidden=true;
+$('#emo').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(!G)return;if(NET.on){NET.tr.send({k:'e',i:+b.dataset.e})}emote(ME,+b.dataset.e);$('#emo').hidden=true;
  if(G.bots[1]&&Math.random()<.4)setTimeout(()=>{if(G&&!G.over)emote(1,pickV([0,3,4,5]))},900+Math.random()*900)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='play'&&!paused&&G&&!G.over)togglePause()});
 
@@ -547,12 +548,54 @@ function fit(){if($('#battle').hidden)return;const st=$('#stage'),w=st.clientWid
  r3Resize(cw,ch)}
 new ResizeObserver(()=>requestAnimationFrame(fit)).observe($('#stage'));
 let lastT=0,acc=0;
+/* ---------- бой с другом по сети ---------- */
+function startNetBattle(S,me,tr){
+ if(!(R3.want&&R3.ready&&!R3.failed)){toast('Для игры по сети нужна 3D-графика (в настройках)');try{tr.close()}catch(e){}netLobbyState('err','Для игры по сети нужна 3D-графика');return}
+ closeSheet();AU.sfx('ui');ME=me;NETL.aborted=0;const a=S.arena;if(TH!==THEMES[a]){TH=THEMES[a];BG=null}
+ newMatch({arena:a,decks:S.decks,lv:S.lv,kl:S.kl,bots:[null,null],names:S.names,train:true,mode:'normal',ex:[{},{}],tt:S.tt,thp:[1,1],seed:S.seed});G.event='friend';
+ netInit(tr,me);mode='play';sel=null;gx=-1;paused=false;hideOv();$('#emo').hidden=true;$('#tip').hidden=true;$('#bp').hidden=true;$('#enname').textContent=S.names[1-me];
+ showView('battle');R3.on=false;S3.flip=me===1;if(r3Begin(a))r3Show();else r3Stop();hs={};renderHand();$('#help').hidden=true;banner('Дружеский бой','#ffc83d');MUS.play('battle')}
+function netLeave(){netOff();netCancel();ME=0;if(typeof S3!=='undefined')S3.flip=false;hideOv();G=null;mode='home';r3Stop();$('#bp').hidden=false;showView('home');tab='play';renderHome();MUS.play('menu')}
+/* ждём соперника, обрыв связи, расхождение */
+function netWatch(){const w=$('#netwait');if(w){const show=NET.waitT>1&&!G.over;if(w.hidden===show)w.hidden=!show}
+ if(G.over){const b=$('#nrm');if(NET.gone&&b&&!b.dataset.gone){b.dataset.gone=1;b.disabled=true;b.textContent='Друг вышел'}return}
+ if(Date.now()-NET.lastRx>25000)NET.gone=true; // 25 секунд тишины: соперник пропал или телефон уснул
+ if(NET.fail||NET.gone)netAbort(NET.fail?'desync':'gone')}
+function netAbort(why){if(NETL.aborted)return;NETL.aborted=1;const gone=why==='gone';NET.on=false;mode='end';$('#netwait').hidden=true;AU.sfx('deny');
+ showOv(`<div class="scr"><h2>${gone?'Друг вышел из боя':'Бой разошёлся'}</h2><p class="sub">${gone?'Соединение закрыто. Бой остановлен без результата.':'Игры у вас разошлись, и бой остановлен. Обычно так бывает, если у одного из вас другая версия игры: обновите страницу и зайдите снова.'}</p><button class="big" id="nlv">В меню</button></div>`);$('#nlv').onclick=netLeave}
+function netEnd(){mode='end';sel=null;$('#netwait').hidden=true;const r=G.res,mine=G.crowns[ME],theirs=G.crowns[1-ME],win=r===ME,dr=r===2;
+ MUS.play('menu');AU.sfx(win?'win':dr?'ui':'lose');
+ showOv(`<div class="scr"><h2 style="color:${win?'var(--gold)':dr?'var(--ink)':'var(--red)'}">${win?'Победа!':dr?'Ничья':'Поражение'}</h2>
+  <div class="pips big3">${[0,1,2].map(i=>crownSVG.replace('<svg','<svg class="'+(i<mine?'on':'')+'"')).join('')}</div>
+  <p class="sub">Счёт ${mine} : ${theirs} против «${esc(G.names[1-ME])}»</p><p class="sub">Дружеский бой без наград, уровни карт равные.</p>
+  <button class="big" id="nrm">Реванш</button><button class="ghost" id="nlv">Выйти</button></div>`);
+ $('#nrm').onclick=()=>{$('#nrm').disabled=true;$('#nrm').textContent='Ждём друга…';netRematch()};$('#nlv').onclick=netLeave}
+/* окно «Бой с другом»: создать комнату или войти по коду */
+function openFriend(code){AU.init();AU.sfx('ui');const sh=$('#sheet');
+ const draw=()=>{const st=NETL.st,m=NETL.msg,host=!!NETL.code,link=location.origin+location.pathname+'?room='+NETL.code;
+  sh.innerHTML=`<div class="sh" role="dialog" aria-modal="true" aria-labelledby="shn"><h3 class="t" id="shn">Бой с другом</h3>
+   ${st==='idle'||st==='err'?`${st==='err'?`<p class="note hl">${esc(m)}</p>`:''}
+    <p class="note">Бой идёт по интернету между вашими телефонами. Уровни карт у обоих равные, награды нет. ${window.AC_SITE?'Нужна 3D-графика.':'Откройте игру по ссылке arena-clash-coral.vercel.app: из этой копии играть по сети нельзя.'}</p>
+    <button class="big" id="fhost">Создать комнату</button>
+    <div class="joinrow"><input id="fcode" maxlength="5" placeholder="КОД" autocapitalize="characters" autocomplete="off" value="${esc(code||'')}"><button class="big blue" id="fjoin">Войти</button></div>
+    <button class="ghost" id="fx">Закрыть</button>`
+   :`${host?`<div class="roomcode">${NETL.code}</div>`:''}<p class="note">${esc(m)}</p>
+    ${host&&st==='wait'?`<button class="big" id="fshare">Отправить другу ссылку</button><button class="ghost" id="fcopy">Скопировать код</button>`:''}
+    <button class="ghost" id="fcancel">Отмена</button>`}</div>`;
+  const on=(id,f)=>{const e=$('#'+id);if(e)e.onclick=f};
+  on('fhost',()=>{AU.sfx('ui');netHost()});on('fjoin',()=>{AU.sfx('ui');netJoin($('#fcode').value)});on('fx',closeSheet);on('fcancel',()=>{netCancel();closeSheet()});
+  on('fcopy',()=>{const t=NETL.code;try{navigator.clipboard.writeText(t).then(()=>toast('Код скопирован'),()=>toast('Код: '+t))}catch(e){toast('Код: '+t)}});
+  on('fshare',()=>{try{if(navigator.share){navigator.share({title:'Arena Clash',text:'Играем по сети! Код комнаты: '+NETL.code,url:link}).catch(()=>{});return}}catch(e){}try{navigator.clipboard.writeText(link).then(()=>toast('Ссылка скопирована'),()=>toast(link))}catch(e){toast(link)}})};
+ NETL.ui=draw;draw();sh.hidden=false;sh.onclick=e=>{if(e.target===sh&&(NETL.st==='idle'||NETL.st==='err'))closeSheet()};
+ if(code&&window.AC_SITE){const e=$('#fjoin');if(e)e.focus()}}
 /* один сбой в кадре не должен убивать игру: ошибка один раз показывается на экране, цикл идёт дальше */
 let loopErr=0;
 function loop(ts){try{loopBody(ts)}catch(e){if(loopErr++<2){console.warn('сбой кадра',e);const d=document.createElement('div');d.textContent='Сбой кадра: '+(e&&e.message||e);d.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:99;background:#6a1414f0;color:#fff;font:12px/1.3 sans-serif;padding:6px 8px;border-radius:8px;pointer-events:none';document.body.appendChild(d);setTimeout(()=>d.remove(),9000)}}requestAnimationFrame(loop)}
 function loopBody(ts){const dt=Math.min(.05,(ts-lastT)/1000||0);lastT=ts;
- if(G&&(mode==='play'||mode==='end'||mode==='replay')&&!paused){let sd=dt*(mode==='replay'?rspeed:1);if(G.slowmo>0){G.slowmo-=dt;sd*=CFG.juice.slowScale}if(G.hitstop>0){G.hitstop-=dt;sd=0}acc+=sd;let n=0;while(acc>=TICK&&n<4){step(TICK);acc-=TICK;n++}if(n===4)acc=0;ALPHA=clamp(acc/TICK,0,1);
+ if(G&&(mode==='play'||mode==='end'||mode==='replay')&&!paused){let sd=dt*(mode==='replay'?rspeed:1);if(G.slowmo>0){G.slowmo-=dt;sd*=CFG.juice.slowScale}if(G.hitstop>0){G.hitstop-=dt;sd=0}acc+=sd;let n=0;while(acc>=TICK&&n<4){if(NET.on){if(!netStep())break}else step(TICK);acc-=TICK;n++}
+  if(NET.on){acc=Math.min(acc,TICK*3);NET.waitT=n===0&&!G.over?NET.waitT+dt:0;netWatch()}if(n===4)acc=0;ALPHA=clamp(acc/TICK,0,1);
   if(mode==='play'&&G.over&&performance.now()>G.endAt)endScreen();if(mode==='replay'&&G.over&&performance.now()>G.endAt&&!OV.classList.contains('on'))replayDone()}
  if(G&&!$('#battle').hidden&&$('#loot').hidden){if(R3.on){try{r3Frame(ts)}catch(e){r3Fail('ошибка 3D: '+(e&&e.message||e));draw(ts)}}else draw(ts);hud()}}
 ['#cp0','#cp1'].forEach(s=>{$(s+' .pips').innerHTML=crownSVG.repeat(3)});
 TH=THEMES[curArena()];tickChests();micon();renderHome();requestAnimationFrame(loop);
+{const q=new URLSearchParams(location.search).get('room');if(q)setTimeout(()=>openFriend(q.slice(0,5).toUpperCase()),700)}

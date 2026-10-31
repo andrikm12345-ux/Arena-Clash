@@ -6,7 +6,11 @@ const $=s=>document.querySelector(s);
 function mul(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 let RNG=Math.random;
 const rndV=(a,b)=>a+Math.random()*(b-a),pickV=a=>a[Math.random()*a.length|0],shuffleV=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
-const rnd=(a,b)=>a+RNG()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+/* математика симуляции одинакова в любом браузере: Math.hypot/sin/cos/exp/pow в V8 и JavaScriptCore могут отличаться на последний бит,
+   а для игры по сети (одна симуляция у двух игроков) любое расхождение накапливается. Здесь только + − × ÷ и sqrt, они точны по стандарту */
+const hy=(a,b)=>Math.sqrt(a*a+b*b);
+const PI2=6.283185307179586,dsin=x=>{x=x-PI2*Math.floor(x/PI2+.5);const x2=x*x;return x*(1+x2*(-1/6+x2*(1/120+x2*(-1/5040+x2*(1/362880+x2*(-1/39916800+x2*(1/6227020800)))))))},dcos=x=>dsin(x+1.5707963267948966);
+const rnd=(a,b)=>a+RNG()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>hy(a.x-b.x,a.y-b.y);
 const pickR=a=>a[RNG()*a.length|0],shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=RNG()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const REDUCE=matchMedia('(prefers-reduced-motion:reduce)').matches;

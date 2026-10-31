@@ -435,7 +435,8 @@ function r3Frame(now){const dt=Math.min(.05,(now-S3.last)/1000||0);S3.last=now;c
  // конец боя: камера плавно подлетает к упавшему королю (только при победе или поражении башней)
  const kd=G.over&&G.res!==2&&!REDUCE?G.T.find(t=>t.kind==='k'&&t.hp<=0):null;S3.zk=kd?Math.min(1,(S3.zk||0)+dt/.9):Math.max(0,(S3.zk||0)-dt*3);
  const zk=S3.zk*S3.zk*(3-2*S3.zk),kx=kd?W3(kd.x):0,kz=kd?Z3(kd.y):0;
- const sh=G.shake>0&&!REDUCE?G.shake*SHAKE_K[SET.shake]*.02:0;cam.position.set(S3.cam0.x+(kx*.55-S3.cam0.x)*zk+rndV(-1,1)*sh,S3.cam0.y*(1-.4*zk)+rndV(-1,1)*sh,S3.cam0.z+(kz*.4+12-S3.cam0.z)*zk);if(zk>0)cam.lookAt(S3.look.x+(kx-S3.look.x)*zk,0,S3.look.z+(kz-S3.look.z)*zk);else cam.lookAt(S3.look);
+ const sh=G.shake>0&&!REDUCE?G.shake*SHAKE_K[SET.shake]*.02:0;const fl=S3.flip?-1:1,c0x=S3.cam0.x*fl,c0z=S3.cam0.z*fl,lkx=S3.look.x*fl,lkz=S3.look.z*fl;
+ cam.position.set(c0x+(kx*.55-c0x)*zk+rndV(-1,1)*sh,S3.cam0.y*(1-.4*zk)+rndV(-1,1)*sh,c0z+(kz*.4+12*fl-c0z)*zk);if(zk>0)cam.lookAt(lkx+(kx-lkx)*zk,0,lkz+(kz-lkz)*zk);else cam.lookAt(lkx,S3.look.y,lkz);
  if(S3.water){const m=S3.water.material;for(const n of[m.normalMap,m.map])if(n){n.offset.x=(now/1000*.03)%1;n.offset.y=(now/1000*.05)%1}}
  if(S3.foam)for(const t of S3.foam){t.offset.x=(now/1000*.04)%1;t.offset.y=Math.sin(now/900)*.08}if(S3.windU)S3.windU.value=now/1000;
  syncTowers(dt,now);syncUnits(dt,now);syncBuildings(dt,now);syncProj(dt);syncFx(dt,now);syncZones(now);syncPending(now);syncGhost(now);syncParticles(dt);
@@ -609,7 +610,7 @@ function syncPending(now){const seen=new Set();for(const d of G.D){seen.add(d);l
   if(v.userData.mound){const tun=d.tun||0,el=d.tot-d.t,k=tun?Math.min(1,el/tun):1;v.userData.mound.position.set(W3(d.sx+(d.x-d.sx)*k),.02,Z3(d.sy+(d.y-d.sy)*k));if(Math.random()<.4)S3.parts.norm.emit(v.userData.mound.position.x,.2,v.userData.mound.position.z,rndV(-.5,.5),.9,rndV(-.5,.5),'#7a5a3c',.22,.6)}}
  for(const[d,v]of S3.pend)if(!seen.has(d)){S3.pend.delete(d);S3.dyn.remove(v)}}
 /* выбранная карта: подсветка зон, призрак на месте касания, радиус */
-function syncGhost(now){const key=sel!=null&&mode==='play'&&G&&!G.over?G.side[0].hand[sel]:null;
+function syncGhost(now){const key=sel!=null&&mode==='play'&&G&&!G.over?G.side[ME].hand[sel]:null;
  if(key!==S3.ghostKey){if(S3.ghost)S3.dyn.remove(S3.ghost);S3.ghost=null;S3.ghostKey=key;
   if(key){const c=CARDS[key],g=new T.Group();
    if(c.type==='spell'){const d=new T.Mesh(new T.CircleGeometry(c.rad,48),new T.MeshBasicMaterial({map:S3.soft,color:'#ffe9a8',transparent:true,opacity:.55,depthWrite:false}));d.rotation.x=-Math.PI/2;d.position.y=.08;g.add(d);
@@ -620,13 +621,13 @@ function syncGhost(now){const key=sel!=null&&mode==='play'&&G&&!G.over?G.side[0]
    const ok=new T.Mesh(new T.RingGeometry(.55,.68,32),new T.MeshBasicMaterial({color:'#9cffb8',transparent:true,depthWrite:false}));ok.rotation.x=-Math.PI/2;ok.position.y=.09;g.add(ok);g.userData.ok=ok;
    S3.ghost=g;S3.dyn.add(g)}}
  // зоны выставления
- const zk=key&&CARDS[key].type!=='spell'?key+'|'+(CARDS[key].tunnel?1:0)+pocketOpen(0,10)+pocketOpen(0,W-10):'';
+ const zk=key&&CARDS[key].type!=='spell'?key+'|'+ME+(CARDS[key].tunnel?1:0)+pocketOpen(ME,10)+pocketOpen(ME,W-10):'';
  if(zk!==S3.zoneKey){S3.zoneKey=zk;if(S3.zoneMesh){S3.dyn.remove(S3.zoneMesh);S3.zoneMesh=null}
-  if(zk){const cv=document.createElement('canvas');cv.width=180;cv.height=320;const g=cv.getContext('2d');g.scale(.5,.5);g.fillStyle='rgba(255,70,60,.38)';const c=CARDS[key];
-   if(c.tunnel)g.fillRect(0,RY-RIV-3,W,2*RIV+6);else for(const left of[1,0]){const x0=left?0:W/2,open=pocketOpen(0,left?10:W-10);if(open){g.fillRect(x0,0,W/2,POCKET_Y);g.fillRect(x0,RY-RIV-3,W/2,2*RIV+6)}else g.fillRect(x0,0,W/2,RY+RIV+3)}
+  if(zk){const cv=document.createElement('canvas');cv.width=180;cv.height=320;const g=cv.getContext('2d');g.scale(.5,.5);if(ME===1){g.translate(W,H);g.scale(-1,-1)}g.fillStyle='rgba(255,70,60,.38)';const c=CARDS[key];
+   if(c.tunnel)g.fillRect(0,RY-RIV-3,W,2*RIV+6);else for(const left of[1,0]){const x0=left?0:W/2,open=pocketOpen(ME,ME===1?(left?W-10:10):(left?10:W-10));if(open){g.fillRect(x0,0,W/2,POCKET_Y);g.fillRect(x0,RY-RIV-3,W/2,2*RIV+6)}else g.fillRect(x0,0,W/2,RY+RIV+3)}
    const t=new T.CanvasTexture(cv);t.colorSpace=T.SRGBColorSpace;const m=new T.Mesh(new T.PlaneGeometry(18,32),new T.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.y=.1;S3.zoneMesh=m;S3.dyn.add(m)}}
  if(S3.zoneMesh)S3.zoneMesh.material.opacity=.75+.25*Math.sin(now/260);
- if(S3.ghost){const vis=gx>=0;S3.ghost.visible=vis;if(vis){const c=CARDS[key],okk=canPlace(0,key,gx,gy)&&!cardBlocked(0,key)&&G.side[0].el>=c.cost;S3.ghost.position.set(W3(gx),HEIGHT[c.unit||key]&&c.type!=='spell'?0:0,Z3(gy));
+ if(S3.ghost){const vis=gx>=0;S3.ghost.visible=vis;if(vis){const c=CARDS[key],okk=canPlace(ME,key,gx,gy)&&!cardBlocked(ME,key)&&G.side[ME].el>=c.cost;S3.ghost.position.set(W3(gx),HEIGHT[c.unit||key]&&c.type!=='spell'?0:0,Z3(gy));
   S3.ghost.userData.ok.material.color.set(okk?'#9cffb8':'#ff8a7d');S3.ghost.traverse(o=>{if(o.isMesh&&o.material.opacity!==undefined&&o!==S3.ghost.userData.ok&&c.type!=='spell')o.material.opacity=okk?.5:.22})}}}
 
 /* ---------- частицы: дым, пыль, искры ---------- */
@@ -649,7 +650,7 @@ function burst(x,y,h,col,n,sp,size,hh){for(let i=0;i<n;i++){const a=Math.random(
 const _p=()=>new T.Vector3();let PV=null;
 function proj(x,y,h){if(!PV)PV=new T.Vector3();PV.set(W3(x),h,Z3(y)).project(S3.cam);return[(PV.x+1)/2*C.width,(1-PV.y)/2*C.height]}
 function overlay(now){const g=X,k=C.height/640;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,C.width,C.height);
- const bar=(sx,sy,w,p,tm,gold)=>{w*=k;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,gold?'#ffd84d':'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,Math.max(0,w*p),4*k,2*k,tm?'#ff6a5a':'#4cd37a')};
+ const bar=(sx,sy,w,p,tm,gold)=>{w*=k;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,gold?'#ffd84d':'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,Math.max(0,w*p),4*k,2*k,tm!==ME?'#ff6a5a':'#4cd37a')};
  for(const b of G.B){const[sx,sy]=proj(b.x,b.y,1.9);bar(sx,sy,28,b.hp/b.mx,b.tm)}
  for(const b of G.bridges||[]){if(b.down<=0&&b.hp>=b.mx)continue;const[sx,sy]=proj(b.x,RY,1.2),w=34*k,p=b.down>0?1-b.down/CFG.bridge.down:b.hp/b.mx;rr(g,sx-w/2-k,sy-3*k,w+2*k,6*k,3*k,'rgba(5,8,20,.8)');rr(g,sx-w/2,sy-2*k,w*p,4*k,2*k,b.down>0?'#9fd8ff':b.fl>0?'#ffffff':'#ffc83d')}
  for(const u of G.U){if(u.spawnT>0)continue;const v=S3.units.get(u),hh=(v&&v.inst?(v.inst.V.hh||2.47*v.inst.V.s*US3):1.7)+(HEIGHT[u.key]||0)+.25;

@@ -433,6 +433,11 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
 .dk .pgr.up{animation:upg 1.7s ease-in-out infinite;border-radius:7px}
 .dk{transition:transform .12s}.dk:active{transform:scale(.96)}
 @media (prefers-reduced-motion:reduce){.dk .pgr.up{animation:none}.dk{transition:none}}
+.friendbtn{width:100%;margin-top:2px;padding:10px;border:0;border-radius:14px;font-size:16px;color:#fff;background:linear-gradient(#4b84f0,#2d55c4);box-shadow:0 4px 0 #162a66,inset 0 2px 0 #ffffff40;text-shadow:0 2px 0 #162a66}
+.friendbtn:active{transform:translateY(2px);box-shadow:0 2px 0 #162a66}
+.roomcode{font:400 44px/1 var(--display);letter-spacing:.18em;text-align:center;color:var(--gold);padding:12px 0 4px;-webkit-text-stroke:2px #0b1430;paint-order:stroke fill;user-select:text}
+.joinrow{display:flex;gap:8px;align-items:stretch}.joinrow input{flex:1;min-width:0;font:400 24px var(--display);letter-spacing:.2em;text-align:center;text-transform:uppercase;border-radius:12px;border:2px solid var(--line);background:#0e1730;color:var(--ink)}
+#netwait{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;background:#0b1224e8;border:2px solid var(--gold);border-radius:14px;padding:10px 16px;font-size:15px;pointer-events:none}
 .selbar{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:8px;background:#26335af2;border:2px solid var(--gold);border-radius:12px;padding:6px 10px;margin:4px 0 8px;font-size:12.5px;line-height:1.25;box-shadow:0 6px 14px #0008}.selbar span{flex:1;min-width:0}.selbar button{flex:none}
 .dhint2{margin:2px 0 8px;color:var(--mute);font-size:11.5px;text-align:center}
 .dk.sel .art{outline:3px solid var(--gold);outline-offset:2px}.dk.sel{transform:translateY(-3px)}
@@ -497,6 +502,7 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
       <div id="wrap">
         <canvas id="c"></canvas>
         <div id="skyfx" aria-hidden="true"></div>
+        <div id="netwait" hidden>Ждём соперника…</div>
         <button class="ib" id="bp" aria-label="Пауза"><svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></button>
         <button class="ib" id="bm" aria-label="Звук"><svg viewBox="0 0 24 24"><path id="mi" d="M3 9v6h4l5 4V5L7 9z"/></svg></button>
         <button class="ib" id="be" aria-label="Эмоции"><svg viewBox="0 0 24 24"><path d="M4 4h16v11H9l-5 4z"/></svg></button>
@@ -518,7 +524,8 @@ button.aprog{display:block;width:100%;padding:0;color:inherit;font:inherit;curso
   <div id="toasts" aria-live="polite"></div>
 </div>
 <script>window.AC_SITE=1</script>
-<script src="game.js?v=661ea1da55"></script>
+<script src="vendor/peerjs/peerjs.min.js"></script>
+<script src="game.js?v=b71c2175a0"></script>
 <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js","three/addons/":"./vendor/three/addons/"}}</script>
 <script type="module">
 const T3={};Promise.all([import("three"),import("three/addons/loaders/GLTFLoader.js"),import("three/addons/loaders/RGBELoader.js"),import("three/addons/utils/SkeletonUtils.js"),import("three/addons/utils/BufferGeometryUtils.js"),import("three/addons/postprocessing/EffectComposer.js"),import("three/addons/postprocessing/RenderPass.js"),import("three/addons/postprocessing/UnrealBloomPass.js"),import("three/addons/postprocessing/OutputPass.js"),import("three/addons/postprocessing/ShaderPass.js")]).then(m=>{T3.GLTFLoader=m[1].GLTFLoader;T3.RGBELoader=m[2].RGBELoader;T3.SkeletonUtils=m[3];T3.BufferGeometryUtils=m[4];T3.EffectComposer=m[5].EffectComposer;T3.RenderPass=m[6].RenderPass;T3.UnrealBloomPass=m[7].UnrealBloomPass;T3.OutputPass=m[8].OutputPass;T3.ShaderPass=m[9].ShaderPass;window.T3=T3;window.THREE=m[0];dispatchEvent(new Event("three-ready"))}).catch(e=>dispatchEvent(new CustomEvent("three-fail",{detail:String(e&&e.message||e)})));

@@ -40,7 +40,7 @@ function counterScore(key,T){const c=CARDS[key],R=ROLE[key];if(c.type==='spell')
  return s}
 function spellTarget(b,key,units){const c=CARDS[key],lvl=G.side[b.tm].lv[key]||1;if(!c.dmg||c.freeze)return null;units=c.roll?units.filter(u=>!u.fly):units;
  const r=c.rad*TILE,dm=LV(c.dmg,lvl)*(c.poison?.75:1);let best=null;
- for(const u of units){let val=0,n=0,sx=0,sy=0;for(const v of units)if(Math.hypot(v.x-u.x,v.y-u.y)<r*.8){n++;sx+=v.x;sy+=v.y;val+=v.hp<=dm?uval(v):uval(v)*dm/v.hp*.5}
+ for(const u of units){let val=0,n=0,sx=0,sy=0;for(const v of units)if(hy(v.x-u.x,v.y-u.y)<r*.8){n++;sx+=v.x;sy+=v.y;val+=v.hp<=dm?uval(v):uval(v)*dm/v.hp*.5}
   if(!best||val>best.val)best={x:sx/n,y:sy/n,val,n}}
  return best}
 function placeDefense(b,key,T,lane){const c=CARDS[key],R=ROLE[key],lx=BR[lane],ins=lane?-1:1;

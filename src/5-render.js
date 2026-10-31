@@ -186,12 +186,12 @@ function drawDeployZones(g,key,now){const c=CARDS[key];if(c.type==='spell')retur
  g.fillStyle=`rgba(255,70,60,${.12+p*.05})`;
  if(c.tunnel){g.fillRect(0,RY-RIV-3,W,2*RIV+6);return}
  g.strokeStyle=`rgba(255,235,150,${.55+p*.3})`;g.setLineDash([7,6]);g.lineWidth=2;
- for(const left of[1,0]){const x0=left?0:W/2,open=pocketOpen(0,left?10:W-10);
+ for(const left of[1,0]){const x0=left?0:W/2,open=pocketOpen(ME,left?10:W-10);
   if(open){g.fillRect(x0,0,W/2,POCKET_Y);g.fillRect(x0,RY-RIV-3,W/2,2*RIV+6);g.beginPath();g.moveTo(x0,POCKET_Y);g.lineTo(x0+W/2,POCKET_Y);g.stroke()}
   else{g.fillRect(x0,0,W/2,RY+RIV+3);g.beginPath();g.moveTo(x0,RY+RIV+3);g.lineTo(x0+W/2,RY+RIV+3);g.stroke()}}
  g.setLineDash([])}
-function drawGhost(g,now){if(!G||G.over||sel==null||gx<0||mode!=='play')return;const S=G.side[0],key=S.hand[sel];if(!key)return;
- const c=CARDS[key],ok=canPlace(0,key,gx,gy)&&!cardBlocked(0,key)&&S.el>=c.cost,p=.5+.5*Math.sin(now/200);
+function drawGhost(g,now){if(!G||G.over||sel==null||gx<0||mode!=='play')return;const S=G.side[ME],key=S.hand[sel];if(!key)return;
+ const c=CARDS[key],ok=canPlace(ME,key,gx,gy)&&!cardBlocked(ME,key)&&S.el>=c.cost,p=.5+.5*Math.sin(now/200);
  if(c.type==='spell'&&c.roll){const r=c.rad*TILE,L=c.roll.len*TILE;g.fillStyle=`rgba(255,240,200,${.14+p*.08})`;g.strokeStyle='#ffe9a8';g.lineWidth=2;g.setLineDash([6,5]);g.beginPath();g.rect(gx-r,gy-L,r*2,L);g.fill();g.stroke();g.setLineDash([]);return}
  if(c.type==='spell'){const r=c.rad*TILE;g.fillStyle=`rgba(255,240,200,${.14+p*.08})`;g.strokeStyle='#ffe9a8';g.lineWidth=2;g.setLineDash([6,5]);g.beginPath();g.arc(gx,gy,r,0,7);g.fill();g.stroke();g.setLineDash([]);return}
  g.globalAlpha=ok?.62:.3;
@@ -219,7 +219,7 @@ function draw(now){const g=X;g.setTransform(1,0,0,1,0,0);if(!BG||!G)return;
  drawRiver(g,now);
  g.setTransform(1,0,0,1,0,0);g.drawImage(BG.a,sx*K,sy*K);g.setTransform(K,0,0,K,sx*K,sy*K);
  drawBridges(g,now);
- if(sel!=null&&mode==='play'&&!G.over){const key=G.side[0].hand[sel];if(key)drawDeployZones(g,key,now)}
+ if(sel!=null&&mode==='play'&&!G.over){const key=G.side[ME].hand[sel];if(key)drawDeployZones(g,key,now)}
  for(const z of G.Z)drawZone(g,z,now);
  for(const d of G.D)drawPending(g,d);
  const L=[];for(const t of G.T)L.push([t.y+(t.kind==='k'?10:4),0,t]);for(const b of G.B)L.push([b.y,1,b]);for(const u of G.U)if(!u.fly)L.push([u.y,2,u]);

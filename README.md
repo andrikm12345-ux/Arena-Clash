@@ -16,3 +16,8 @@
 - Монстры — Ultimate Monsters, Quaternius (quaternius.com), CC0. Склеп, знамёна, факелы — KayKit Dungeon Remastered и Halloween Bits, CC0.
 - Небо — Poly Haven (polyhaven.com), CC0.
 - Three.js — MIT, см. `vendor/three/LICENSE`.
+
+
+## Игра по сети
+
+«Бой с другом» (вкладка «Бой»): создать комнату и отправить другу код или ссылку, либо ввести чужой код. Соединение напрямую между телефонами по WebRTC через [PeerJS](https://peerjs.com) (библиотека в `vendor/peerjs`, лицензия MIT; публичный сервер комнат PeerJS бесплатный и чужой, на нём лежит только код комнаты). Схема — синхронный ход (lockstep): `src/9-net.js`; тесты — `tests/net.test.mjs`. Локальная проверка двумя браузерами: сервер `peer` на порту 9000 и параметр страницы `?peerhost=127.0.0.1:9000`.

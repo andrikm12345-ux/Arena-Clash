@@ -6,7 +6,7 @@ python3 tools/build.py --artifact OUT.html [--test TEST.html THREE_DIR]
 import base64, hashlib, pathlib, sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / 'src'
-ORDER = ['0-config.js', '1-data.js', '2-sprites.js', '3-engine.js', '4-ai.js', '5-render.js', '6-render3d.js', '7-meta.js', '8-ui.js']
+ORDER = ['0-config.js', '1-data.js', '2-sprites.js', '3-engine.js', '4-ai.js', '5-render.js', '6-render3d.js', '7-meta.js', '9-net.js', '8-ui.js']
 ADDONS = [('GLTFLoader', 'loaders/GLTFLoader.js'), ('RGBELoader', 'loaders/RGBELoader.js'), ('SkeletonUtils', 'utils/SkeletonUtils.js', 1),
           ('BufferGeometryUtils', 'utils/BufferGeometryUtils.js', 1), ('EffectComposer', 'postprocessing/EffectComposer.js'),
           ('RenderPass', 'postprocessing/RenderPass.js'), ('UnrealBloomPass', 'postprocessing/UnrealBloomPass.js'), ('OutputPass', 'postprocessing/OutputPass.js'), ('ShaderPass', 'postprocessing/ShaderPass.js')]
@@ -24,6 +24,7 @@ def three_loader(core, addons):
 def site():
     code = js()
     ver = hashlib.sha1(code.encode()).hexdigest()[:10]
+    code = code.replace('__BUILD__', ver)
     (ROOT / 'game.js').write_text(code)
     head = '''<!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
@@ -35,7 +36,7 @@ def site():
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.4 system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 </head><body>
 '''
-    body = head + (SRC / 'ui.html').read_text() + '<script>window.AC_SITE=1</script>\n<script src="game.js?v=%s"></script>\n' % ver
+    body = head + (SRC / 'ui.html').read_text() + '<script>window.AC_SITE=1</script>\n<script src="vendor/peerjs/peerjs.min.js"></script>\n<script src="game.js?v=%s"></script>\n' % ver
     body += three_loader('./vendor/three/build/three.module.min.js', './vendor/three/addons/') + '</body></html>\n'
     (ROOT / 'index.html').write_text(body)
     print('сайт: index.html + game.js', ver, len(code), 'байт кода')
