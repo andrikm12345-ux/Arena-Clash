@@ -40,8 +40,8 @@ function netStep(){if(!netReady())return false;step(TICK);if(NET.on&&G)netAfterS
 const ROOM_CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',roomId=c=>'arenaclash-'+c;
 const NETL={peer:null,tr:null,code:'',st:'idle',msg:'',ui:null,onx:null,rm:{me:false,they:false},setup:null};
 function netLobbyState(st,msg){NETL.st=st;NETL.msg=msg||'';if(NETL.ui)NETL.ui()}
-const NET_ICE=[{urls:['stun:stun.l.google.com:19302','stun:stun.cloudflare.com:3478']},
- {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turn:openrelay.metered.ca:443?transport=tcp','turns:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}];
+const NET_ICE=[{urls:['stun:stun.relay.metered.ca:80','stun:stun.l.google.com:19302','stun:stun.cloudflare.com:3478']},
+ {urls:['turn:global.relay.metered.ca:80','turn:global.relay.metered.ca:80?transport=tcp','turn:global.relay.metered.ca:443','turns:global.relay.metered.ca:443?transport=tcp'],username:'55cf966f97f9e774fe6a3602',credential:'b5nL82IAkI/x4Sof'}];
 function netPeerOpts(){const q=typeof location!=='undefined'?new URLSearchParams(location.search):null,h=q&&q.get('peerhost')||'';
  const config={iceServers:NET_ICE,iceCandidatePoolSize:4};if(q&&q.get('relay'))config.iceTransportPolicy='relay';
  if(h){const[a,b]=h.split(':');return{host:a,port:+b||9000,path:'/',secure:false,debug:0,config}}return{debug:0,config}}

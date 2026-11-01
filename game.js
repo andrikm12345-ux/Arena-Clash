@@ -2444,7 +2444,7 @@ function importCode(code){const m=/^AC3-([0-9a-z]+)-([A-Za-z0-9+/=]+)$/.exec((co
    иначе ждёт («Ждём соперника»). Раз в NET_HASH_EVERY тиков стороны сверяют контрольную сумму состояния: расхождение — бой останавливается.
    Транспорт — любой объект {send(msg), close()}, у которого мы ставим onmsg/onclose (PeerJS в игре, заглушка в тестах). */
 let ME=0;                       // какая сторона моя: 0 — внизу, 1 — гость сети (камера развёрнута)
-const NET_BUILD='9a4ef5281b';    // версия игры: у друзей должна совпадать, иначе бой разойдётся
+const NET_BUILD='200aa4dfc2';    // версия игры: у друзей должна совпадать, иначе бой разойдётся
 const NET_D=5,NET_HASH_EVERY=60;
 const NET={on:false,tr:null,me:0,in:[new Map(),new Map()],out:[],mine:new Map(),theirs:new Map(),fail:null,gone:false,waitT:0};
 /* контрольная сумма состояния: всё, что влияет на исход боя, округлено до 1e-4 */
@@ -2479,8 +2479,8 @@ function netStep(){if(!netReady())return false;step(TICK);if(NET.on&&G)netAfterS
 const ROOM_CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',roomId=c=>'arenaclash-'+c;
 const NETL={peer:null,tr:null,code:'',st:'idle',msg:'',ui:null,onx:null,rm:{me:false,they:false},setup:null};
 function netLobbyState(st,msg){NETL.st=st;NETL.msg=msg||'';if(NETL.ui)NETL.ui()}
-const NET_ICE=[{urls:['stun:stun.l.google.com:19302','stun:stun.cloudflare.com:3478']},
- {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turn:openrelay.metered.ca:443?transport=tcp','turns:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}];
+const NET_ICE=[{urls:['stun:stun.relay.metered.ca:80','stun:stun.l.google.com:19302','stun:stun.cloudflare.com:3478']},
+ {urls:['turn:global.relay.metered.ca:80','turn:global.relay.metered.ca:80?transport=tcp','turn:global.relay.metered.ca:443','turns:global.relay.metered.ca:443?transport=tcp'],username:'55cf966f97f9e774fe6a3602',credential:'b5nL82IAkI/x4Sof'}];
 function netPeerOpts(){const q=typeof location!=='undefined'?new URLSearchParams(location.search):null,h=q&&q.get('peerhost')||'';
  const config={iceServers:NET_ICE,iceCandidatePoolSize:4};if(q&&q.get('relay'))config.iceTransportPolicy='relay';
  if(h){const[a,b]=h.split(':');return{host:a,port:+b||9000,path:'/',secure:false,debug:0,config}}return{debug:0,config}}
