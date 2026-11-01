@@ -90,3 +90,10 @@ test('потерянный кадр: без кадров соперника си
   w.run("netRecv({k:'f',tk:6,c:[]})");
   assert.equal(w.run('netStep()'), true, 'пришёл кадр — идём дальше');
 });
+
+test('настройки соединения содержат TURN-ретранслятор (мобильные сети без прямого пути)', () => {
+  const w = makeWorld();
+  const o = JSON.parse(w.run('JSON.stringify(netPeerOpts())'));
+  const urls = o.config.iceServers.flatMap(s => [].concat(s.urls));
+  assert.ok(urls.some(u => u.startsWith('turn:')) && urls.some(u => u.startsWith('turns:')) && urls.some(u => u.startsWith('stun:')));
+});
