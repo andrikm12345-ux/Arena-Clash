@@ -2444,7 +2444,7 @@ function importCode(code){const m=/^AC3-([0-9a-z]+)-([A-Za-z0-9+/=]+)$/.exec((co
    иначе ждёт («Ждём соперника»). Раз в NET_HASH_EVERY тиков стороны сверяют контрольную сумму состояния: расхождение — бой останавливается.
    Транспорт — любой объект {send(msg), close()}, у которого мы ставим onmsg/onclose (PeerJS в игре, заглушка в тестах). */
 let ME=0;                       // какая сторона моя: 0 — внизу, 1 — гость сети (камера развёрнута)
-const NET_BUILD='f7b280c8ef';    // версия игры: у друзей должна совпадать, иначе бой разойдётся
+const NET_BUILD='9a4ef5281b';    // версия игры: у друзей должна совпадать, иначе бой разойдётся
 const NET_D=5,NET_HASH_EVERY=60;
 const NET={on:false,tr:null,me:0,in:[new Map(),new Map()],out:[],mine:new Map(),theirs:new Map(),fail:null,gone:false,waitT:0};
 /* контрольная сумма состояния: всё, что влияет на исход боя, округлено до 1e-4 */
@@ -2486,7 +2486,10 @@ function netPeerOpts(){const q=typeof location!=='undefined'?new URLSearchParams
  if(h){const[a,b]=h.split(':');return{host:a,port:+b||9000,path:'/',secure:false,debug:0,config}}return{debug:0,config}}
 const NET_FAIL='Не вышло соединиться. Откройте игру в Safari или Chrome (не во встроенном браузере Telegram), включите мобильный интернет или Wi‑Fi у обоих и попробуйте снова';
 /* следим за поиском пути: показываем этап и сдаёмся через 25 с */
-function netWatch2(conn,t){try{const pc=conn.peerConnection;if(pc)pc.addEventListener('iceconnectionstatechange',()=>{if(NETL.st!=='hand')return;const s=pc.iceConnectionState;if(s==='checking')netLobbyState('hand','Ищу путь к другу…');else if(s==='failed'){clearTimeout(t);netLobbyState('err',NET_FAIL)}})}catch(e){}}
+function netWatch2(conn,t){try{const pc=conn.peerConnection;if(!pc)return;const seen={};
+ pc.addEventListener('icecandidate',e=>{const m=e.candidate&&/ typ (\w+)/.exec(e.candidate.candidate);if(m)seen[m[1]]=1});
+ NETL.diag=()=>'ICE '+pc.iceConnectionState+', кандидаты: '+(Object.keys(seen).join('/')||'нет');
+ pc.addEventListener('iceconnectionstatechange',()=>{if(NETL.st!=='hand')return;const s=pc.iceConnectionState;if(s==='checking')netLobbyState('hand','Ищу путь к другу…');else if(s==='failed'){clearTimeout(t);netLobbyState('err',NET_FAIL+' ('+NETL.diag()+')')}})}catch(e){}}
 function netErr(e){const t=e&&e.type;return t==='peer-unavailable'?'Комната не найдена. Проверь код':t==='network'||t==='server-error'||t==='socket-error'||t==='socket-closed'?'Нет связи с сервером комнат. Проверь интернет':t==='browser-incompatible'?'Этот браузер не поддерживает игру по сети':'Не удалось соединиться'}
 function netCancel(){try{if(NETL.tr){NETL.tr.onmsg=null;NETL.tr.onclose=null;NETL.tr.close()}}catch(e){}try{if(NETL.peer)NETL.peer.destroy()}catch(e){}NETL.peer=null;NETL.tr=null;NETL.onx=null;NETL.st='idle'}
 function wrapConn(conn){const tr={onmsg:null,onclose:null,send:m=>{try{conn.send(m)}catch(e){}},close:()=>{try{conn.close()}catch(e){}}};
@@ -2501,7 +2504,7 @@ function netHost(){netCancel();
  const peer=NETL.peer=new Peer(roomId(code),netPeerOpts());
  peer.on('open',()=>netLobbyState('wait','Жду друга. Отправь ему код или ссылку'));
  peer.on('error',e=>{if(e&&e.type==='unavailable-id'){netHost();return}netLobbyState('err',netErr(e))});
- peer.on('connection',conn=>{if(NETL.tr){conn.close();return}const tr=NETL.tr=wrapConn(conn);netLobbyState('hand','Друг подключается…');const th=setTimeout(()=>{if(NETL.st==='hand'){netLobbyState('err',NET_FAIL)}},25000);netWatch2(conn,th);
+ peer.on('connection',conn=>{if(NETL.tr){conn.close();return}const tr=NETL.tr=wrapConn(conn);netLobbyState('hand','Друг подключается…');const th=setTimeout(()=>{if(NETL.st==='hand'){netLobbyState('err',NET_FAIL+(NETL.diag?' ('+NETL.diag()+')':''))}},25000);netWatch2(conn,th);
   tr.onmsg=m=>{if(m.k!=='hello')return;clearTimeout(th);
    if(m.build!==NET_BUILD){tr.send({k:'bad',why:'У друга другая версия игры: пусть обновит страницу'});netLobbyState('err','У друга другая версия игры: пусть обновит страницу');return}
    if(!okDeck(m.deck)){tr.send({k:'bad',why:'Колода друга не подходит'});netLobbyState('err','Колода друга не подходит');return}
@@ -2513,7 +2516,7 @@ function netHostGo(tr,hello,again){const a=again?NETL.setup.arena:curArena(),eq=
 function netJoin(code){netCancel();code=String(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
  if(code.length!==5){netLobbyState('err','Код — 5 символов');return}
  if(typeof Peer==='undefined'){netLobbyState('err','Игра по сети работает только на сайте, в браузере');return}
- netLobbyState('hand','Подключаюсь…');const peer=NETL.peer=new Peer(netPeerOpts()),t0=setTimeout(()=>{if(NETL.st==='hand')netLobbyState('err',NET_FAIL)},25000);
+ netLobbyState('hand','Подключаюсь…');const peer=NETL.peer=new Peer(netPeerOpts()),t0=setTimeout(()=>{if(NETL.st==='hand')netLobbyState('err',NET_FAIL+(NETL.diag?' ('+NETL.diag()+')':''))},25000);
  peer.on('error',e=>{clearTimeout(t0);netLobbyState('err',netErr(e))});
  peer.on('open',()=>{const conn=peer.connect(roomId(code),netConnOpts),tr=NETL.tr=wrapConn(conn);netWatch2(conn,t0);
   conn.on('open',()=>tr.send({k:'hello',build:NET_BUILD,name:P.name,deck:curDeck(),tt:P.tt}));
