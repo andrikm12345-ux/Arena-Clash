@@ -580,7 +580,7 @@ function netEnd(){mode='end';sel=null;$('#netwait').hidden=true;const r=G.res,mi
 function openFriend(code){AU.init();AU.sfx('ui');const sh=$('#sheet');
  const draw=()=>{const st=NETL.st,m=NETL.msg,host=!!NETL.code,link=location.origin+location.pathname+'?room='+NETL.code;
   sh.innerHTML=`<div class="sh" role="dialog" aria-modal="true" aria-labelledby="shn"><h3 class="t" id="shn">Бой с другом</h3>
-   ${st==='idle'||st==='err'?`${st==='err'?`<p class="note hl">${esc(m)}</p>`:''}
+   ${st==='idle'||st==='err'?`${st==='err'?`<p class="note hl">${esc(m)}</p>${NETL.log&&NETL.log.length?`<p class="note" style="font-size:11px;opacity:.75;white-space:pre-line">${esc(NETL.log.slice(-7).join('\n'))}</p>`:''}`:''}
     <p class="note">Бой идёт по интернету между вашими телефонами. Уровни карт у обоих равные, награды нет. ${window.AC_SITE?'Нужна 3D-графика.':'Откройте игру по ссылке arena-clash-coral.vercel.app: из этой копии играть по сети нельзя.'}</p>
     <button class="big" id="fhost">Создать комнату</button>
     <div class="joinrow"><input id="fcode" maxlength="5" placeholder="КОД" autocapitalize="characters" autocomplete="off" value="${esc(code||'')}"><button class="big blue" id="fjoin">Войти</button></div>
