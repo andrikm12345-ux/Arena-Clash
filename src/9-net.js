@@ -6,7 +6,7 @@
    Транспорт — любой объект {send(msg), close()}, у которого мы ставим onmsg/onclose (PeerJS в игре, заглушка в тестах). */
 let ME=0;                       // какая сторона моя: 0 — внизу, 1 — гость сети (камера развёрнута)
 const NET_BUILD='__BUILD__';    // версия игры: у друзей должна совпадать, иначе бой разойдётся
-const NET_D=5,NET_HASH_EVERY=60;
+const NET_D=8,NET_HASH_EVERY=60;
 const NET={on:false,tr:null,me:0,in:[new Map(),new Map()],out:[],mine:new Map(),theirs:new Map(),fail:null,gone:false,waitT:0};
 /* контрольная сумма состояния: всё, что влияет на исход боя, округлено до 1e-4 */
 function stateHash(){let h=2166136261>>>0;const mix=v=>{h=Math.imul(h^(Math.round(v*1e4)|0),16777619)>>>0};
@@ -15,7 +15,7 @@ function stateHash(){let h=2166136261>>>0;const mix=v=>{h=Math.imul(h^(Math.roun
  for(const b of G.B){mix(b.id);mix(b.x);mix(b.hp)}for(const t of G.T)mix(t.hp);
  for(const z of G.Z){mix(z.x);mix(z.y);mix(z.t)}for(const p of G.PR){mix(p.x);mix(p.y)}
  mix(G.crowns[0]*3+G.crowns[1]);return h>>>0}
-function netInit(tr,me){NET.on=true;NET.tr=tr;NET.me=me;NET.in=[new Map(),new Map()];NET.out=[];NET.mine=new Map();NET.theirs=new Map();NET.fail=null;NET.gone=false;NET.waitT=0;NET.lastRx=Date.now();
+function netInit(tr,me){NET.on=true;NET.tr=tr;NET.me=me;NET.in=[new Map(),new Map()];NET.out=[];NET.mine=new Map();NET.theirs=new Map();NET.fail=null;NET.gone=false;NET.waitT=0;NET.rx=0;NET.lastRx=Date.now();
  for(let t=1;t<=NET_D;t++){NET.in[0].set(t,[]);NET.in[1].set(t,[])}
  tr.onmsg=netRecv;tr.onclose=()=>{NET.gone=true}}
 function netOff(){NET.on=false;if(NET.tr){try{NET.tr.onmsg=null;NET.tr.onclose=null;NET.tr.close()}catch(e){}}NET.tr=null}
@@ -27,7 +27,7 @@ function netApply(){const T=G.tick+1;for(const tm of[0,1]){const f=NET.in[tm].ge
 /* после шага: отправить свой кадр на tick+NET_D и раз в секунду-две — контрольную сумму */
 function netAfterStep(){const t=G.tick,T=t+NET_D,c=NET.out;NET.out=[];NET.in[NET.me].set(T,c);NET.tr.send({k:'f',tk:T,c});
  if(t%NET_HASH_EVERY===0){const h=stateHash();NET.mine.set(t,h);NET.tr.send({k:'h',tk:t,h});netCheck(t)}}
-function netRecv(m){if(!NET.on||!m)return;NET.lastRx=Date.now();
+function netRecv(m){if(!NET.on||!m)return;NET.lastRx=Date.now();NET.rx=(NET.rx||0)+1;
  if(m.k==='f')NET.in[1-NET.me].set(m.tk,m.c||[]);
  else if(m.k==='h'){NET.theirs.set(m.tk,m.h);netCheck(m.tk)}
  else if(m.k==='e'&&G&&!G.over)emote(1-NET.me,m.i)

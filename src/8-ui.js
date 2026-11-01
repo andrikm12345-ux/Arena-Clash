@@ -563,7 +563,7 @@ function startNetBattle(S,me,tr){
  showView('battle');R3.on=false;S3.flip=me===1;if(r3Begin(a))r3Show();else r3Stop();hs={};renderHand();$('#help').hidden=true;banner('Дружеский бой','#ffc83d');MUS.play('battle')}
 function netLeave(){netOff();netCancel();ME=0;if(typeof S3!=='undefined')S3.flip=false;hideOv();G=null;mode='home';r3Stop();$('#bp').hidden=false;showView('home');tab='play';renderHome();MUS.play('menu')}
 /* ждём соперника, обрыв связи, расхождение */
-function netWatch(){const w=$('#netwait');if(w){const show=NET.waitT>1&&!G.over;if(w.hidden===show)w.hidden=!show}
+function netWatch(){const w=$('#netwait');if(w){const show=NET.waitT>1&&!G.over;if(w.hidden===show)w.hidden=!show;if(show)w.textContent='Ждём соперника… (тик '+G.tick+', кадров '+NET.rx+', тишина '+Math.round((Date.now()-NET.lastRx)/1000)+' с)'}
  if(G.over){const b=$('#nrm');if(NET.gone&&b&&!b.dataset.gone){b.dataset.gone=1;b.disabled=true;b.textContent='Друг вышел'}return}
  if(Date.now()-NET.lastRx>25000)NET.gone=true; // 25 секунд тишины: соперник пропал или телефон уснул
  if(NET.fail||NET.gone)netAbort(NET.fail?'desync':'gone')}

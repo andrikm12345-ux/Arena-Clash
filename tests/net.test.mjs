@@ -87,7 +87,7 @@ test('потерянный кадр: без кадров соперника си
   w.run(`newMatch({decks:${JSON.stringify([DECK_A, DECK_B])},lv:[{},{}],kl:[11,11],bots:[null,null],seed:1});netInit({send:__send,close(){}},0)`);
   let n = 0; while (w.run('netStep()') && n < 50) n++;
   assert.equal(n, w.run('NET_D')); assert.equal(w.run('G.tick'), n);
-  w.run("netRecv({k:'f',tk:6,c:[]})");
+  w.run('netRecv({k:"f",tk:'+(w.run('NET_D')+1)+',c:[]})');
   assert.equal(w.run('netStep()'), true, 'пришёл кадр — идём дальше');
 });
 
