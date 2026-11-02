@@ -503,3 +503,12 @@ test('trySwap: замена карты, обмен двух карт колод�
   const r6 = JSON.parse(w.run(`JSON.stringify(trySwap(d0,'sorcerer','guard'))`));
   assert.ok(!r6.ok);
 });
+
+test('«Открыть всё»: все карты на максимуме, арены, эволюции и герои', () => {
+  const w = makeWorld();
+  w.run('unlockAll()');
+  assert.equal(w.run('CARD_IDS.every(k=>P.cards[k]&&P.cards[k].lv===MAXLV)'), true);
+  assert.equal(w.run('arenaOf(P.tr)'), w.run('ARENAS.length-1'));
+  assert.equal(w.run('Object.keys(EVO).every(k=>P.evo.includes(k))&&Object.keys(HERO).every(k=>P.heroes.includes(k))'), true);
+  assert.equal(w.run('Object.values(sanitize(JSON.parse(JSON.stringify(P))).cards).every(c=>c.lv===MAXLV)'), true);
+});

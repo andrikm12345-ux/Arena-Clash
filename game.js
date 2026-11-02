@@ -2432,6 +2432,9 @@ function eventReward(id){const e=evDay(),first=!e.won.includes(id),a=curArena(),
 function draftPairs(){const a=curArena(),pool=shuffleV(CARD_IDS.filter(k=>ARENA_OF[k]<=Math.max(a,2)&&!CARDS[k].ability)),pairs=[];for(let i=0;i<8;i++)pairs.push([pool[i*2],pool[i*2+1]]);return pairs}
 
 /* ---------- сохранение кодом ---------- */
+/* «Открыть всё»: все карты на максимуме, все арены, уровень короля, эволюции и герои */
+function unlockAll(){for(const k of CARD_IDS)P.cards[k]={lv:MAXLV,n:0};P.kl=KL_MAX;P.tr=Math.max(P.tr,ARENAS[ARENAS.length-1].tr);P.best=Math.max(P.best,P.tr);P.arSeen=Math.max(P.arSeen,ARENAS.length-1);
+ for(const k of Object.keys(EVO))if(P.cards[k]&&!P.evo.includes(k))P.evo.push(k);for(const k of Object.keys(HERO))if(P.cards[k]&&!P.heroes.includes(k))P.heroes.push(k);saveP()}
 function exportCode(){const b=new TextEncoder().encode(JSON.stringify(P));let bin='';for(const x of b)bin+=String.fromCharCode(x);const c=btoa(bin);return'AC3-'+fnv(c).toString(36)+'-'+c}
 function importCode(code){const m=/^AC3-([0-9a-z]+)-([A-Za-z0-9+/=]+)$/.exec((code||'').replace(/\s+/g,''));
  if(!m)return'Это не похоже на код сохранения Arena Clash';if(fnv(m[2]).toString(36)!==m[1])return'Код повреждён: скопируй его целиком';
@@ -2444,7 +2447,7 @@ function importCode(code){const m=/^AC3-([0-9a-z]+)-([A-Za-z0-9+/=]+)$/.exec((co
    иначе ждёт («Ждём соперника»). Раз в NET_HASH_EVERY тиков стороны сверяют контрольную сумму состояния: расхождение — бой останавливается.
    Транспорт — любой объект {send(msg), close()}, у которого мы ставим onmsg/onclose (PeerJS в игре, заглушка в тестах). */
 let ME=0;                       // какая сторона моя: 0 — внизу, 1 — гость сети (камера развёрнута)
-const NET_BUILD='6df630654e';    // версия игры: у друзей должна совпадать, иначе бой разойдётся
+const NET_BUILD='d5eaf8f779';    // версия игры: у друзей должна совпадать, иначе бой разойдётся
 const NET_D=8,NET_HASH_EVERY=60;
 const NET={on:false,tr:null,me:0,in:[new Map(),new Map()],out:[],mine:new Map(),theirs:new Map(),fail:null,gone:false,waitT:0};
 /* контрольная сумма состояния: всё, что влияет на исход боя, округлено до 1e-4 */
@@ -2877,6 +2880,7 @@ function openSettings(){const sh=$('#sheet');let armed=false;
   <h4>СОХРАНЕНИЕ</h4><p class="note">Прогресс хранится в этом браузере и может стереться вместе с его данными. Скопируй код и держи его в заметках: по нему прогресс восстановится на любом устройстве.</p>
   <textarea id="exp" readonly rows="3" aria-label="Код сохранения"></textarea><button class="ghost" id="cpy">Скопировать код</button>
   <textarea id="imp" rows="3" placeholder="Вставь сюда код сохранения" aria-label="Код для загрузки"></textarea><button class="ghost" id="ld">Загрузить прогресс из кода</button><p class="note" id="imsg" role="status"></p>
+  <h4>ВСЁ ОТКРЫТО</h4><p class="note">Все карты на 16-м уровне, все арены, уровень короля, эволюции и герои.</p><button class="ghost" id="all">Открыть все карты на максимум</button>
   <h4>СБРОС</h4><button class="ghost danger" id="rst">Начать заново</button>
   <button class="big blue" id="shx">Готово</button></div>`;
  sh.hidden=false;sh.onclick=e=>{if(e.target===sh)closeSheet()};$('#exp').value=exportCode();
@@ -2892,6 +2896,7 @@ function openSettings(){const sh=$('#sheet');let armed=false;
  $('#cpy').onclick=()=>{const t=$('#exp');t.value=exportCode();const sel2=()=>{t.focus();t.select();$('#imsg').textContent='Код выделен — скопируй его вручную'};
   try{navigator.clipboard.writeText(t.value).then(()=>{$('#imsg').textContent='Код скопирован'},sel2)}catch(e){sel2()}};
  $('#ld').onclick=()=>{const err=importCode($('#imp').value);if(err){$('#imsg').textContent=err;AU.sfx('deny');return}AU.sfx('win');closeSheet();tab='play';renderHome();toast('Прогресс загружен')};
+ $('#all').onclick=()=>{unlockAll();closeSheet();tab='cards';renderHome();toast('Все карты открыты на максимуме')};
  $('#rst').onclick=()=>{if(!armed){armed=true;$('#rst').textContent='Точно? Всё пропадёт — нажми ещё раз';return}P=freshProfile();saveP();closeSheet();tab='play';renderHome();toast('Начинаем с нуля')};
  $('#shx').onclick=()=>{$('#nmi').onchange();closeSheet()};$('#shx').focus()}
 

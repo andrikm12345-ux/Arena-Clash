@@ -233,6 +233,9 @@ function eventReward(id){const e=evDay(),first=!e.won.includes(id),a=curArena(),
 function draftPairs(){const a=curArena(),pool=shuffleV(CARD_IDS.filter(k=>ARENA_OF[k]<=Math.max(a,2)&&!CARDS[k].ability)),pairs=[];for(let i=0;i<8;i++)pairs.push([pool[i*2],pool[i*2+1]]);return pairs}
 
 /* ---------- сохранение кодом ---------- */
+/* «Открыть всё»: все карты на максимуме, все арены, уровень короля, эволюции и герои */
+function unlockAll(){for(const k of CARD_IDS)P.cards[k]={lv:MAXLV,n:0};P.kl=KL_MAX;P.tr=Math.max(P.tr,ARENAS[ARENAS.length-1].tr);P.best=Math.max(P.best,P.tr);P.arSeen=Math.max(P.arSeen,ARENAS.length-1);
+ for(const k of Object.keys(EVO))if(P.cards[k]&&!P.evo.includes(k))P.evo.push(k);for(const k of Object.keys(HERO))if(P.cards[k]&&!P.heroes.includes(k))P.heroes.push(k);saveP()}
 function exportCode(){const b=new TextEncoder().encode(JSON.stringify(P));let bin='';for(const x of b)bin+=String.fromCharCode(x);const c=btoa(bin);return'AC3-'+fnv(c).toString(36)+'-'+c}
 function importCode(code){const m=/^AC3-([0-9a-z]+)-([A-Za-z0-9+/=]+)$/.exec((code||'').replace(/\s+/g,''));
  if(!m)return'Это не похоже на код сохранения Arena Clash';if(fnv(m[2]).toString(36)!==m[1])return'Код повреждён: скопируй его целиком';

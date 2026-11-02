@@ -342,6 +342,7 @@ function openSettings(){const sh=$('#sheet');let armed=false;
   <h4>СОХРАНЕНИЕ</h4><p class="note">Прогресс хранится в этом браузере и может стереться вместе с его данными. Скопируй код и держи его в заметках: по нему прогресс восстановится на любом устройстве.</p>
   <textarea id="exp" readonly rows="3" aria-label="Код сохранения"></textarea><button class="ghost" id="cpy">Скопировать код</button>
   <textarea id="imp" rows="3" placeholder="Вставь сюда код сохранения" aria-label="Код для загрузки"></textarea><button class="ghost" id="ld">Загрузить прогресс из кода</button><p class="note" id="imsg" role="status"></p>
+  <h4>ВСЁ ОТКРЫТО</h4><p class="note">Все карты на 16-м уровне, все арены, уровень короля, эволюции и герои.</p><button class="ghost" id="all">Открыть все карты на максимум</button>
   <h4>СБРОС</h4><button class="ghost danger" id="rst">Начать заново</button>
   <button class="big blue" id="shx">Готово</button></div>`;
  sh.hidden=false;sh.onclick=e=>{if(e.target===sh)closeSheet()};$('#exp').value=exportCode();
@@ -357,6 +358,7 @@ function openSettings(){const sh=$('#sheet');let armed=false;
  $('#cpy').onclick=()=>{const t=$('#exp');t.value=exportCode();const sel2=()=>{t.focus();t.select();$('#imsg').textContent='Код выделен — скопируй его вручную'};
   try{navigator.clipboard.writeText(t.value).then(()=>{$('#imsg').textContent='Код скопирован'},sel2)}catch(e){sel2()}};
  $('#ld').onclick=()=>{const err=importCode($('#imp').value);if(err){$('#imsg').textContent=err;AU.sfx('deny');return}AU.sfx('win');closeSheet();tab='play';renderHome();toast('Прогресс загружен')};
+ $('#all').onclick=()=>{unlockAll();closeSheet();tab='cards';renderHome();toast('Все карты открыты на максимуме')};
  $('#rst').onclick=()=>{if(!armed){armed=true;$('#rst').textContent='Точно? Всё пропадёт — нажми ещё раз';return}P=freshProfile();saveP();closeSheet();tab='play';renderHome();toast('Начинаем с нуля')};
  $('#shx').onclick=()=>{$('#nmi').onchange();closeSheet()};$('#shx').focus()}
 
